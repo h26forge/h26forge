@@ -1,0 +1,16 @@
+[package]
+name = "minimp4"
+version = "0.1.0"
+authors = ["DarkSky"]
+edition = "2018"
+description = "A minimp4 Rust binding"
+include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE"]
+license = "AGPL-3.0-or-later"
+homepage = "https://github.com/darkskygit/minimp4.rs"
+readme = "README.md"
+keywords = ["minimp4", "mp4", "muxer", "h264", "h265"]
+repository = "https://github.com/darkskygit/minimp4.rs"
+
+[dependencies]
+libc = "0.2.66"
+minimp4-sys = {path="minimp4-sys" } #"0.1.0"

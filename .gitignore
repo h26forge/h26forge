@@ -1,0 +1,14 @@
+/target
+/tmp
+/output
+**/*.rs.bk
+Cargo.lock
+*.bak
+*.log
+*.hex
+*.diff
+*.cabac_diff
+temp.json
+temp.py
+h26forge
+h26forge.exe

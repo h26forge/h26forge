@@ -1,0 +1,17 @@
+[package]
+name = "minimp4-sys"
+version = "0.1.0"
+authors = ["DarkSky"]
+edition = "2018"
+description = "A minimp4 ffi binding"
+include = ["src/**/*", "build.rs", "minimp4.*", "Cargo.toml", "README.md", "LICENSE"]
+license = "AGPL-3.0-or-later"
+homepage = "https://github.com/darkskygit/minimp4.rs"
+readme = "README.md"
+keywords = ["minimp4", "ffi", "bindings"]
+repository = "https://github.com/darkskygit/minimp4.rs"
+categories = ["external-ffi-bindings"]
+
+[build-dependencies]
+bindgen = "~0.60"
+cc = "1.0.48"

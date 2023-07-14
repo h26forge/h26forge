@@ -1,0 +1,2368 @@
+{
+  "random_video_config": {
+    "num_nalus": {
+      "min": 4,
+      "max": 10
+    },
+    "enable_extensions": {
+      "min": 0,
+      "max": 1,
+      "threshold": 10
+    },
+    "mp4_width": {
+      "min": 0,
+      "max": 10000
+    },
+    "mp4_height": {
+      "min": 0,
+      "max": 10000
+    }
+  },
+  "random_nalu_range": {
+    "forbidden_zero_bit": {
+      "min": 0,
+      "max": 0
+    },
+    "nal_ref_idc": {
+      "min": 0,
+      "max": 3
+    },
+    "nal_unit_type": {
+      "values": [
+        1,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    "nal_unit_slice_type": {
+      "values": [
+        1,
+        5
+      ]
+    },
+    "nal_unit_extension_type": {
+      "values": [
+        1,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        14,
+        15,
+        20
+      ]
+    },
+    "nal_unit_undefined_type": {
+      "values": [
+        17,
+        18,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        0
+      ]
+    },
+    "svc_extension_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "random_svc_extension": {
+      "idr_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "priority_id": {
+        "min": 0,
+        "max": 255
+      },
+      "no_inter_layer_pred_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "dependency_id": {
+        "min": 0,
+        "max": 255
+      },
+      "quality_id": {
+        "min": 0,
+        "max": 255
+      },
+      "temporal_id": {
+        "min": 0,
+        "max": 255
+      },
+      "use_ref_base_pic_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "discardable_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "output_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "reserved_three_2bits": {
+        "min": 0,
+        "max": 255
+      }
+    },
+    "avc_3d_extension_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "random_avc_3d_extension": {
+      "view_idx": {
+        "min": 0,
+        "max": 255
+      },
+      "depth_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "non_idr_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "temporal_id": {
+        "min": 0,
+        "max": 255
+      },
+      "anchor_pic_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "inter_view_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      }
+    },
+    "random_mvc_extension": {
+      "non_idr_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "priority_id": {
+        "min": 0,
+        "max": 255
+      },
+      "view_id": {
+        "min": 0,
+        "max": 255
+      },
+      "temporal_id": {
+        "min": 0,
+        "max": 255
+      },
+      "anchor_pic_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "inter_view_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "reserved_one_bit": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      }
+    },
+    "bias_idr_nalu": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "bias_slice_nalu": {
+      "min": 0,
+      "max": 9,
+      "threshold": 1
+    },
+    "bias_undefined_nalu": {
+      "min": 0,
+      "max": 9,
+      "threshold": 9
+    },
+    "filler_data_nalu_length": {
+      "min": 1,
+      "max": 128
+    },
+    "undefined_nalu_length": {
+      "min": 1,
+      "max": 128
+    }
+  },
+  "random_access_unit_delim_range": {
+    "primary_pic_type": {
+      "min": 0,
+      "max": 7
+    }
+  },
+  "random_sps_range": {
+    "profile_idc": {
+      "values": [
+        77,
+        66,
+        100
+      ]
+    },
+    "profile_idc_extension": {
+      "values": [
+        77,
+        66,
+        100,
+        88,
+        118,
+        128,
+        44,
+        110,
+        122,
+        144,
+        244
+      ]
+    },
+    "constraint_set0_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "constraint_set1_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "constraint_set2_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "constraint_set3_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "constraint_set4_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "constraint_set5_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "reserved_zero_2bits": {
+      "min": 0,
+      "max": 0
+    },
+    "level_idc": {
+      "values": [
+        10,
+        11,
+        12,
+        13,
+        20,
+        21,
+        22,
+        30,
+        31,
+        32,
+        40,
+        41,
+        42,
+        50,
+        51,
+        52,
+        0,
+        9,
+        60,
+        61,
+        62
+      ]
+    },
+    "seq_parameter_set_id": {
+      "min": 0,
+      "max": 31
+    },
+    "chroma_format_idc": {
+      "min": 0,
+      "max": 3
+    },
+    "separate_colour_plane_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 10
+    },
+    "bit_depth_luma_minus8": {
+      "min": 0,
+      "max": 6
+    },
+    "bit_depth_chroma_minus8": {
+      "min": 0,
+      "max": 6
+    },
+    "qpprime_y_zero_transform_bypass_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "seq_scaling_matrix_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "seq_scaling_list_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "delta_scale": {
+      "min": -128,
+      "max": 127
+    },
+    "log2_max_frame_num_minus4": {
+      "min": 0,
+      "max": 12
+    },
+    "pic_order_cnt_type": {
+      "min": 0,
+      "max": 2
+    },
+    "log2_max_pic_order_cnt_lsb_minus4": {
+      "min": 0,
+      "max": 12
+    },
+    "delta_pic_order_always_zero_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "offset_for_non_ref_pic": {
+      "min": -1073741824,
+      "max": 1073741823
+    },
+    "offset_for_top_to_bottom_field": {
+      "min": -1073741824,
+      "max": 1073741823
+    },
+    "num_ref_frames_in_pic_order_cnt_cycle": {
+      "min": 0,
+      "max": 255
+    },
+    "offset_for_ref_frame": {
+      "min": -1073741824,
+      "max": 1073741823
+    },
+    "max_num_ref_frames": {
+      "min": 0,
+      "max": 10000
+    },
+    "gaps_in_frame_num_value_allowed_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "pic_width_in_mbs_minus1": {
+      "min": 0,
+      "max": 1024
+    },
+    "pic_height_in_map_units_minus1": {
+      "min": 0,
+      "max": 1024
+    },
+    "frame_mbs_only_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "mb_adaptive_frame_field_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "direct_8x8_inference_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "frame_cropping_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "frame_crop_left_offset": {
+      "min": 0,
+      "max": 4294967295,
+      "use_dependency": false
+    },
+    "frame_crop_right_offset": {
+      "min": 0,
+      "max": 4294967295,
+      "use_dependency": false
+    },
+    "frame_crop_top_offset": {
+      "min": 0,
+      "max": 4294967295,
+      "use_dependency": false
+    },
+    "frame_crop_bottom_offset": {
+      "min": 0,
+      "max": 4294967295,
+      "use_dependency": false
+    },
+    "vui_parameters_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "random_vui_range": {
+      "aspect_ratio_info_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "aspect_ratio_idc": {
+        "min": 255,
+        "max": 255
+      },
+      "sar_width": {
+        "min": 0,
+        "max": 65535
+      },
+      "sar_height": {
+        "min": 0,
+        "max": 65535
+      },
+      "overscan_info_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "overscan_appropriate_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "video_signal_type_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "video_format": {
+        "min": 0,
+        "max": 7
+      },
+      "video_full_range_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "colour_description_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "colour_primaries": {
+        "min": 0,
+        "max": 255
+      },
+      "transfer_characteristics": {
+        "min": 0,
+        "max": 255
+      },
+      "matrix_coefficients": {
+        "min": 0,
+        "max": 255
+      },
+      "chroma_loc_info_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 10
+      },
+      "chroma_sample_loc_type_top_field": {
+        "min": 0,
+        "max": 5
+      },
+      "chroma_sample_loc_type_bottom_field": {
+        "min": 0,
+        "max": 5
+      },
+      "timing_info_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 10
+      },
+      "num_units_in_tick": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "time_scale": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "fixed_frame_rate_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "nal_hrd_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 10
+      },
+      "vcl_hrd_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 10
+      },
+      "low_delay_hrd_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "pic_struct_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "bitstream_restriction_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 10
+      },
+      "motion_vectors_over_pic_boundaries_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "max_bytes_per_pic_denom": {
+        "min": 0,
+        "max": 16
+      },
+      "max_bits_per_mb_denom": {
+        "min": 0,
+        "max": 16
+      },
+      "log2_max_mv_length_horizontal": {
+        "min": 0,
+        "max": 15
+      },
+      "log2_max_mv_length_vertical": {
+        "min": 0,
+        "max": 15
+      },
+      "max_num_reorder_frames": {
+        "min": 0,
+        "max": 16
+      },
+      "max_dec_frame_buffering": {
+        "min": 0,
+        "max": 255,
+        "use_dependency": true
+      },
+      "random_hdr_range": {
+        "cpb_cnt_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "bit_rate_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "cpb_size_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "bit_rate_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cpb_size_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cbr_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "initial_cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "dpb_output_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "time_offset_length": {
+          "min": 0,
+          "max": 31
+        }
+      }
+    },
+    "bias_same_bit_depth": {
+      "min": 0,
+      "max": 50,
+      "threshold": 1
+    }
+  },
+  "random_subset_sps_range": {
+    "random_sps_range": {
+      "profile_idc": {
+        "values": [
+          77,
+          66,
+          100
+        ]
+      },
+      "profile_idc_extension": {
+        "values": [
+          77,
+          66,
+          100,
+          88,
+          118,
+          128,
+          44,
+          110,
+          122,
+          144,
+          244
+        ]
+      },
+      "constraint_set0_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "constraint_set1_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "constraint_set2_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "constraint_set3_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "constraint_set4_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "constraint_set5_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "reserved_zero_2bits": {
+        "min": 0,
+        "max": 0
+      },
+      "level_idc": {
+        "values": [
+          10,
+          11,
+          12,
+          13,
+          20,
+          21,
+          22,
+          30,
+          31,
+          32,
+          40,
+          41,
+          42,
+          50,
+          51,
+          52,
+          0,
+          9,
+          60,
+          61,
+          62
+        ]
+      },
+      "seq_parameter_set_id": {
+        "min": 0,
+        "max": 31
+      },
+      "chroma_format_idc": {
+        "min": 0,
+        "max": 3
+      },
+      "separate_colour_plane_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 10
+      },
+      "bit_depth_luma_minus8": {
+        "min": 0,
+        "max": 10
+      },
+      "bit_depth_chroma_minus8": {
+        "min": 0,
+        "max": 10
+      },
+      "qpprime_y_zero_transform_bypass_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "seq_scaling_matrix_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "seq_scaling_list_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "delta_scale": {
+        "min": -128,
+        "max": 127
+      },
+      "log2_max_frame_num_minus4": {
+        "min": 0,
+        "max": 8
+      },
+      "pic_order_cnt_type": {
+        "min": 0,
+        "max": 2
+      },
+      "log2_max_pic_order_cnt_lsb_minus4": {
+        "min": 0,
+        "max": 11
+      },
+      "delta_pic_order_always_zero_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "offset_for_non_ref_pic": {
+        "min": -1073741824,
+        "max": 1073741823
+      },
+      "offset_for_top_to_bottom_field": {
+        "min": -1073741824,
+        "max": 1073741823
+      },
+      "num_ref_frames_in_pic_order_cnt_cycle": {
+        "min": 0,
+        "max": 255
+      },
+      "offset_for_ref_frame": {
+        "min": -1073741824,
+        "max": 1073741823
+      },
+      "max_num_ref_frames": {
+        "min": 0,
+        "max": 255
+      },
+      "gaps_in_frame_num_value_allowed_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "pic_width_in_mbs_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "pic_height_in_map_units_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "frame_mbs_only_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "mb_adaptive_frame_field_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "direct_8x8_inference_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "frame_cropping_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "frame_crop_left_offset": {
+        "min": 0,
+        "max": 4294967295,
+        "use_dependency": false
+      },
+      "frame_crop_right_offset": {
+        "min": 0,
+        "max": 4294967295,
+        "use_dependency": false
+      },
+      "frame_crop_top_offset": {
+        "min": 0,
+        "max": 4294967295,
+        "use_dependency": false
+      },
+      "frame_crop_bottom_offset": {
+        "min": 0,
+        "max": 4294967295,
+        "use_dependency": false
+      },
+      "vui_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "random_vui_range": {
+        "aspect_ratio_info_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "aspect_ratio_idc": {
+          "min": 0,
+          "max": 255
+        },
+        "sar_width": {
+          "min": 0,
+          "max": 65535
+        },
+        "sar_height": {
+          "min": 0,
+          "max": 65535
+        },
+        "overscan_info_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "overscan_appropriate_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "video_signal_type_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "video_format": {
+          "min": 0,
+          "max": 7
+        },
+        "video_full_range_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "colour_description_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "colour_primaries": {
+          "min": 0,
+          "max": 255
+        },
+        "transfer_characteristics": {
+          "min": 0,
+          "max": 255
+        },
+        "matrix_coefficients": {
+          "min": 0,
+          "max": 255
+        },
+        "chroma_loc_info_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "chroma_sample_loc_type_top_field": {
+          "min": 0,
+          "max": 5
+        },
+        "chroma_sample_loc_type_bottom_field": {
+          "min": 0,
+          "max": 5
+        },
+        "timing_info_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "num_units_in_tick": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "time_scale": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "fixed_frame_rate_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "nal_hrd_parameters_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "vcl_hrd_parameters_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "low_delay_hrd_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "pic_struct_present_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "bitstream_restriction_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "motion_vectors_over_pic_boundaries_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "max_bytes_per_pic_denom": {
+          "min": 0,
+          "max": 16
+        },
+        "max_bits_per_mb_denom": {
+          "min": 0,
+          "max": 16
+        },
+        "log2_max_mv_length_horizontal": {
+          "min": 0,
+          "max": 15
+        },
+        "log2_max_mv_length_vertical": {
+          "min": 0,
+          "max": 15
+        },
+        "max_num_reorder_frames": {
+          "min": 0,
+          "max": 16
+        },
+        "max_dec_frame_buffering": {
+          "min": 0,
+          "max": 255,
+          "use_dependency": true
+        },
+        "random_hdr_range": {
+          "cpb_cnt_minus1": {
+            "min": 0,
+            "max": 31
+          },
+          "bit_rate_scale": {
+            "min": 0,
+            "max": 15
+          },
+          "cpb_size_scale": {
+            "min": 0,
+            "max": 15
+          },
+          "bit_rate_value_minus1": {
+            "min": 0,
+            "max": 4294967295
+          },
+          "cpb_size_value_minus1": {
+            "min": 0,
+            "max": 4294967295
+          },
+          "cbr_flag": {
+            "min": 0,
+            "max": 1,
+            "threshold": 1
+          },
+          "initial_cpb_removal_delay_length_minus1": {
+            "min": 0,
+            "max": 31
+          },
+          "cpb_removal_delay_length_minus1": {
+            "min": 0,
+            "max": 31
+          },
+          "dpb_output_delay_length_minus1": {
+            "min": 0,
+            "max": 31
+          },
+          "time_offset_length": {
+            "min": 0,
+            "max": 31
+          }
+        }
+      },
+      "bias_same_bit_depth": {
+        "min": 0,
+        "max": 50,
+        "threshold": 1
+      }
+    },
+    "random_sps_svc_range": {},
+    "svc_vui_parameters_present_flag": {
+      "min": 0,
+      "max": 0,
+      "threshold": 1
+    },
+    "random_svc_vui_range": {},
+    "bit_equal_to_one": {
+      "min": 1,
+      "max": 1
+    },
+    "random_sps_mvc_range": {
+      "num_views_minus1": {
+        "min": 0,
+        "max": 1023
+      },
+      "view_id": {
+        "min": 0,
+        "max": 255
+      },
+      "num_anchor_refs_l0": {
+        "min": 0,
+        "max": 255
+      },
+      "anchor_refs_l0": {
+        "min": 0,
+        "max": 255
+      },
+      "num_anchor_refs_l1": {
+        "min": 0,
+        "max": 255
+      },
+      "anchor_refs_l1": {
+        "min": 0,
+        "max": 255
+      },
+      "num_non_anchor_refs_l0": {
+        "min": 0,
+        "max": 255
+      },
+      "non_anchor_refs_l0": {
+        "min": 0,
+        "max": 255
+      },
+      "num_non_anchor_refs_l1": {
+        "min": 0,
+        "max": 255
+      },
+      "non_anchor_refs_l1": {
+        "min": 0,
+        "max": 255
+      },
+      "num_level_values_signalled_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "level_idc": {
+        "min": 0,
+        "max": 255
+      },
+      "num_applicable_ops_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "applicable_op_temporal_id": {
+        "min": 0,
+        "max": 7
+      },
+      "applicable_op_num_target_views_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "applicable_op_target_view_id": {
+        "min": 0,
+        "max": 255
+      },
+      "applicable_op_num_views_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "mfc_format_idc": {
+        "min": 0,
+        "max": 63
+      },
+      "default_grid_position_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "view0_grid_position_x": {
+        "min": 0,
+        "max": 15
+      },
+      "view0_grid_position_y": {
+        "min": 0,
+        "max": 15
+      },
+      "view1_grid_position_x": {
+        "min": 0,
+        "max": 15
+      },
+      "view1_grid_position_y": {
+        "min": 0,
+        "max": 15
+      },
+      "rpu_filter_enabled_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "rpu_field_processing_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      }
+    },
+    "mvc_vui_parameters_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "random_mvc_vui_range": {
+      "vui_mvc_num_ops_minus1": {
+        "min": 0,
+        "max": 1000
+      },
+      "vui_mvc_temporal_id": {
+        "min": 0,
+        "max": 7
+      },
+      "vui_mvc_num_target_output_views_minus1": {
+        "min": 0,
+        "max": 10000
+      },
+      "vui_mvc_view_id": {
+        "min": 0,
+        "max": 10000
+      },
+      "vui_mvc_timing_info_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_mvc_num_units_in_tick": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "vui_mvc_time_scale": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "vui_mvc_fixed_frame_rate_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_mvc_nal_hrd_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_mvc_nal_hrd_parameters": {
+        "cpb_cnt_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "bit_rate_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "cpb_size_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "bit_rate_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cpb_size_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cbr_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "initial_cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "dpb_output_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "time_offset_length": {
+          "min": 0,
+          "max": 31
+        }
+      },
+      "vui_mvc_vcl_hrd_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_mvc_vcl_hrd_parameters": {
+        "cpb_cnt_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "bit_rate_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "cpb_size_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "bit_rate_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cpb_size_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cbr_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "initial_cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "dpb_output_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "time_offset_length": {
+          "min": 0,
+          "max": 31
+        }
+      },
+      "vui_mvc_low_delay_hrd_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_mvc_pic_struct_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      }
+    },
+    "random_sps_mvcd_range": {},
+    "random_sps_3davc_range": {},
+    "num_additional_extension2_flag": {
+      "min": 0,
+      "max": 0
+    },
+    "additional_extension2_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    }
+  },
+  "random_prefix_nalu_range": {
+    "store_ref_base_pic_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "adaptive_ref_base_pic_marking_mode_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "num_modifications": {
+      "min": 1,
+      "max": 200
+    },
+    "memory_management_base_control_operation": {
+      "min": 1,
+      "max": 3
+    },
+    "difference_of_base_pic_nums_minus1": {
+      "min": 0,
+      "max": 100
+    },
+    "long_term_base_pic_num": {
+      "min": 0,
+      "max": 100
+    },
+    "num_data_extensions": {
+      "min": 0,
+      "max": 10
+    },
+    "additional_prefix_nal_unit_extension_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "additional_prefix_nal_unit_extension_data_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    }
+  },
+  "random_pps_range": {
+    "pic_parameter_set_id": {
+      "min": 0,
+      "max": 260
+    },
+    "entropy_coding_mode_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "bottom_field_pic_order_in_frame_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "num_slice_groups_minus1": {
+      "min": 0,
+      "max": 0
+    },
+    "slice_group_map_type": {
+      "min": 0,
+      "max": 5
+    },
+    "run_length_minus1": {
+      "min": 0,
+      "max": 16777216
+    },
+    "top_left": {
+      "min": 0,
+      "max": 16777216
+    },
+    "bottom_right": {
+      "min": 0,
+      "max": 16777216
+    },
+    "slice_group_change_direction_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "slice_group_change_rate_minus1": {
+      "min": 0,
+      "max": 16777216
+    },
+    "pic_size_in_map_units_minus1": {
+      "min": 0,
+      "max": 16777216
+    },
+    "slice_group_id": {
+      "min": 0,
+      "max": 30
+    },
+    "num_ref_idx_l0_default_active_minus1": {
+      "min": 0,
+      "max": 31
+    },
+    "num_ref_idx_l1_default_active_minus1": {
+      "min": 0,
+      "max": 31
+    },
+    "weighted_pred_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "weighted_bipred_idc": {
+      "min": 0,
+      "max": 2
+    },
+    "pic_init_qp_minus26": {
+      "min": -26,
+      "max": 25
+    },
+    "pic_init_qs_minus26": {
+      "min": -26,
+      "max": 25
+    },
+    "chroma_qp_index_offset": {
+      "min": -12,
+      "max": 12
+    },
+    "deblocking_filter_control_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "constrained_intra_pred_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "redundant_pic_cnt_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "include_more_data": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "transform_8x8_mode_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "pic_scaling_matrix_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "pic_scaling_list_present_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "delta_scale": {
+      "min": -128,
+      "max": 127
+    },
+    "second_chroma_qp_index_offset": {
+      "min": -300,
+      "max": 300
+    },
+    "bias_ignore_slice_groups": {
+      "min": 0,
+      "max": 10,
+      "threshold": 100
+    }
+  },
+  "random_sei_range": {
+    "random_buffering_period_range": {
+      "seq_parameter_set_id": {
+        "min": 0,
+        "max": 32,
+        "use_dependency": true
+      },
+      "initial_cpb_removal_delay": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "initial_cpb_removal_delay_offset": {
+        "min": 0,
+        "max": 4294967295
+      }
+    },
+    "random_pic_timing_range": {
+      "cpb_removal_delay": {
+        "min": 0,
+        "max": 32,
+        "use_dependency": true
+      },
+      "dpb_output_delay": {
+        "min": 0,
+        "max": 32,
+        "use_dependency": true
+      },
+      "pic_struct": {
+        "min": 0,
+        "max": 15
+      },
+      "clock_timestamp_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "ct_type": {
+        "min": 0,
+        "max": 3
+      },
+      "nuit_field_based_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "counting_type": {
+        "min": 0,
+        "max": 31
+      },
+      "full_timestamp_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "discontinuity_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "cnt_dropped_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "n_frames": {
+        "min": 0,
+        "max": 255
+      },
+      "seconds_value": {
+        "min": 0,
+        "max": 63
+      },
+      "minutes_value": {
+        "min": 0,
+        "max": 63
+      },
+      "hours_value": {
+        "min": 0,
+        "max": 31
+      },
+      "seconds_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "minutes_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "hours_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "time_offset": {
+        "min": 0,
+        "max": 32,
+        "use_dependency": true
+      }
+    },
+    "random_user_data_unregistered_range": {
+      "uuid_iso_iec_11578": {
+        "min": 0,
+        "max": 2
+      },
+      "user_data_apple1": {
+        "mystery_param1": {
+          "min": 0,
+          "max": 255
+        }
+      },
+      "user_data_apple2": {
+        "mystery_param1": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param2": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param3": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param4": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param5": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param6": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param7": {
+          "min": 0,
+          "max": 255
+        },
+        "mystery_param8": {
+          "min": 0,
+          "max": 255
+        }
+      },
+      "user_data_payload_length": {
+        "min": 10,
+        "max": 100
+      }
+    },
+    "random_recovery_point_range": {
+      "recovery_frame_cnt": {
+        "min": 0,
+        "max": 100000
+      },
+      "exact_match_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "broken_link_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "changing_slice_group_idc": {
+        "min": 0,
+        "max": 3
+      }
+    },
+    "random_film_grain_char_range": {
+      "film_grain_characteristics_cancel_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "film_grain_model_id": {
+        "min": 0,
+        "max": 3
+      },
+      "separate_colour_description_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "film_grain_bit_depth_luma_minus8": {
+        "min": 0,
+        "max": 7
+      },
+      "film_grain_bit_depth_chroma_minus8": {
+        "min": 0,
+        "max": 7
+      },
+      "film_grain_full_range_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "film_grain_colour_primaries": {
+        "min": 0,
+        "max": 255
+      },
+      "film_grain_transfer_characteristics": {
+        "min": 0,
+        "max": 255
+      },
+      "film_grain_matrix_coefficients": {
+        "min": 0,
+        "max": 255
+      },
+      "blending_mode_id": {
+        "min": 0,
+        "max": 255
+      },
+      "log2_scale_factor": {
+        "min": 0,
+        "max": 3
+      },
+      "comp_model_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "num_intensity_intervals_minus1": {
+        "min": 0,
+        "max": 255
+      },
+      "num_model_values_minus1": {
+        "min": 0,
+        "max": 7
+      },
+      "intensity_interval_lower_bound": {
+        "min": 0,
+        "max": 255
+      },
+      "intensity_interval_upper_bound": {
+        "min": 0,
+        "max": 255
+      },
+      "comp_model_value": {
+        "min": -2147483648,
+        "max": 2147483647
+      },
+      "film_grain_characteristics_repetition_period": {
+        "min": 0,
+        "max": 4294967295
+      }
+    },
+    "num_seis": {
+      "min": 1,
+      "max": 1
+    },
+    "payload_type": {
+      "values": [
+        0,
+        1,
+        5,
+        6
+      ]
+    }
+  },
+  "random_slice_header_range": {
+    "first_mb_in_slice": {
+      "min": 0,
+      "max": 65535,
+      "use_dependency": false
+    },
+    "slice_type": {
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    "colour_plane_id": {
+      "min": 0,
+      "max": 3
+    },
+    "frame_num": {
+      "min": 0,
+      "max": 31,
+      "use_dependency": true
+    },
+    "field_pic_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 10
+    },
+    "bottom_field_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "idr_pic_id": {
+      "min": 0,
+      "max": 655350
+    },
+    "pic_order_cnt_lsb": {
+      "min": 0,
+      "max": 63
+    },
+    "delta_pic_order_cnt_bottom": {
+      "min": -1073741824,
+      "max": 1073741823
+    },
+    "delta_pic_order_cnt": {
+      "min": -1073741824,
+      "max": 1073741823
+    },
+    "redundant_pic_cnt": {
+      "min": 0,
+      "max": 127
+    },
+    "direct_spatial_mv_pred_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "num_ref_idx_active_override_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "num_ref_idx_l0_active_minus1": {
+      "min": 0,
+      "max": 15,
+      "use_dependency": true
+    },
+    "num_ref_idx_l1_active_minus1": {
+      "min": 0,
+      "max": 15,
+      "use_dependency": true
+    },
+    "ref_pic_list_modification_flag_l0": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "number_of_modifications_l0": {
+      "min": 0,
+      "max": 32
+    },
+    "modification_of_pic_nums_idc_l0": {
+      "min": 0,
+      "max": 2
+    },
+    "abs_diff_pic_num_minus1_l0": {
+      "min": 0,
+      "max": 10000
+    },
+    "long_term_pic_num_l0": {
+      "min": 0,
+      "max": 50000
+    },
+    "ref_pic_list_modification_flag_l1": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "number_of_modifications_l1": {
+      "min": 0,
+      "max": 10
+    },
+    "modification_of_pic_nums_idc_l1": {
+      "min": 0,
+      "max": 2
+    },
+    "abs_diff_pic_num_minus1_l1": {
+      "min": 0,
+      "max": 10000
+    },
+    "long_term_pic_num_l1": {
+      "min": 0,
+      "max": 5000
+    },
+    "abs_diff_view_idx_minus1_l0": {
+      "min": 0,
+      "max": 1000
+    },
+    "abs_diff_view_idx_minus1_l1": {
+      "min": 0,
+      "max": 1000
+    },
+    "luma_log2_weight_denom": {
+      "min": 0,
+      "max": 7
+    },
+    "chroma_log2_weight_denom": {
+      "min": 0,
+      "max": 7
+    },
+    "luma_weight_l0_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "luma_weight_l0": {
+      "min": -128,
+      "max": 127
+    },
+    "luma_offset_l0": {
+      "min": -128,
+      "max": 127
+    },
+    "chroma_weight_l0_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "chroma_weight_l0": {
+      "min": -128,
+      "max": 127
+    },
+    "chroma_offset_l0": {
+      "min": -128,
+      "max": 127
+    },
+    "luma_weight_l1_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "luma_weight_l1": {
+      "min": -128,
+      "max": 127
+    },
+    "luma_offset_l1": {
+      "min": -128,
+      "max": 127
+    },
+    "chroma_weight_l1_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "chroma_weight_l1": {
+      "min": -128,
+      "max": 127
+    },
+    "chroma_offset_l1": {
+      "min": -128,
+      "max": 127
+    },
+    "no_output_of_prior_pics_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "long_term_reference_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "adaptive_ref_pic_marking_mode_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "number_of_mem_ops": {
+      "min": 0,
+      "max": 32
+    },
+    "memory_management_control_operation": {
+      "min": 1,
+      "max": 6
+    },
+    "difference_of_pic_nums_minus1": {
+      "min": 0,
+      "max": 10000
+    },
+    "long_term_pic_num": {
+      "min": 0,
+      "max": 10000
+    },
+    "long_term_frame_idx": {
+      "min": 0,
+      "max": 10000
+    },
+    "max_long_term_frame_idx_plus1": {
+      "min": 0,
+      "max": 10000
+    },
+    "cabac_init_idc": {
+      "min": 0,
+      "max": 2
+    },
+    "slice_qp_delta": {
+      "min": -260,
+      "max": 250,
+      "use_dependency": false
+    },
+    "sp_for_switch_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "slice_qs_delta": {
+      "min": -260,
+      "max": 250
+    },
+    "disable_deblocking_filter_idc": {
+      "min": 0,
+      "max": 2
+    },
+    "slice_alpha_c0_offset_div2": {
+      "min": -6,
+      "max": 6
+    },
+    "slice_beta_offset_div2": {
+      "min": -6,
+      "max": 6
+    },
+    "slice_group_change_cycle": {
+      "min": 0,
+      "max": 0
+    },
+    "bias_i_slice": {
+      "min": 0,
+      "max": 20,
+      "threshold": 1
+    },
+    "bias_non_rand_frame_num": {
+      "min": 0,
+      "max": 20,
+      "threshold": 1
+    },
+    "bias_idr_zero_frame_num": {
+      "min": 0,
+      "max": 50,
+      "threshold": 1
+    },
+    "bias_zero_first_mb_in_slice": {
+      "min": 0,
+      "max": 50,
+      "threshold": 1
+    },
+    "bias_slice_qp_y_top_bound": {
+      "min": 0,
+      "max": 100,
+      "threshold": 1
+    },
+    "bias_slice_qp_y_bottom_bound": {
+      "min": 0,
+      "max": 100,
+      "threshold": 1
+    }
+  },
+  "random_mb_range": {
+    "significant_coeff_flag": {
+      "min": 0,
+      "max": 8,
+      "threshold": 3
+    },
+    "last_significant_coeff_flag": {
+      "min": 0,
+      "max": 8,
+      "threshold": 7
+    },
+    "coeff_abs_level_minus1": {
+      "min": 0,
+      "max": 65535
+    },
+    "coeff_sign_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "total_coeff": {
+      "min": 0,
+      "max": 16
+    },
+    "trailing_ones": {
+      "min": 0,
+      "max": 3
+    },
+    "trailing_ones_sign_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "level_prefix": {
+      "min": 0,
+      "max": 31
+    },
+    "level_suffix": {
+      "min": 0,
+      "max": 1000
+    },
+    "total_zeros": {
+      "min": 0,
+      "max": 15
+    },
+    "run_before": {
+      "min": 0,
+      "max": 14
+    },
+    "prev_intra4x4_pred_mode_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "rem_intra4x4_pred_mode": {
+      "min": 0,
+      "max": 7
+    },
+    "prev_intra8x8_pred_mode_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "rem_intra8x8_pred_mode": {
+      "min": 0,
+      "max": 7
+    },
+    "intra_chroma_pred_mode": {
+      "min": 0,
+      "max": 3
+    },
+    "ref_idx_l0": {
+      "min": 0,
+      "max": 47
+    },
+    "ref_idx_l1": {
+      "min": 0,
+      "max": 47
+    },
+    "mvd_l0": {
+      "min": -100000,
+      "max": 100000
+    },
+    "mvd_l1": {
+      "min": -100000,
+      "max": 100000
+    },
+    "mb_skip_flag": {
+      "min": 0,
+      "max": 8,
+      "threshold": 8
+    },
+    "mb_skip_run": {
+      "min": 0,
+      "max": 100000
+    },
+    "mb_field_decoding_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "mb_i_type": {
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ]
+    },
+    "mb_si_type": {
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ]
+    },
+    "mb_p_type": {
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    },
+    "mb_b_type": {
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ]
+    },
+    "sub_mb_type_p": {
+      "values": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "sub_mb_type_b": {
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    "pcm_sample_luma": {
+      "min": 0,
+      "max": 255
+    },
+    "pcm_sample_chroma": {
+      "min": 0,
+      "max": 255
+    },
+    "transform_size_8x8_flag": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
+    "coded_block_pattern": {
+      "min": 0,
+      "max": 47
+    },
+    "mb_qp_delta": {
+      "min": -26,
+      "max": 24
+    },
+    "bias_b_p_no_residue": {
+      "min": 0,
+      "max": 50,
+      "threshold": 1
+    },
+    "bias_zero_mb_ref_idx_l0": {
+      "min": 0,
+      "max": 20,
+      "threshold": 1
+    },
+    "bias_zero_mb_ref_idx_l1": {
+      "min": 0,
+      "max": 20,
+      "threshold": 1
+    }
+  }
+}

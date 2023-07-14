@@ -1,0 +1,19 @@
+[package]
+name = "h26forge"
+version = "0.1.0"
+authors = ["wrv <wrv@utexas.edu>"]
+edition = "2021"
+
+[dependencies]
+rand = "0.8.5"
+clap = { version = "4.2.4", features = ["derive"] }
+rand_pcg = "0.3.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "*"
+log4rs = "*"
+minimp4 = {path="minimp4.rs" }
+hex = "0.4.3"
+
+[profile.release]
+lto = true
