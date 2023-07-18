@@ -5,13 +5,13 @@ pub fn exp_golomb_encode_one(val: i32, signed: bool, k: usize, reversed: bool) -
     // Generalization of order k
 
     // encode floor(x/2^k) using order-0 exp-golomb
-    let mut working_num = val >> k;
+    let mut working_num = (val as i64) >> k;
 
     if signed {
         if val <= 0 {
-            working_num = val * -2;
+            working_num = (val as i64) * -2;
         } else {
-            working_num = 2 * val - 1;
+            working_num = 2 * (val as i64) - 1;
         }
     }
     // write x+1 in binary
@@ -72,12 +72,22 @@ mod tests {
             (0i32, vec![1u8]),
             (1i32, vec![0u8, 1u8, 0u8]),
             (2i32, vec![0u8, 1u8, 1u8]),
+            (i32::MAX, vec![
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                1u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8]),
         ];
 
         for r in test_cases.iter() {
             let result = exp_golomb_encode_one(r.0, false, 0, false);
             println!("Expected: {:?}, got: {:?}", r.1, result);
-            assert_eq!(result, r.1);
+            assert_eq!(r.1, result);
         }
     }
 
@@ -87,12 +97,32 @@ mod tests {
             (0i32, vec![1u8]),
             (1i32, vec![0u8, 1u8, 0u8]),
             (-1i32, vec![0u8, 1u8, 1u8]),
+            (i32::MAX, vec![
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                1u8,
+                1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8,
+                1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8,
+                1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8,
+                1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 0u8]),
+            (i32::MIN, vec![
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                1u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8]),
         ];
 
         for r in test_cases.iter() {
             let result = exp_golomb_encode_one(r.0, true, 0, false);
             println!("Expected: {:?}, got: {:?}", r.1, result);
-            assert_eq!(result, r.1);
+            assert_eq!(r.1, result);
         }
     }
 
