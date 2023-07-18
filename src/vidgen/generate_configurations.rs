@@ -501,8 +501,8 @@ impl RandomSliceHeaderRange {
             bottom_field_flag: RandomBoolRange::new(0, 1, 1),
             idr_pic_id: RandomU32Range::new(0, 65535),
             pic_order_cnt_lsb: RandomU32Range::new(0, 63),
-            delta_pic_order_cnt_bottom: RandomI32Range::new(std::i32::MIN >> 1, std::i32::MAX >> 1), // se(v)
-            delta_pic_order_cnt: RandomI32Range::new(std::i32::MIN >> 1, std::i32::MAX >> 1), // se(v)
+            delta_pic_order_cnt_bottom: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
+            delta_pic_order_cnt: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
             redundant_pic_cnt: RandomU32Range::new(0, 31),
             direct_spatial_mv_pred_flag: RandomBoolRange::new(0, 1, 1),
             num_ref_idx_active_override_flag: RandomBoolRange::new(0, 1, 1),
@@ -786,13 +786,10 @@ impl RandomSPSRange {
             pic_order_cnt_type: RandomU32Range::new(0, 2),
             log2_max_pic_order_cnt_lsb_minus4: RandomU32Range::new(0, 11),
             delta_pic_order_always_zero_flag: RandomBoolRange::new(0, 1, 1),
-            offset_for_non_ref_pic: RandomI32Range::new(std::i32::MIN >> 1, std::i32::MAX >> 1), // se(v)
-            offset_for_top_to_bottom_field: RandomI32Range::new(
-                std::i32::MIN >> 1,
-                std::i32::MAX >> 1,
-            ), // se(v)
-            num_ref_frames_in_pic_order_cnt_cycle: RandomU32Range::new(0, 255), // ue(v)
-            offset_for_ref_frame: RandomI32Range::new(std::i32::MIN >> 1, std::i32::MAX >> 1), // se(v)
+            offset_for_non_ref_pic: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
+            offset_for_top_to_bottom_field: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
+            num_ref_frames_in_pic_order_cnt_cycle: RandomU32Range::new(0, 1024), // ue(v)
+            offset_for_ref_frame: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
             max_num_ref_frames: RandomU32Range::new(0, 255),
             gaps_in_frame_num_value_allowed_flag: RandomBoolRange::new(0, 1, 1),
             pic_width_in_mbs_minus1: RandomU32Range::new(0, 255),
