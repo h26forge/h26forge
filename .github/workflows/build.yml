@@ -2,7 +2,7 @@ name: Build, Test, and Package H26Forge
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "release" ]
     #paths:
     #  - '**.rs'
 
