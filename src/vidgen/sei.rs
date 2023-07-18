@@ -350,8 +350,8 @@ fn random_pic_timing(
 
     if cpb_dpb_delays_present_flag {
         // bits to read comes from
-        let cpb_max;
-        let dpb_max;
+        let cpb_max: u64;
+        let dpb_max: u64;
 
         if sps.vui_parameters.nal_hrd_parameters_present_flag {
             cpb_max = 1
@@ -382,8 +382,8 @@ fn random_pic_timing(
                     + 1);
         }
 
-        pt.cpb_removal_delay = rconfig.cpb_removal_delay.sample(0, cpb_max, film);
-        pt.dpb_output_delay = rconfig.dpb_output_delay.sample(0, dpb_max, film);
+        pt.cpb_removal_delay = rconfig.cpb_removal_delay.sample(0, (cpb_max - 1) as u32, film);
+        pt.dpb_output_delay = rconfig.dpb_output_delay.sample(0, (dpb_max - 1) as u32, film);
     }
 
     let pic_struct_present_flag = sps.vui_parameters.pic_struct_present_flag;
