@@ -984,11 +984,22 @@ fn random_slice_header(
     if ds.slices[slice_idx].sh.slice_qp_y > 51 {
         if rconfig.bias_slice_qp_y_top_bound.sample(film) {
             let max_allowed_value = 51 - 26 - pps.pic_init_qp_minus26;
-            ds.slices[slice_idx].sh.slice_qp_delta = rconfig.slice_qp_delta.sample(
-                rconfig.slice_qp_delta.min,
-                max_allowed_value + 1,
-                film,
-            );
+
+            if max_allowed_value < rconfig.slice_qp_delta.min {
+                // This happens because our pps.pic_init_qp_minus26 is already out-of-bounds
+                // So we need to set it to a negative value
+                ds.slices[slice_idx].sh.slice_qp_delta = rconfig.slice_qp_delta.sample(
+                    rconfig.slice_qp_delta.min,
+                    0,
+                    film,
+                );
+            } else {
+                ds.slices[slice_idx].sh.slice_qp_delta = rconfig.slice_qp_delta.sample(
+                    rconfig.slice_qp_delta.min,
+                    max_allowed_value + 1,
+                    film,
+                );
+            }
             ds.slices[slice_idx].sh.slice_qp_y =
                 26 + ds.slices[slice_idx].sh.slice_qp_delta + pps.pic_init_qp_minus26;
         } else {
