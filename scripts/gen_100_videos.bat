@@ -16,7 +16,7 @@ set "uniq_id=!uniq_id:~-10!%"
 
 if not exist "tmp" mkdir tmp
 
-set output_dir=tmp\chrome_100_mp4s_%uniq_id%
+set output_dir=tmp\rand_100_mp4s_%uniq_id%
 set output_log=%output_dir%\rand_100.log
 set tool_args=--mp4 --mp4-rand-size --safestart
 set generation_args=--small --ignore-edge-intra-pred --ignore-ipcm --config config\default.json
