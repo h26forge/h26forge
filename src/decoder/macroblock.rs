@@ -152,10 +152,10 @@ fn decode_sub_mb_type(res: i32, sh: &SliceHeader) -> SubMbType {
 /// Follows Section 7.3.5
 pub fn decode_macroblock_layer(
     curr_mb_idx: usize,
-    mut cabac_state: &mut CABACState,
-    mut bs: &mut ByteStream,
+    cabac_state: &mut CABACState,
+    bs: &mut ByteStream,
     sd: &mut SliceData,
-    mut sh: &mut SliceHeader,
+    sh: &mut SliceHeader,
     vp: &VideoParameters,
     s: &SeqParameterSet,
     p: &PicParameterSet,
@@ -1616,7 +1616,7 @@ fn decode_residual_block_cabac(
     sd: &mut SliceData,
     vp: &VideoParameters,
     mut additional_inputs: Vec<usize>,
-    mut cur_transform_block: &mut TransformBlock,
+    cur_transform_block: &mut TransformBlock,
 ) {
     // additional inputs starts off with containing the BlkIdx, which is necessary for coded_block_flag
     if max_num_coeff != 64 || vp.chroma_array_type == 3 {
@@ -1819,7 +1819,7 @@ fn decode_residual_block_cavlc(
     sd: &mut SliceData,
     vp: &VideoParameters,
     additional_inputs: &[usize],
-    mut cur_transform_block: &mut TransformBlock,
+    cur_transform_block: &mut TransformBlock,
 ) {
     let mut level_val: Vec<i32> = Vec::new();
     let mut run_val: Vec<usize> = Vec::new();

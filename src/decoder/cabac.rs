@@ -1794,7 +1794,7 @@ fn arith_decode(
     idx2: usize,
     idx3: usize,
     bs: &mut ByteStream,
-    mut cs: &mut CABACState,
+    cs: &mut CABACState,
 ) -> u8 {
     // decode_decision()
 
@@ -1847,7 +1847,7 @@ fn arith_decode(
 }
 
 /// arithmetic decoding with p=0.5
-fn decode_bypass(bs: &mut ByteStream, mut cs: &mut CABACState) -> u8 {
+fn decode_bypass(bs: &mut ByteStream, cs: &mut CABACState) -> u8 {
     if CABAC_DEBUG {
         debug!(target: "decode","decode_bypass called");
     }
@@ -1865,7 +1865,7 @@ fn decode_bypass(bs: &mut ByteStream, mut cs: &mut CABACState) -> u8 {
     bin_val
 }
 
-fn decode_terminate(bs: &mut ByteStream, mut cs: &mut CABACState) -> u8 {
+fn decode_terminate(bs: &mut ByteStream, cs: &mut CABACState) -> u8 {
     if CABAC_DEBUG {
         debug!(target: "decode","decode_terminate called");
     }

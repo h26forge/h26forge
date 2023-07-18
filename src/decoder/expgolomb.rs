@@ -3,7 +3,7 @@
 use crate::common::helper::ByteStream;
 
 /// Exp-Golomb decode -- returns an option
-pub fn exp_golomb_decode_one(mut bs: &mut ByteStream, signed: bool, k: u8) -> Option<i32> {
+pub fn exp_golomb_decode_one(bs: &mut ByteStream, signed: bool, k: u8) -> Option<i32> {
     if bs.byte_offset > 7 {
         return None;
     }

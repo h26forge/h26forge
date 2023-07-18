@@ -362,7 +362,7 @@ pub fn decode_prefix_nal_unit_svc(nh: NALUheader, bs: &mut ByteStream) -> Prefix
 }
 
 /// Described in G.7.3.3.5 Decoded reference base picture marking syntax
-fn dec_ref_base_pic_marking(mut res: &mut PrefixNALU, bs: &mut ByteStream) {
+fn dec_ref_base_pic_marking(res: &mut PrefixNALU, bs: &mut ByteStream) {
     res.adaptive_ref_base_pic_marking_mode_flag = 1 == bs.read_bits(1);
     decoder_formatted_print(
         "Prefix NALU: adaptive_ref_base_pic_marking_mode_flag",

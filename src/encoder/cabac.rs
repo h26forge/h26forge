@@ -102,7 +102,7 @@ pub fn initialize_state(nal_unit_count: u32) -> CABACState {
 }
 
 /// Follow Figure 9-9
-fn put_bit(bit: u8, stream: &mut Vec<u8>, mut cs: &mut CABACState) {
+fn put_bit(bit: u8, stream: &mut Vec<u8>, cs: &mut CABACState) {
     if cs.first_bit_flag {
         cs.first_bit_flag = false;
     } else {
@@ -117,7 +117,7 @@ fn put_bit(bit: u8, stream: &mut Vec<u8>, mut cs: &mut CABACState) {
 
 /// Follow Figure 9-8
 /// from_terminate is used to decide when to print out the cod_i_range for debugging
-fn renorm(mut cs: &mut CABACState, from_terminate: bool) -> Vec<u8> {
+fn renorm(cs: &mut CABACState, from_terminate: bool) -> Vec<u8> {
     let mut res: Vec<u8> = Vec::new();
 
     while cs.cod_i_range < 256 {
@@ -144,7 +144,7 @@ fn renorm(mut cs: &mut CABACState, from_terminate: bool) -> Vec<u8> {
 
 /// Follow figure 9-12
 /// only called from encode_terminate
-fn encode_flush(mut cs: &mut CABACState) -> Vec<u8> {
+fn encode_flush(cs: &mut CABACState) -> Vec<u8> {
     let mut res: Vec<u8> = Vec::new();
 
     cs.cod_i_range = 2;
@@ -165,7 +165,7 @@ fn encode_flush(mut cs: &mut CABACState) -> Vec<u8> {
 }
 
 /// Follow figure 9-11
-fn encode_terminate(bit: &u8, mut cs: &mut CABACState) -> Vec<u8> {
+fn encode_terminate(bit: &u8, cs: &mut CABACState) -> Vec<u8> {
     if CABAC_DEBUG {
         debug!(target: "encode","encode_terminate called");
     }
@@ -181,7 +181,7 @@ fn encode_terminate(bit: &u8, mut cs: &mut CABACState) -> Vec<u8> {
     }
 }
 
-fn encode_bypass(bit: u8, mut cs: &mut CABACState) -> Vec<u8> {
+fn encode_bypass(bit: u8, cs: &mut CABACState) -> Vec<u8> {
     if CABAC_DEBUG {
         debug!(target: "encode","encode_bypass called");
     }
@@ -211,7 +211,7 @@ fn encode_bypass(bit: u8, mut cs: &mut CABACState) -> Vec<u8> {
 /// Follow Figure 9-7.
 fn arithmetic_encode(
     bit: &u8,
-    mut cs: &mut CABACState,
+    cs: &mut CABACState,
     idx1: usize,
     idx2: usize,
     idx3: usize,

@@ -337,7 +337,7 @@ fn random_vui(sps: &mut SeqParameterSet, rconfig: RandomVUIRange, film: &mut Fil
 
 /// Generate a random Sequence Parameter Set
 pub fn random_sps(
-    mut sps: &mut SeqParameterSet,
+    sps: &mut SeqParameterSet,
     enable_extensions: bool,
     rconfig: &RandomSPSRange,
     small_video: bool,

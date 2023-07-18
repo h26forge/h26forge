@@ -21,7 +21,7 @@ use crate::decoder::macroblock::decode_macroblock_layer;
 use log::debug;
 
 /// Follows section 7.3.3.1
-fn ref_pic_list_modification(mut sh: &mut SliceHeader, bs: &mut ByteStream) {
+fn ref_pic_list_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
     if sh.slice_type % 5 != 2 && sh.slice_type % 5 != 4 {
         // ref_pic_list_modification_flag_l0
         let r = bs.read_bits(1);
@@ -134,7 +134,7 @@ fn ref_pic_list_modification(mut sh: &mut SliceHeader, bs: &mut ByteStream) {
 }
 
 /// Follows section H.7.3.3.1.1
-fn ref_pic_list_mvc_modification(mut sh: &mut SliceHeader, bs: &mut ByteStream) {
+fn ref_pic_list_mvc_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
     if sh.slice_type % 5 != 2 && sh.slice_type % 5 != 4 {
         // ref_pic_list_modification_flag_l0
         let r = bs.read_bits(1);
@@ -270,7 +270,7 @@ fn ref_pic_list_mvc_modification(mut sh: &mut SliceHeader, bs: &mut ByteStream) 
 }
 
 /// Follows section 7.3.3.2
-fn pred_weight_table(mut sh: &mut SliceHeader, bs: &mut ByteStream, chroma_array_type: u8) {
+fn pred_weight_table(sh: &mut SliceHeader, bs: &mut ByteStream, chroma_array_type: u8) {
     // luma_log2_weight_denom
     sh.luma_log2_weight_denom = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
 
@@ -391,7 +391,7 @@ fn pred_weight_table(mut sh: &mut SliceHeader, bs: &mut ByteStream, chroma_array
 }
 
 /// Follows section 7.3.3.3
-fn dec_ref_pic_marking(mut sh: &mut SliceHeader, bs: &mut ByteStream, idr_pic_flag: bool) {
+fn dec_ref_pic_marking(sh: &mut SliceHeader, bs: &mut ByteStream, idr_pic_flag: bool) {
     if idr_pic_flag {
         let r = bs.read_bits(1);
         sh.no_output_of_prior_pics_flag = r == 1;
@@ -796,7 +796,7 @@ fn next_mb_addr(curr_mb_addr: usize, pic_size_in_mbs: usize, sgm: &Vec<u32>) -> 
 
 /// Follows section 7.3.4
 fn decode_slice_data(
-    mut bs: &mut ByteStream,
+    bs: &mut ByteStream,
     sh: &mut SliceHeader,
     s: &SeqParameterSet,
     p: &PicParameterSet,

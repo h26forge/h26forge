@@ -24,7 +24,7 @@ pub fn encode_macroblock(
     sps: &SeqParameterSet,
     p: &PicParameterSet,
     vp: &VideoParameters,
-    mut cs: &mut cabac::CABACState,
+    cs: &mut cabac::CABACState,
 ) {
     // when decoding with mb_skip_run we'll insert empty Macroblocks in the vector for simplicity
     // we can just return if that's the case
