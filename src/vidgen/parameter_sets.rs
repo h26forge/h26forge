@@ -361,10 +361,12 @@ pub fn random_sps(
     let max_fs_and_dpb_mbs = random_level_idc(sps, rconfig, film);
     sps.seq_parameter_set_id = rconfig.seq_parameter_set_id.sample(film);
 
-    println!(
-        "\t\t SPS seq_parameter_set_id: {}",
-        sps.seq_parameter_set_id
-    );
+    if !silent_mode {
+        println!(
+            "\t\t SPS seq_parameter_set_id: {}",
+            sps.seq_parameter_set_id
+        );
+    }
 
     if sps.profile_idc == 100
         || sps.profile_idc == 110
@@ -392,7 +394,9 @@ pub fn random_sps(
             sps.bit_depth_luma_minus8 = bit_depth;
             sps.bit_depth_chroma_minus8 = bit_depth;
         } else {
-            println!("\t\t SPS with different bit_depth values");
+            if !silent_mode {
+                println!("\t\t SPS with different bit_depth values");
+            }
             sps.bit_depth_luma_minus8 = rconfig.bit_depth_luma_minus8.sample(film) as u8;
             sps.bit_depth_chroma_minus8 = rconfig.bit_depth_chroma_minus8.sample(film) as u8;
         }
@@ -489,14 +493,18 @@ pub fn random_sps(
         - 2 * (sps.frame_crop_left_offset as i64 + sps.frame_crop_right_offset as i64)
         < 0
     {
-        println!("\t\t [WARNING] Underflowing horizontal frame cropping - ignoring cropping in picture size calculation");
+        if !silent_mode {
+            println!("\t\t [WARNING] Underflowing horizontal frame cropping - ignoring cropping in picture size calculation");
+        }
         width_in_pixels = (sps.pic_width_in_mbs_minus1 + 1) * 16;
     } else {
         // check for overflow
         if 2 * (sps.frame_crop_left_offset as i64 + sps.frame_crop_right_offset as i64)
             > (std::i32::MAX as i64)
         {
-            println!("\t\t [WARNING] Overflowing horizontal frame cropping - ignoring cropping in picture size calculation");
+            if !silent_mode {
+                println!("\t\t [WARNING] Overflowing horizontal frame cropping - ignoring cropping in picture size calculation");
+            }
             width_in_pixels = (sps.pic_width_in_mbs_minus1 + 1) * 16;
         } else {
             width_in_pixels = ((sps.pic_width_in_mbs_minus1 + 1) * 16)
@@ -508,13 +516,17 @@ pub fn random_sps(
         - 2 * (sps.frame_crop_top_offset as i64 + sps.frame_crop_bottom_offset as i64)
         < 0
     {
-        println!("\t\t [WARNING] Underflowing vertical frame cropping - ignoring cropping in picture size calculation");
+        if !silent_mode {
+            println!("\t\t [WARNING] Underflowing vertical frame cropping - ignoring cropping in picture size calculation");
+        }
         height_in_pixels = (sps.pic_height_in_map_units_minus1 + 1) * 16;
     } else {
         if 2 * (sps.frame_crop_top_offset as i64 + sps.frame_crop_bottom_offset as i64)
             > (std::i32::MAX as i64)
         {
-            println!("\t\t [WARNING] Overflowing vertical frame cropping - ignoring cropping in picture size calculation");
+            if !silent_mode {
+                println!("\t\t [WARNING] Overflowing vertical frame cropping - ignoring cropping in picture size calculation");
+            }
             height_in_pixels = (sps.pic_height_in_map_units_minus1 + 1) * 16;
         } else {
             height_in_pixels = ((sps.pic_height_in_map_units_minus1 + 1) * 16)
@@ -549,10 +561,10 @@ pub fn random_pps(
     ds.ppses[pps_idx].available = true;
 
     ds.ppses[pps_idx].pic_parameter_set_id = rconfig.pic_parameter_set_id.sample(film);
-    println!(
-        "\t\t PPS pic_parameter_set_id: {}",
-        ds.ppses[pps_idx].pic_parameter_set_id
-    );
+    //println!(
+    //    "\t\t PPS pic_parameter_set_id: {}",
+    //    ds.ppses[pps_idx].pic_parameter_set_id
+    //);
     ds.ppses[pps_idx].seq_parameter_set_id = sps.seq_parameter_set_id;
 
     ds.ppses[pps_idx].entropy_coding_mode_flag = rconfig.entropy_coding_mode_flag.sample(film);

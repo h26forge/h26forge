@@ -451,10 +451,10 @@ fn random_pic_timing(
                 num_clock_ts = 3;
             }
             9..=15 => {
-                println!(
-                    "[WARNING] SEI (Pic timing): Undefined value : {}",
-                    pt.pic_struct
-                );
+                //println!(
+                //    "[WARNING] SEI (Pic timing): Undefined value : {}",
+                //    pt.pic_struct
+                //);
                 num_clock_ts = 0;
             }
             _ => {
@@ -569,7 +569,7 @@ fn random_user_data_unregistered(
         1 => UUID_APPLE2,
         2 => UUID_APPLE3,
         _ => {
-            println!("[WARNING] random_user_data_unregistered - uuid_iso_iec_115678 sampling range too large, choosing default");
+            //println!("[WARNING] random_user_data_unregistered - uuid_iso_iec_115678 sampling range too large, choosing default");
             UUID_APPLE1
         }
     };
@@ -606,10 +606,10 @@ fn random_user_data_unregistered(
                 .extend(&film.read_film_bytes(length));
         }
         _ => {
-            println!(
-                "[WARNING] random_user_data_unregistered - unknown uuid_iso_iec_11578 {:?}",
-                udu.uuid_iso_iec_11578
-            );
+            //println!(
+            //    "[WARNING] random_user_data_unregistered - unknown uuid_iso_iec_11578 {:?}",
+            //    udu.uuid_iso_iec_11578
+            //);
             udu.user_data_payload_byte = vec![0xf, 0xe, 0xe, 0xd, 0xf, 0x0, 0x0, 0xd];
         }
     }

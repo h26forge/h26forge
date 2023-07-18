@@ -239,10 +239,7 @@ impl FilmState {
                     return (x as u64 % (max as u64 + 1u64)) as u32;
                 }
                 _ => {
-                    println!(
-                        "[WARNING] Issue reading film file; falling back to RNG with seed {}",
-                        self.seed
-                    );
+                    //println!("[WARNING] Issue reading film file; falling back to RNG with seed {}", self.seed);
                     self.use_film_file = false;
                 }
             };
@@ -266,7 +263,7 @@ impl FilmState {
 
         if bit_size == 0 {
             bit_size += 1;
-            println!("read_film_i32 - bit_size is 0 -- setting to 1");
+            //println!("read_film_i32 - bit_size is 0 -- setting to 1");
         }
 
         if self.use_film_file {
@@ -283,16 +280,13 @@ impl FilmState {
                             return sign_bit * ( (y % (i32::MAX as u32)) as i32);
                         }
                         _ => {
-                            println!("[WARNING] Issue reading film file; falling back to RNG with seed {}", self.seed);
+                            //println!("[WARNING] Issue reading film file; falling back to RNG with seed {}", self.seed);
                             self.use_film_file = false;
                         }
                     };
                 }
                 _ => {
-                    println!(
-                        "[WARNING] Issue reading film file; falling back to RNG with seed {}",
-                        self.seed
-                    );
+                    //println!("[WARNING] Issue reading film file; falling back to RNG with seed {}", self.seed);
                     self.use_film_file = false;
                 }
             };

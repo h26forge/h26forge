@@ -933,20 +933,22 @@ fn encode_slice_data(
         num_macroblocks_to_encode /= 2;
     }
 
-    if num_macroblocks_to_encode > slice.sd.macroblock_vec.len() {
-        println!(
-            "[WARNING] More macroblocks requested {} than available {}. Slice will end early",
-            num_macroblocks_to_encode,
-            slice.sd.macroblock_vec.len()
-        );
-    } else if num_macroblocks_to_encode < slice.sd.macroblock_vec.len() {
-        println!("[WARNING] More macroblocks available {} in slice than requested {}. End of Slice Flag encoding may fail", slice.sd.macroblock_vec.len(), num_macroblocks_to_encode);
-    }
+    if !silent_mode {
+        if num_macroblocks_to_encode > slice.sd.macroblock_vec.len() {
+            println!(
+                "[WARNING] More macroblocks requested {} than available {}. Slice will end early",
+                num_macroblocks_to_encode,
+                slice.sd.macroblock_vec.len()
+            );
+        } else if num_macroblocks_to_encode < slice.sd.macroblock_vec.len() {
+            println!("[WARNING] More macroblocks available {} in slice than requested {}. End of Slice Flag encoding may fail", slice.sd.macroblock_vec.len(), num_macroblocks_to_encode);
+        }
 
-    if (slice.sh.first_mb_in_slice as usize) >= num_macroblocks_to_encode {
-        println!("[WARNING] first_mb_in_slice {} is larger than number of macroblocks to encode {}. Macroblock data may not be read", slice.sh.first_mb_in_slice, num_macroblocks_to_encode);
-    } else if (slice.sh.first_mb_in_slice as usize) > 0 {
-        println!("[WARNING] non-zero first_mb_in_slice - {}. Not all macroblock data may be read when decoding", slice.sh.first_mb_in_slice);
+        if (slice.sh.first_mb_in_slice as usize) >= num_macroblocks_to_encode {
+            println!("[WARNING] first_mb_in_slice {} is larger than number of macroblocks to encode {}. Macroblock data may not be read", slice.sh.first_mb_in_slice, num_macroblocks_to_encode);
+        } else if (slice.sh.first_mb_in_slice as usize) > 0 {
+            println!("[WARNING] non-zero first_mb_in_slice - {}. Not all macroblock data may be read when decoding", slice.sh.first_mb_in_slice);
+        }
     }
 
     // if equal then it's chill

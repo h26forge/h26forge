@@ -1036,7 +1036,7 @@ pub fn reencode_syntax_elements(
                     println!("\t reencode_syntax_elements - NALU {} - Supplemental enhancement information", i);
                 }
                 // only pass in already encoded SPSes
-                let res = encode_sei_message(&ds.seis[sei_idx], &ds.spses[0..sps_idx]);
+                let res = encode_sei_message(&ds.seis[sei_idx], &ds.spses[0..sps_idx], silent_mode);
 
                 if res.len() == 0 {
                     debug!(target: "encode","[WARNING] SEI Encoded Payload is empty - copying over NALU bytes");

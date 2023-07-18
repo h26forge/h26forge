@@ -17,10 +17,12 @@ use crate::encoder::expgolomb::exp_golomb_encode_one;
 use log::debug;
 
 /// Follows section 7.3.2.3
-pub fn encode_sei_message(sei: &SEINalu, spses: &[SeqParameterSet]) -> Vec<u8> {
+pub fn encode_sei_message(sei: &SEINalu, spses: &[SeqParameterSet], silent_mode : bool) -> Vec<u8> {
     let mut bytestream_array = Vec::new();
     for i in 0..sei.payload.len() {
-        println!("\t\tSEI({}): payload_type {}", i, sei.payload_type[i]);
+        if !silent_mode {
+            println!("\t\tSEI({}): payload_type {}", i, sei.payload_type[i]);
+        }
 
         encoder_formatted_print("SEI: payload_type", &sei.payload_type[i], 63);
         encoder_formatted_print("SEI: payload_size", &sei.payload_size[i], 63);
@@ -54,11 +56,13 @@ pub fn encode_sei_message(sei: &SEINalu, spses: &[SeqParameterSet]) -> Vec<u8> {
         // TODO: set a flag to decide whether to go with the actual size or specified size.
         //       For now, if payload_size is 0, then we'll write it in the encoded size
         if (encoded_payload.len() as u32) != sei.payload_size[i] && sei.payload_size[i] == 0 {
-            println!(
-                "[WARNING] SEI Payload Size {} doesn't match actual encoded size {}",
-                sei.payload_size[i],
-                encoded_payload.len()
-            );
+            if !silent_mode {
+                println!(
+                    "[WARNING] SEI Payload Size {} doesn't match actual encoded size {}",
+                    sei.payload_size[i],
+                    encoded_payload.len()
+                );
+            }
             debug!(target: "encode","[WARNING] SEI Payload Size {} doesn't match actual encoded size {}", sei.payload_size[i], encoded_payload.len());
 
             // use actual encoded size
@@ -583,10 +587,10 @@ fn encode_pic_timing(pt: &SEIPicTiming, sps: &SeqParameterSet) -> Vec<u8> {
                 num_clock_ts = 3;
             }
             9..=15 => {
-                println!(
-                    "[WARNING] SEI (Pic timing): Reserved value for pic_struct : {}",
-                    pt.pic_struct
-                );
+                //println!(
+                //    "[WARNING] SEI (Pic timing): Reserved value for pic_struct : {}",
+                //    pt.pic_struct
+                //);
                 num_clock_ts = 0;
             }
             _ => {

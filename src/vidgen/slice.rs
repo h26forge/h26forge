@@ -766,6 +766,7 @@ fn random_slice_header(
     pps: &PicParameterSet,
     sps: &SeqParameterSet,
     vp: &VideoParameters,
+    silent_mode: bool,
     rconfig: &RandomSliceHeaderRange,
     ds: &mut H264DecodedStream,
     film: &mut FilmState,
@@ -1004,7 +1005,9 @@ fn random_slice_header(
                 26 + ds.slices[slice_idx].sh.slice_qp_delta + pps.pic_init_qp_minus26;
         } else {
             // keep it as is
-            println!("[WARNING] Keeping slice_qp_y greater than 51 -- may get decoding issues");
+            if !silent_mode {
+                println!("[WARNING] Keeping slice_qp_y greater than 51 -- may get decoding issues");
+            }
         }
     }
 
@@ -1015,11 +1018,13 @@ fn random_slice_header(
 
             // some ranges are wild
             if min_allowed_value >= rconfig.slice_qp_delta.max {
-                println!("[WARNING] PPS pic_init_qp_mins26 causing slice_qp_y to be out of bounds regardless of slice_qp_delta value");
-                println!(
-                    "[WARNING] Setting to min_allowed_value {}",
-                    min_allowed_value
-                );
+                if !silent_mode {
+                    println!("[WARNING] PPS pic_init_qp_mins26 causing slice_qp_y to be out of bounds regardless of slice_qp_delta value");
+                    println!(
+                        "[WARNING] Setting to min_allowed_value {}",
+                        min_allowed_value
+                    );
+                }
                 ds.slices[slice_idx].sh.slice_qp_delta = min_allowed_value;
             } else {
                 ds.slices[slice_idx].sh.slice_qp_delta = rconfig.slice_qp_delta.sample(
@@ -1032,7 +1037,9 @@ fn random_slice_header(
                 26 + ds.slices[slice_idx].sh.slice_qp_delta + pps.pic_init_qp_minus26;
         } else {
             // keep it as is
-            println!("[WARNING] Keeping slice_qp_y less than 0 -- may get decoding issues");
+            if !silent_mode {
+                println!("[WARNING] Keeping slice_qp_y less than 0 -- may get decoding issues");
+            }
         }
     }
 
@@ -1057,16 +1064,19 @@ pub fn random_slice(
     ignore_ipcm: bool,
     empty_slice_data: bool,
     randomize_header: bool,
+    silent_mode: bool,
     rconfig: &RandomizeConfig,
     ds: &mut H264DecodedStream,
     film: &mut FilmState,
 ) {
     if slice_idx >= ds.slices.len() {
-        println!(
-            "\t [WARNING] Slice index {} greater than number of slices: {} - Skipping",
-            slice_idx,
-            ds.slices.len()
-        );
+        if !silent_mode {
+            println!(
+                "\t [WARNING] Slice index {} greater than number of slices: {} - Skipping",
+                slice_idx,
+                ds.slices.len()
+            );
+        }
         return;
     }
 
@@ -1078,6 +1088,7 @@ pub fn random_slice(
             pps,
             sps,
             &vp,
+            silent_mode,
             &rconfig.random_slice_header_range,
             ds,
             film,
@@ -1111,6 +1122,7 @@ pub fn random_slice_layer_extension(
     ignore_ipcm: bool,
     empty_slice_data: bool,
     randomize_header: bool,
+    silent_mode: bool,
     rconfig: &RandomizeConfig,
     ds: &mut H264DecodedStream,
     film: &mut FilmState,
@@ -1140,6 +1152,7 @@ pub fn random_slice_layer_extension(
         ignore_ipcm,
         empty_slice_data,
         randomize_header,
+        silent_mode,
         rconfig,
         ds,
         film,
