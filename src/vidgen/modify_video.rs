@@ -57,9 +57,9 @@ fn check_python_pathname() -> String {
             let output_stdout = str::from_utf8(&output.stdout).unwrap();
 
             if output_stdout.contains("Python 3") {
-                return String::from(command1)
-            } 
-        },
+                return String::from(command1);
+            }
+        }
         Err(_) => {}
     };
 
@@ -69,12 +69,12 @@ fn check_python_pathname() -> String {
             let output_stdout = str::from_utf8(&output.stdout).unwrap();
 
             if output_stdout.contains("Python 3") {
-                return String::from(command2)
-            } 
-        },
+                return String::from(command2);
+            }
+        }
         Err(_) => {}
     };
-    
+
     panic!("Python3 not found!")
 }
 

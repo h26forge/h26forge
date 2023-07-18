@@ -277,7 +277,7 @@ impl FilmState {
 
                     match val {
                         Some(y) => {
-                            return sign_bit * ( (y % (i32::MAX as u32)) as i32);
+                            return sign_bit * ((y % (i32::MAX as u32)) as i32);
                         }
                         _ => {
                             //println!("[WARNING] Issue reading film file; falling back to RNG with seed {}", self.seed);

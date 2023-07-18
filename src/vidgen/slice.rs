@@ -989,11 +989,10 @@ fn random_slice_header(
             if max_allowed_value < rconfig.slice_qp_delta.min {
                 // This happens because our pps.pic_init_qp_minus26 is already out-of-bounds
                 // So we need to set it to a negative value
-                ds.slices[slice_idx].sh.slice_qp_delta = rconfig.slice_qp_delta.sample(
-                    rconfig.slice_qp_delta.min,
-                    0,
-                    film,
-                );
+                ds.slices[slice_idx].sh.slice_qp_delta =
+                    rconfig
+                        .slice_qp_delta
+                        .sample(rconfig.slice_qp_delta.min, 0, film);
             } else {
                 ds.slices[slice_idx].sh.slice_qp_delta = rconfig.slice_qp_delta.sample(
                     rconfig.slice_qp_delta.min,

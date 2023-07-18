@@ -17,7 +17,7 @@ use crate::encoder::expgolomb::exp_golomb_encode_one;
 use log::debug;
 
 /// Follows section 7.3.2.3
-pub fn encode_sei_message(sei: &SEINalu, spses: &[SeqParameterSet], silent_mode : bool) -> Vec<u8> {
+pub fn encode_sei_message(sei: &SEINalu, spses: &[SeqParameterSet], silent_mode: bool) -> Vec<u8> {
     let mut bytestream_array = Vec::new();
     for i in 0..sei.payload.len() {
         if !silent_mode {

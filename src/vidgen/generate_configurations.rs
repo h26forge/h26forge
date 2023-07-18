@@ -502,7 +502,7 @@ impl RandomSliceHeaderRange {
             idr_pic_id: RandomU32Range::new(0, 65535),
             pic_order_cnt_lsb: RandomU32Range::new(0, 63),
             delta_pic_order_cnt_bottom: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
-            delta_pic_order_cnt: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
+            delta_pic_order_cnt: RandomI32Range::new(std::i32::MIN, std::i32::MAX),        // se(v)
             redundant_pic_cnt: RandomU32Range::new(0, 31),
             direct_spatial_mv_pred_flag: RandomBoolRange::new(0, 1, 1),
             num_ref_idx_active_override_flag: RandomBoolRange::new(0, 1, 1),
