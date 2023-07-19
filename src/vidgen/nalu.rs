@@ -225,34 +225,35 @@ fn random_ref_base_pic_marking(
         rconfig.adaptive_ref_base_pic_marking_mode_flag.sample(film);
     if ds.prefix_nalus[prefix_nalu_idx].adaptive_ref_base_pic_marking_mode_flag {
         let num_modifications = rconfig.num_modifications.sample(film) as usize;
+        if num_modifications > 0 {
+            for i in 0..num_modifications - 1 {
+                ds.prefix_nalus[prefix_nalu_idx]
+                    .memory_management_base_control_operation
+                    .push(
+                        rconfig
+                            .memory_management_base_control_operation
+                            .sample(film),
+                    );
 
-        for i in 0..num_modifications - 1 {
-            ds.prefix_nalus[prefix_nalu_idx]
-                .memory_management_base_control_operation
-                .push(
-                    rconfig
-                        .memory_management_base_control_operation
-                        .sample(film),
-                );
+                if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 1 {
+                    ds.prefix_nalus[prefix_nalu_idx]
+                        .difference_of_base_pic_nums_minus1
+                        .push(rconfig.difference_of_base_pic_nums_minus1.sample(film));
+                } else {
+                    ds.prefix_nalus[prefix_nalu_idx]
+                        .difference_of_base_pic_nums_minus1
+                        .push(0);
+                }
 
-            if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 1 {
-                ds.prefix_nalus[prefix_nalu_idx]
-                    .difference_of_base_pic_nums_minus1
-                    .push(rconfig.difference_of_base_pic_nums_minus1.sample(film));
-            } else {
-                ds.prefix_nalus[prefix_nalu_idx]
-                    .difference_of_base_pic_nums_minus1
-                    .push(0);
-            }
-
-            if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 2 {
-                ds.prefix_nalus[prefix_nalu_idx]
-                    .long_term_base_pic_num
-                    .push(rconfig.long_term_base_pic_num.sample(film));
-            } else {
-                ds.prefix_nalus[prefix_nalu_idx]
-                    .long_term_base_pic_num
-                    .push(0);
+                if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 2 {
+                    ds.prefix_nalus[prefix_nalu_idx]
+                        .long_term_base_pic_num
+                        .push(rconfig.long_term_base_pic_num.sample(film));
+                } else {
+                    ds.prefix_nalus[prefix_nalu_idx]
+                        .long_term_base_pic_num
+                        .push(0);
+                }
             }
         }
         // stop condition
