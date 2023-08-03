@@ -17,10 +17,10 @@ def too_many_epbs(ds):
     ds["spses"][sps_idx]["offset_for_non_ref_pic"] = -1073741824
     ds["spses"][sps_idx]["offset_for_top_to_bottom_field"] = -1073741824
 
-    # This generates 515 emulation prevention bytes
-    num_pic_order_cnt_cycle = 255 
-    ds["spses"][sps_idx]["num_ref_frames_in_pic_order_cnt_cycle"] = 255
-    ds["spses"][sps_idx]["offset_for_ref_frame"] = [-1073741824] * (num_pic_order_cnt_cycle)
+    # This generates 514 emulation prevention bytes
+    num = 255 
+    ds["spses"][sps_idx]["num_ref_frames_in_pic_order_cnt_cycle"] = num
+    ds["spses"][sps_idx]["offset_for_ref_frame"] = [-1073741824] * (num)
 
     # Need to adjust the slice for a different pic_order_cnt_type
     for i in range(len(ds["slices"])):
