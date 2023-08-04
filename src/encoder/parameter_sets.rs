@@ -17,6 +17,9 @@ use crate::encoder::binarization_functions::generate_unsigned_binary;
 use crate::encoder::expgolomb::exp_golomb_encode_one;
 
 /// Described in 7.3.2.1.1 -- Sequence Parameter Set
+///
+/// - `s`: SeqParameterSet object to encode
+/// - 'return_bitstream`: if True, returns the bit sequence rather than an encoded byte array
 pub fn encode_sps(s: &SeqParameterSet, return_bitstream: bool) -> Vec<u8> {
     let mut bitstream_array: Vec<u8> = Vec::new();
 

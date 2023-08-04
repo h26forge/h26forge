@@ -759,8 +759,7 @@ fn random_dec_ref_pic_marking(
 
 /// Generate random slice header syntax elements.
 ///
-/// Returns the associated pps_idx, and current video parameters
-fn random_slice_header(
+pub fn random_slice_header(
     nalu_idx: usize,
     slice_idx: usize,
     pps: &PicParameterSet,

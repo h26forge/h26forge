@@ -543,7 +543,7 @@ impl RandomSliceHeaderRange {
             long_term_pic_num: RandomU32Range::new(0, 100),
             long_term_frame_idx: RandomU32Range::new(0, 100),
             max_long_term_frame_idx_plus1: RandomU32Range::new(0, 100),
-            cabac_init_idc: RandomU32Range::new(0, 2),
+            cabac_init_idc: RandomU32Range::new(0, 24),
             slice_qp_delta: RandomDependentI32Range::new(-26, 25, true), // [-26, 25]
             sp_for_switch_flag: RandomBoolRange::new(0, 1, 1),
             slice_qs_delta: RandomI32Range::new(-26, 25), // [-26, 25]
@@ -551,7 +551,7 @@ impl RandomSliceHeaderRange {
             slice_alpha_c0_offset_div2: RandomI32Range::new(-10, 10), // [-6, 6]
             slice_beta_offset_div2: RandomI32Range::new(-10, 10),     // [-6, 6]
             slice_group_change_cycle: RandomU32Range::new(0, 16777216), // TODO: make dependent; Range is [0, Ceil(PicSizeInMapUnits\SliceGroupChangeRate)]
-            bias_i_slice: RandomBoolRange::new(0, 20, 1), // 19 out of 20 times it's an I slice
+            bias_i_slice: RandomBoolRange::new(0, 1, 1), // 19 out of 20 times it's an I slice
             bias_non_rand_frame_num: RandomBoolRange::new(0, 20, 1), // 19 out of 20 times, it's a random frame number
             bias_idr_zero_frame_num: RandomBoolRange::new(0, 50, 1), // 49 out of 50 times, idr frame has frame_num 0
             bias_zero_first_mb_in_slice: RandomBoolRange::new(0, 50, 1), // 49 out of 50 times, first_mb_in_slice is 0
@@ -672,12 +672,12 @@ impl RandomVUIRange {
             pic_struct_present_flag: RandomBoolRange::new(0, 1, 1),
             bitstream_restriction_flag: RandomBoolRange::new(0, 1, 1),
             motion_vectors_over_pic_boundaries_flag: RandomBoolRange::new(0, 1, 1),
-            max_bytes_per_pic_denom: RandomU32Range::new(0, 16), // valid range is from 0 to 16
-            max_bits_per_mb_denom: RandomU32Range::new(0, 16),   // valid range is from 0 to 16
-            log2_max_mv_length_horizontal: RandomU32Range::new(0, 15), // valid range is from 0 to 15
-            log2_max_mv_length_vertical: RandomU32Range::new(0, 15),
-            max_num_reorder_frames: RandomU32Range::new(0, 16), // TODO: dependent on MaxDpbFrames
-            max_dec_frame_buffering: RandomDependentU32Range::new(0, 255, true), // dependent on VUI.max_num_reorder_frames
+            max_bytes_per_pic_denom: RandomU32Range::new(0, 1024), // valid range is from 0 to 16
+            max_bits_per_mb_denom: RandomU32Range::new(0, 1024),   // valid range is from 0 to 16
+            log2_max_mv_length_horizontal: RandomU32Range::new(0, 1024), // valid range is from 0 to 15
+            log2_max_mv_length_vertical: RandomU32Range::new(0, 1024),
+            max_num_reorder_frames: RandomU32Range::new(0, 1024), // TODO: dependent on MaxDpbFrames
+            max_dec_frame_buffering: RandomDependentU32Range::new(0, 1024, false), // dependent on VUI.max_num_reorder_frames
             random_hdr_range: RandomHRDRange::new(),
         }
     }
@@ -721,11 +721,11 @@ pub struct RandomSPSRange {
     pub constraint_set5_flag: RandomBoolRange,
     pub reserved_zero_2bits: RandomU32Range, // u(2)
     pub level_idc: RandomU32Enum,
-    pub seq_parameter_set_id: RandomU32Range, // ue(v)
-    pub chroma_format_idc: RandomU32Range,    // ue(v)
+    pub seq_parameter_set_id: RandomU32Range,       // ue(v)
+    pub chroma_format_idc: RandomU32Range,          // ue(v)
     pub separate_colour_plane_flag: RandomBoolRange,
-    pub bit_depth_luma_minus8: RandomU32Range,   // ue(v)
-    pub bit_depth_chroma_minus8: RandomU32Range, // ue(v)
+    pub bit_depth_luma_minus8: RandomU32Range,      // ue(v)
+    pub bit_depth_chroma_minus8: RandomU32Range,    // ue(v)
     pub qpprime_y_zero_transform_bypass_flag: RandomBoolRange,
     pub seq_scaling_matrix_present_flag: RandomBoolRange,
     pub seq_scaling_list_present_flag: RandomBoolRange,
@@ -734,22 +734,22 @@ pub struct RandomSPSRange {
     pub pic_order_cnt_type: RandomU32Range,                // ue(v)
     pub log2_max_pic_order_cnt_lsb_minus4: RandomU32Range, // ue(v) - the range of this must be between 0 to 12 inclusive
     pub delta_pic_order_always_zero_flag: RandomBoolRange,
-    pub offset_for_non_ref_pic: RandomI32Range, // se(v)
-    pub offset_for_top_to_bottom_field: RandomI32Range, // se(v)
+    pub offset_for_non_ref_pic: RandomI32Range,             // se(v)
+    pub offset_for_top_to_bottom_field: RandomI32Range,     // se(v)
     pub num_ref_frames_in_pic_order_cnt_cycle: RandomU32Range, // ue(v)
-    pub offset_for_ref_frame: RandomI32Range,   // se(v)
-    pub max_num_ref_frames: RandomU32Range,     // ue(v)
+    pub offset_for_ref_frame: RandomI32Range,               // se(v)
+    pub max_num_ref_frames: RandomU32Range,                 // ue(v)
     pub gaps_in_frame_num_value_allowed_flag: RandomBoolRange,
-    pub pic_width_in_mbs_minus1: RandomU32Range, // ue(v)
-    pub pic_height_in_map_units_minus1: RandomU32Range, // ue(v)
+    pub pic_width_in_mbs_minus1: RandomU32Range,            // ue(v)
+    pub pic_height_in_map_units_minus1: RandomU32Range,     // ue(v)
     pub frame_mbs_only_flag: RandomBoolRange,
     pub mb_adaptive_frame_field_flag: RandomBoolRange,
     pub direct_8x8_inference_flag: RandomBoolRange,
     pub frame_cropping_flag: RandomBoolRange,
-    pub frame_crop_left_offset: RandomDependentU32Range, // ue(v)
-    pub frame_crop_right_offset: RandomDependentU32Range, // ue(v)
-    pub frame_crop_top_offset: RandomDependentU32Range,  // ue(v)
-    pub frame_crop_bottom_offset: RandomDependentU32Range, // ue(v)
+    pub frame_crop_left_offset: RandomDependentU32Range,    // ue(v)
+    pub frame_crop_right_offset: RandomDependentU32Range,   // ue(v)
+    pub frame_crop_top_offset: RandomDependentU32Range,     // ue(v)
+    pub frame_crop_bottom_offset: RandomDependentU32Range,  // ue(v)
     pub vui_parameters_present_flag: RandomBoolRange,
     pub random_vui_range: RandomVUIRange,
     // Bias
@@ -784,11 +784,11 @@ impl RandomSPSRange {
             delta_scale: RandomI32Range::new(-128, 127),
             log2_max_frame_num_minus4: RandomU32Range::new(0, 8),
             pic_order_cnt_type: RandomU32Range::new(0, 2),
-            log2_max_pic_order_cnt_lsb_minus4: RandomU32Range::new(0, 11),
+            log2_max_pic_order_cnt_lsb_minus4: RandomU32Range::new(0, 12),
             delta_pic_order_always_zero_flag: RandomBoolRange::new(0, 1, 1),
             offset_for_non_ref_pic: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
             offset_for_top_to_bottom_field: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
-            num_ref_frames_in_pic_order_cnt_cycle: RandomU32Range::new(0, 260), // ue(v)
+            num_ref_frames_in_pic_order_cnt_cycle: RandomU32Range::new(0, 255), // ue(v)
             offset_for_ref_frame: RandomI32Range::new(std::i32::MIN, std::i32::MAX), // se(v)
             max_num_ref_frames: RandomU32Range::new(0, 255),
             gaps_in_frame_num_value_allowed_flag: RandomBoolRange::new(0, 1, 1),
@@ -1305,25 +1305,25 @@ impl Default for RandomSEIFilmGrainCharacteristicsRange {
 /// PPS syntax elements
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct RandomPPSRange {
-    pub pic_parameter_set_id: RandomU32Range, // ue(v)
+    pub pic_parameter_set_id: RandomU32Range,           // ue(v)
     pub entropy_coding_mode_flag: RandomBoolRange,
     pub bottom_field_pic_order_in_frame_present_flag: RandomBoolRange,
-    pub num_slice_groups_minus1: RandomU32Range,
-    pub slice_group_map_type: RandomU32Range,
-    pub run_length_minus1: RandomU32Range,
-    pub top_left: RandomU32Range,
-    pub bottom_right: RandomU32Range,
+    pub num_slice_groups_minus1: RandomU32Range,        // ue(v)
+    pub slice_group_map_type: RandomU32Range,           // ue(v)
+    pub run_length_minus1: RandomU32Range,              // ue(v)
+    pub top_left: RandomU32Range,                       // ue(v)
+    pub bottom_right: RandomU32Range,                   // ue(v)
     pub slice_group_change_direction_flag: RandomBoolRange,
-    pub slice_group_change_rate_minus1: RandomU32Range,
-    pub pic_size_in_map_units_minus1: RandomU32Range, // NOTE: may take awhile to generate and encode if value is too big
-    pub slice_group_id: RandomU32Range,
-    pub num_ref_idx_l0_default_active_minus1: RandomU32Range,
-    pub num_ref_idx_l1_default_active_minus1: RandomU32Range,
+    pub slice_group_change_rate_minus1: RandomU32Range, // ue(v)
+    pub pic_size_in_map_units_minus1: RandomU32Range,   // ue(v)
+    pub slice_group_id: RandomU32Range,                 // u(v)
+    pub num_ref_idx_l0_default_active_minus1: RandomU32Range,   // ue(v)
+    pub num_ref_idx_l1_default_active_minus1: RandomU32Range,   // ue(v)
     pub weighted_pred_flag: RandomBoolRange,
-    pub weighted_bipred_idc: RandomU32Range, // u(2)
-    pub pic_init_qp_minus26: RandomI32Range,
-    pub pic_init_qs_minus26: RandomI32Range,
-    pub chroma_qp_index_offset: RandomI32Range,
+    pub weighted_bipred_idc: RandomU32Range,            // u(2)
+    pub pic_init_qp_minus26: RandomI32Range,            // se(v)
+    pub pic_init_qs_minus26: RandomI32Range,            // se(v)
+    pub chroma_qp_index_offset: RandomI32Range,         // se(v)
     pub deblocking_filter_control_present_flag: RandomBoolRange,
     pub constrained_intra_pred_flag: RandomBoolRange,
     pub redundant_pic_cnt_present_flag: RandomBoolRange,
@@ -1335,31 +1335,31 @@ pub struct RandomPPSRange {
     pub delta_scale: RandomI32Range,
     pub second_chroma_qp_index_offset: RandomI32Range,
     // Bias
-    pub bias_ignore_slice_groups: RandomBoolRange, // Not too many decoders support slice groups so can bias it to be off
+    pub bias_ignore_slice_groups: RandomBoolRange,
 }
 
 impl RandomPPSRange {
     pub fn new() -> RandomPPSRange {
         RandomPPSRange {
-            pic_parameter_set_id: RandomU32Range::new(0, 255), //[0, 255]
+            pic_parameter_set_id: RandomU32Range::new(0, 512), //[0, 255]
             entropy_coding_mode_flag: RandomBoolRange::new(0, 1, 1),
             bottom_field_pic_order_in_frame_present_flag: RandomBoolRange::new(0, 1, 1),
-            num_slice_groups_minus1: RandomU32Range::new(0, 7), // [0, 7]
-            slice_group_map_type: RandomU32Range::new(0, 5),    // range is [0, 5]
+            num_slice_groups_minus1: RandomU32Range::new(0, 0), // [0, 7]
+            slice_group_map_type: RandomU32Range::new(0, 6),    // range is [0, 6]
             run_length_minus1: RandomU32Range::new(0, 16777216), // range is [0, PicSizeInMapUnits-1] for 4k by 4k
-            top_left: RandomU32Range::new(0, 16777216), // requirement: top_left < bottom_right && bottom_right < PicSizeInMapUnits
-            bottom_right: RandomU32Range::new(0, 16777216), // requirement: top_left < bottom_right && bottom_right < PicSizeInMapUnits
+            top_left: RandomU32Range::new(0, 16777216),         // requirement: top_left < bottom_right && bottom_right < PicSizeInMapUnits
+            bottom_right: RandomU32Range::new(0, 16777216),         // requirement: top_left < bottom_right && bottom_right < PicSizeInMapUnits
             slice_group_change_direction_flag: RandomBoolRange::new(0, 1, 1),
             slice_group_change_rate_minus1: RandomU32Range::new(0, 16777216), // should be in [0, PicSizeInMapUnits −1]
             pic_size_in_map_units_minus1: RandomU32Range::new(0, 16777216), // expected to be PicSizeInMapUnits −1
             slice_group_id: RandomU32Range::new(0, 30), // range is [0, num_slice_groups_minus1]
-            num_ref_idx_l0_default_active_minus1: RandomU32Range::new(0, 32), // max is 32
-            num_ref_idx_l1_default_active_minus1: RandomU32Range::new(0, 32), // max is 32
+            num_ref_idx_l0_default_active_minus1: RandomU32Range::new(0, 1024), // max is 32
+            num_ref_idx_l1_default_active_minus1: RandomU32Range::new(0, 1024), // max is 32
             weighted_pred_flag: RandomBoolRange::new(0, 1, 1),
             weighted_bipred_idc: RandomU32Range::new(0, 3), // u(2)
-            pic_init_qp_minus26: RandomI32Range::new(-26, 25),
-            pic_init_qs_minus26: RandomI32Range::new(-26, 25),
-            chroma_qp_index_offset: RandomI32Range::new(-13, 14),
+            pic_init_qp_minus26: RandomI32Range::new(-512, 512),
+            pic_init_qs_minus26: RandomI32Range::new(-512, 512),
+            chroma_qp_index_offset: RandomI32Range::new(-512, 512),
             deblocking_filter_control_present_flag: RandomBoolRange::new(0, 1, 1),
             constrained_intra_pred_flag: RandomBoolRange::new(0, 1, 1),
             redundant_pic_cnt_present_flag: RandomBoolRange::new(0, 1, 1),
@@ -1369,7 +1369,7 @@ impl RandomPPSRange {
             pic_scaling_list_present_flag: RandomBoolRange::new(0, 1, 1),
             delta_scale: RandomI32Range::new(-128, 127),
             second_chroma_qp_index_offset: RandomI32Range::new(-13, 14),
-            bias_ignore_slice_groups: RandomBoolRange::new(0, 10, 1), // 90% of the time no slice groups
+            bias_ignore_slice_groups: RandomBoolRange::new(0, 1, 1), // 90% of the time no slice groups
         }
     }
 }

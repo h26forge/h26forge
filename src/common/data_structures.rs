@@ -387,10 +387,11 @@ impl VideoParameters {
                 }
             }
             _ => {
-                panic!(
-                    "update_vp: unsupported value for chroma_format_idc ({})",
-                    s.chroma_format_idc
-                );
+                // weird values, default to 4:2:0
+                // TODO: consider treating this differently
+                sub_width_c = 2;
+                sub_height_c = 2;
+                // panic!("update_vp: unsupported value for chroma_format_idc ({})", s.chroma_format_idc);
             }
         }
 
