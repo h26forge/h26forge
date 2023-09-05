@@ -690,19 +690,21 @@ pub fn encode_pps(p: &PicParameterSet, s: &SeqParameterSet) -> Vec<u8> {
                 false => 0,
             };
             for i in 0..max_val {
-                bitstream_array.push(match p.pic_scaling_list_present_flag[i] {
-                    true => 1u8,
-                    false => 0u8,
-                });
+                if p.pic_scaling_list_present_flag.len() > i {
+                    bitstream_array.push(match p.pic_scaling_list_present_flag[i] {
+                        true => 1u8,
+                        false => 0u8,
+                    });
 
-                if p.pic_scaling_list_present_flag[i] {
-                    if i < 6 {
-                        bitstream_array
-                            .append(&mut encode_scaling_list(p.delta_scale_4x4[i].clone(), 16));
-                    } else {
-                        bitstream_array
-                            .append(&mut encode_scaling_list(p.delta_scale_8x8[i].clone(), 64));
-                    }
+                    if p.pic_scaling_list_present_flag[i] {
+                        if i < 6 {
+                            bitstream_array
+                                .append(&mut encode_scaling_list(p.delta_scale_4x4[i].clone(), 16));
+                        } else {
+                            bitstream_array
+                                .append(&mut encode_scaling_list(p.delta_scale_8x8[i].clone(), 64));
+                        }
+                     }
                 }
             }
         }
