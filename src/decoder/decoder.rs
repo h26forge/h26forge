@@ -10,6 +10,7 @@ use crate::common::data_structures::SPSExtension;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::Slice;
 use crate::common::data_structures::StapA;
+use crate::common::data_structures::SliceExtension;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::helper::ByteStream;
 use crate::decoder::nalu::decode_access_unit_delimiter;
@@ -63,6 +64,7 @@ pub fn decode_bitstream(
     let mut ppses: Vec<PicParameterSet> = Vec::new();
     let mut prefix_nalus: Vec<PrefixNALU> = Vec::new();
     let mut seis: Vec<SEINalu> = Vec::new();
+    let mut slice_exts : Vec<SliceExtension> = Vec::new();
     let mut slices: Vec<Slice> = Vec::new();
     let mut auds: Vec<AccessUnitDelim> = Vec::new();
     // RTP NALUs
@@ -338,7 +340,7 @@ pub fn decode_bitstream(
                     i, header.nal_unit_type
                 );
                 let start_time = SystemTime::now();
-                let slice = decode_slice_layer_extension_rbsp(
+                let slice_ext = decode_slice_layer_extension_rbsp(
                     &mut nalu_data,
                     &header,
                     &subset_spses,
@@ -357,7 +359,7 @@ pub fn decode_bitstream(
                         }
                     }
                 }
-                slices.push(slice);
+                slice_exts.push(slice_ext);
             }
             21 => {
                 // specified in Annex J

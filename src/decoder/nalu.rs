@@ -7,6 +7,7 @@ use crate::common::data_structures::NALUHeaderSVCExtension;
 use crate::common::data_structures::NALUheader;
 use crate::common::data_structures::PrefixNALU;
 use crate::common::data_structures::NALU;
+use crate::common::data_structures::RefBasePicMarking;
 use crate::common::helper::decoder_formatted_print;
 use crate::common::helper::ByteStream;
 use crate::decoder::expgolomb::exp_golomb_decode_one_wrapper;
@@ -325,7 +326,7 @@ pub fn decode_prefix_nal_unit_svc(nh: NALUheader, bs: &mut ByteStream) -> Prefix
         if (res.store_ref_base_pic_flag || nh.svc_extension.use_ref_base_pic_flag)
             && !nh.svc_extension.idr_flag
         {
-            dec_ref_base_pic_marking(&mut res, bs);
+            dec_ref_base_pic_marking(&mut res.ref_base_pic_marking, bs);
         }
         res.additional_prefix_nal_unit_extension_flag = 1 == bs.read_bits(1);
         decoder_formatted_print(
@@ -362,10 +363,10 @@ pub fn decode_prefix_nal_unit_svc(nh: NALUheader, bs: &mut ByteStream) -> Prefix
 }
 
 /// Described in G.7.3.3.5 Decoded reference base picture marking syntax
-fn dec_ref_base_pic_marking(res: &mut PrefixNALU, bs: &mut ByteStream) {
+pub fn dec_ref_base_pic_marking(res: &mut RefBasePicMarking, bs: &mut ByteStream) {
     res.adaptive_ref_base_pic_marking_mode_flag = 1 == bs.read_bits(1);
     decoder_formatted_print(
-        "Prefix NALU: adaptive_ref_base_pic_marking_mode_flag",
+        "RefBasePicMarking: adaptive_ref_base_pic_marking_mode_flag",
         &res.adaptive_ref_base_pic_marking_mode_flag,
         63,
     );
@@ -375,7 +376,7 @@ fn dec_ref_base_pic_marking(res: &mut PrefixNALU, bs: &mut ByteStream) {
             res.memory_management_base_control_operation
                 .push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
             decoder_formatted_print(
-                "Prefix NALU: memory_management_base_control_operation",
+                "RefBasePicMarking: memory_management_base_control_operation",
                 &res.memory_management_base_control_operation[i],
                 63,
             );
@@ -384,7 +385,7 @@ fn dec_ref_base_pic_marking(res: &mut PrefixNALU, bs: &mut ByteStream) {
                 res.difference_of_base_pic_nums_minus1
                     .push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
                 decoder_formatted_print(
-                    "Prefix NALU: difference_of_base_pic_nums_minus1",
+                    "RefBasePicMarking: difference_of_base_pic_nums_minus1",
                     &res.difference_of_base_pic_nums_minus1[i],
                     63,
                 );
@@ -396,7 +397,7 @@ fn dec_ref_base_pic_marking(res: &mut PrefixNALU, bs: &mut ByteStream) {
                 res.long_term_base_pic_num
                     .push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
                 decoder_formatted_print(
-                    "Prefix NALU: long_term_base_pic_num",
+                    "RefBasePicMarking: long_term_base_pic_num",
                     &res.long_term_base_pic_num[i],
                     63,
                 );

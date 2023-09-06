@@ -220,16 +220,85 @@ impl Default for NALU {
     }
 }
 
-/// NALU Type 14 -- PrefixNALU
+/// Ref Base Picture Marking
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PrefixNALU {
-    pub store_ref_base_pic_flag: bool, // u(1)
+pub struct RefBasePicMarking {
     // dec_ref_base_pic_marking() - G.7.3.3.5
     pub adaptive_ref_base_pic_marking_mode_flag: bool, // u(1)
     pub memory_management_base_control_operation: Vec<u32>, // array of ue(v)
     pub difference_of_base_pic_nums_minus1: Vec<u32>,  // array of ue(v)
     pub long_term_base_pic_num: Vec<u32>,              // array of ue(v)
-    //
+}
+
+impl RefBasePicMarking {
+    pub fn new() -> RefBasePicMarking {
+        RefBasePicMarking {
+            adaptive_ref_base_pic_marking_mode_flag: false,
+            memory_management_base_control_operation: Vec::new(),
+            difference_of_base_pic_nums_minus1: Vec::new(),
+            long_term_base_pic_num: Vec::new(),
+        }
+    }
+
+    pub fn pretty_print(&self) {
+        formatted_print(
+            "RefBasePicMarking: adaptive_ref_base_pic_marking_mode_flag",
+            self.adaptive_ref_base_pic_marking_mode_flag,
+            63,
+        );
+        formatted_print(
+            "RefBasePicMarking: memory_management_base_control_operation",
+            &self.memory_management_base_control_operation,
+            63,
+        );
+        formatted_print(
+            "RefBasePicMarking: difference_of_base_pic_nums_minus1",
+            &self.difference_of_base_pic_nums_minus1,
+            63,
+        );
+        formatted_print(
+            "RefBasePicMarking: long_term_base_pic_num",
+            &self.long_term_base_pic_num,
+            63,
+        );
+    }
+
+    pub fn encoder_pretty_print(&self) {
+        encoder_formatted_print(
+            "RefBasePicMarking: adaptive_ref_base_pic_marking_mode_flag",
+            self.adaptive_ref_base_pic_marking_mode_flag,
+            63,
+        );
+        encoder_formatted_print(
+            "RefBasePicMarking: memory_management_base_control_operation",
+            &self.memory_management_base_control_operation,
+            63,
+        );
+        encoder_formatted_print(
+            "RefBasePicMarking: difference_of_base_pic_nums_minus1",
+            &self.difference_of_base_pic_nums_minus1,
+            63,
+        );
+        encoder_formatted_print(
+            "RefBasePicMarking: long_term_base_pic_num",
+            &self.long_term_base_pic_num,
+            63,
+        );
+    }
+}
+
+impl Default for RefBasePicMarking {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+/// NALU Type 14 -- PrefixNALU
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrefixNALU {
+    pub store_ref_base_pic_flag: bool, // u(1)
+    pub ref_base_pic_marking : RefBasePicMarking,
     // below are for future extensions
     pub additional_prefix_nal_unit_extension_flag: bool, // u(1)
     pub additional_prefix_nal_unit_extension_data_flag: Vec<bool>, // u(1)
@@ -239,10 +308,7 @@ impl PrefixNALU {
     pub fn new() -> PrefixNALU {
         PrefixNALU {
             store_ref_base_pic_flag: false,
-            adaptive_ref_base_pic_marking_mode_flag: false,
-            memory_management_base_control_operation: Vec::new(),
-            difference_of_base_pic_nums_minus1: Vec::new(),
-            long_term_base_pic_num: Vec::new(),
+            ref_base_pic_marking : RefBasePicMarking::new(),
             additional_prefix_nal_unit_extension_flag: false,
             additional_prefix_nal_unit_extension_data_flag: Vec::new(),
         }
@@ -254,26 +320,7 @@ impl PrefixNALU {
             self.store_ref_base_pic_flag,
             63,
         );
-        encoder_formatted_print(
-            "Prefix NALU: adaptive_ref_base_pic_marking_mode_flag",
-            self.adaptive_ref_base_pic_marking_mode_flag,
-            63,
-        );
-        encoder_formatted_print(
-            "Prefix NALU: memory_management_base_control_operation",
-            &self.memory_management_base_control_operation,
-            63,
-        );
-        encoder_formatted_print(
-            "Prefix NALU: difference_of_base_pic_nums_minus1",
-            &self.difference_of_base_pic_nums_minus1,
-            63,
-        );
-        encoder_formatted_print(
-            "Prefix NALU: long_term_base_pic_num",
-            &self.long_term_base_pic_num,
-            63,
-        );
+        self.ref_base_pic_marking.encoder_pretty_print();
         encoder_formatted_print(
             "Prefix NALU: additional_prefix_nal_unit_extension_flag",
             self.additional_prefix_nal_unit_extension_flag,
@@ -1463,6 +1510,34 @@ pub struct SliceHeader {
     pub filter_offset_a: i32, // 7-32
     pub filter_offset_b: i32, // 7-33
 
+    // Annex G addendum
+    pub base_pred_weight_table_flag: bool,
+    pub store_ref_base_pic_flag: bool,
+    pub ref_base_pic_marking: RefBasePicMarking,
+    pub ref_layer_dq_id: u32,
+    pub disable_inter_layer_deblocking_filter_idc: u32,
+    pub inter_layer_slice_alpha_c0_offset_div2: i32,
+    pub inter_layer_slice_beta_offset_div2: i32,
+    pub constrained_intra_resampling_flag: bool,
+    pub ref_layer_chroma_phase_x_plus1_flag: bool,
+    pub ref_layer_chroma_phase_y_plus1: u8, // u(2)
+    pub scaled_ref_layer_left_offset: i32,
+    pub scaled_ref_layer_top_offset: i32,
+    pub scaled_ref_layer_right_offset: i32,
+    pub scaled_ref_layer_bottom_offset: i32,
+    pub slice_skip_flag: bool,
+    pub num_mbs_in_slice_minus1: u32,
+    pub adaptive_base_mode_flag: bool,
+    pub default_base_mode_flag: bool,
+    pub adaptive_motion_prediction_flag: bool,
+    pub default_motion_prediction_flag: bool,
+    pub adaptive_residual_prediction_flag: bool,
+    pub default_residual_prediction_flag: bool,
+    pub tcoeff_level_prediction_flag: bool,
+    pub scan_idx_start: u8, //u(4)
+    pub scan_idx_end: u8, //u(4)
+
+
     // Annex H addendum
     pub abs_diff_view_idx_minus1_l0: Vec<u32>,
     pub abs_diff_view_idx_minus1_l1: Vec<u32>,
@@ -1538,6 +1613,31 @@ impl SliceHeader {
             qs_y: 0,
             filter_offset_a: 0,
             filter_offset_b: 0,
+            base_pred_weight_table_flag: false,
+            store_ref_base_pic_flag: false,
+            ref_base_pic_marking: RefBasePicMarking::new(),
+            ref_layer_dq_id: 0,
+            disable_inter_layer_deblocking_filter_idc: 0,
+            inter_layer_slice_alpha_c0_offset_div2: 0,
+            inter_layer_slice_beta_offset_div2: 0,
+            constrained_intra_resampling_flag: false,
+            ref_layer_chroma_phase_x_plus1_flag: false,
+            ref_layer_chroma_phase_y_plus1: 0, // u(2)
+            scaled_ref_layer_left_offset: 0,
+            scaled_ref_layer_top_offset: 0,
+            scaled_ref_layer_right_offset: 0,
+            scaled_ref_layer_bottom_offset: 0,
+            slice_skip_flag: false,
+            num_mbs_in_slice_minus1: 0,
+            adaptive_base_mode_flag: false,
+            default_base_mode_flag: false,
+            adaptive_motion_prediction_flag: false,
+            default_motion_prediction_flag: false,
+            adaptive_residual_prediction_flag: false,
+            default_residual_prediction_flag: false,
+            tcoeff_level_prediction_flag: false,
+            scan_idx_start: 0, //u(4)
+            scan_idx_end: 0, //u(4)
             abs_diff_view_idx_minus1_l0: Vec::new(),
             abs_diff_view_idx_minus1_l1: Vec::new(),
         }
@@ -1692,6 +1792,41 @@ impl SliceHeader {
             63,
         );
         formatted_print(
+            "SH: base_pred_weight_table_flag",
+            self.base_pred_weight_table_flag,
+            63,
+        );
+        formatted_print(
+            "SH: store_ref_base_pic_flag",
+            self.store_ref_base_pic_flag,
+            63,
+        );
+        self.ref_base_pic_marking.pretty_print();
+
+        formatted_print("SH: ref_layer_dq_id", self.ref_layer_dq_id, 63);
+        formatted_print("SH: disable_inter_layer_deblocking_filter_idc", self.disable_inter_layer_deblocking_filter_idc, 63);
+        formatted_print("SH: inter_layer_slice_alpha_c0_offset_div2", self.inter_layer_slice_alpha_c0_offset_div2, 63);
+        formatted_print("SH: inter_layer_slice_beta_offset_div2", self.inter_layer_slice_beta_offset_div2, 63);
+        formatted_print("SH: constrained_intra_resampling_flag", self.constrained_intra_resampling_flag, 63);
+        formatted_print("SH: ref_layer_chroma_phase_x_plus1_flag", self.ref_layer_chroma_phase_x_plus1_flag, 63);
+        formatted_print("SH: ref_layer_chroma_phase_y_plus1", self.ref_layer_chroma_phase_y_plus1, 63);
+        formatted_print("SH: scaled_ref_layer_left_offset", self.scaled_ref_layer_left_offset, 63);
+        formatted_print("SH: scaled_ref_layer_top_offset", self.scaled_ref_layer_top_offset, 63);
+        formatted_print("SH: scaled_ref_layer_right_offset", self.scaled_ref_layer_right_offset, 63);
+        formatted_print("SH: scaled_ref_layer_bottom_offset", self.scaled_ref_layer_bottom_offset, 63);
+        formatted_print("SH: slice_skip_flag", self.slice_skip_flag, 63);
+        formatted_print("SH: num_mbs_in_slice_minus1", self.num_mbs_in_slice_minus1, 63);
+        formatted_print("SH: adaptive_base_mode_flag", self.adaptive_base_mode_flag, 63);
+        formatted_print("SH: default_base_mode_flag", self.default_base_mode_flag, 63);
+        formatted_print("SH: adaptive_motion_prediction_flag", self.adaptive_motion_prediction_flag, 63);
+        formatted_print("SH: default_motion_prediction_flag", self.default_motion_prediction_flag, 63);
+        formatted_print("SH: adaptive_residual_prediction_flag", self.adaptive_residual_prediction_flag, 63);
+        formatted_print("SH: default_residual_prediction_flag", self.default_residual_prediction_flag, 63);
+        formatted_print("SH: tcoeff_level_prediction_flag", self.tcoeff_level_prediction_flag, 63);
+        formatted_print("SH: scan_idx_start", self.scan_idx_start, 63);
+        formatted_print("SH: scan_idx_end", self.scan_idx_end, 63);
+
+        formatted_print(
             "SH: abs_diff_view_idx_minus1_l0",
             &self.abs_diff_view_idx_minus1_l0,
             63,
@@ -1773,6 +1908,31 @@ impl SliceHeader {
             qs_y: self.qs_y,
             filter_offset_a: self.filter_offset_a,
             filter_offset_b: self.filter_offset_b,
+            base_pred_weight_table_flag : self.base_pred_weight_table_flag,
+            store_ref_base_pic_flag: self.store_ref_base_pic_flag,
+            ref_base_pic_marking: self.ref_base_pic_marking.clone(),
+            ref_layer_dq_id: self.ref_layer_dq_id,
+            disable_inter_layer_deblocking_filter_idc: self.disable_inter_layer_deblocking_filter_idc,
+            inter_layer_slice_alpha_c0_offset_div2: self.inter_layer_slice_alpha_c0_offset_div2,
+            inter_layer_slice_beta_offset_div2: self.inter_layer_slice_beta_offset_div2,
+            constrained_intra_resampling_flag: self.constrained_intra_resampling_flag,
+            ref_layer_chroma_phase_x_plus1_flag: self.ref_layer_chroma_phase_x_plus1_flag,
+            ref_layer_chroma_phase_y_plus1: self.ref_layer_chroma_phase_y_plus1,
+            scaled_ref_layer_left_offset: self.scaled_ref_layer_left_offset,
+            scaled_ref_layer_top_offset: self.scaled_ref_layer_top_offset,
+            scaled_ref_layer_right_offset: self.scaled_ref_layer_right_offset,
+            scaled_ref_layer_bottom_offset: self.scaled_ref_layer_bottom_offset,
+            slice_skip_flag: self.slice_skip_flag,
+            num_mbs_in_slice_minus1: self.num_mbs_in_slice_minus1,
+            adaptive_base_mode_flag: self.adaptive_base_mode_flag,
+            default_base_mode_flag: self.default_base_mode_flag,
+            adaptive_motion_prediction_flag: self.adaptive_motion_prediction_flag,
+            default_motion_prediction_flag: self.default_motion_prediction_flag,
+            adaptive_residual_prediction_flag: self.adaptive_residual_prediction_flag,
+            default_residual_prediction_flag: self.default_residual_prediction_flag,
+            tcoeff_level_prediction_flag: self.tcoeff_level_prediction_flag,
+            scan_idx_start: self.scan_idx_start,
+            scan_idx_end: self.scan_idx_end,
             abs_diff_view_idx_minus1_l0: self.abs_diff_view_idx_minus1_l0.clone(),
             abs_diff_view_idx_minus1_l1: self.abs_diff_view_idx_minus1_l1.clone(),
         }
@@ -3166,6 +3326,29 @@ impl Default for Slice {
         Self::new()
     }
 }
+
+/// NALU Type 20 -- SliceExtension
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SliceExtension {
+    pub sh: SliceHeader,
+    pub sd: SliceData,
+}
+
+impl SliceExtension {
+    pub fn new() -> SliceExtension {
+        SliceExtension {
+            sh: SliceHeader::new(),
+            sd: SliceData::new(),
+        }
+    }
+}
+
+impl Default for SliceExtension {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 /// NALU Type 8 -- Picture Parameter Set
 #[derive(Serialize, Deserialize, Clone)]

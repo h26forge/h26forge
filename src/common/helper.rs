@@ -185,6 +185,10 @@ pub fn is_slice_type(slice_type_num: u8, slice_letter: &str) -> bool {
         "I" => slice_type_num % 5 == 2,  // 2 or 7
         "SP" => slice_type_num % 5 == 3, // 3 or 8
         "SI" => slice_type_num % 5 == 4, // 4 or 9
+        // Slice header scalable extensions
+        "EP" => slice_type_num % 5 == 0,  // 0 or 5,
+        "EB" => slice_type_num % 5 == 1,  // 1 or 6,
+        "EI" => slice_type_num % 5 == 2,  // 2 or 7
         _ => panic!("Nonexistent slice_letter passed: {:?}", slice_letter),
     }
 }

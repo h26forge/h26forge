@@ -3,6 +3,7 @@
 use crate::common::data_structures::AccessUnitDelim;
 use crate::common::data_structures::NALUheader;
 use crate::common::data_structures::PrefixNALU;
+use crate::common::data_structures::RefBasePicMarking;
 use crate::common::helper::bitstream_to_bytestream;
 use crate::encoder::binarization_functions::generate_unsigned_binary;
 use crate::encoder::expgolomb::exp_golomb_encode_one;
@@ -162,7 +163,7 @@ pub fn encode_prefix_nal_unit_svc(nh: &NALUheader, pn: &PrefixNALU) -> Vec<u8> {
         if (pn.store_ref_base_pic_flag || nh.svc_extension.use_ref_base_pic_flag)
             && !nh.svc_extension.idr_flag
         {
-            bitstream_array.append(&mut encode_ref_base_pic_marking(pn));
+            bitstream_array.append(&mut encode_ref_base_pic_marking(&pn.ref_base_pic_marking));
         }
         bitstream_array.push(match pn.additional_prefix_nal_unit_extension_flag {
             false => 0,
@@ -193,7 +194,7 @@ pub fn encode_prefix_nal_unit_svc(nh: &NALUheader, pn: &PrefixNALU) -> Vec<u8> {
     bitstream_to_bytestream(bitstream_array, 0)
 }
 
-fn encode_ref_base_pic_marking(pn: &PrefixNALU) -> Vec<u8> {
+fn encode_ref_base_pic_marking(pn: &RefBasePicMarking) -> Vec<u8> {
     let mut bitstream_array = Vec::new();
 
     bitstream_array.push(match pn.adaptive_ref_base_pic_marking_mode_flag {

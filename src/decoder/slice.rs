@@ -7,6 +7,7 @@ use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::Slice;
 use crate::common::data_structures::SliceData;
+use crate::common::data_structures::SliceExtension;
 use crate::common::data_structures::SliceHeader;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::VideoParameters;
@@ -20,15 +21,15 @@ use crate::decoder::cabac::initialize_state;
 use crate::decoder::cabac::CABACState;
 use crate::decoder::expgolomb::exp_golomb_decode_one_wrapper;
 use crate::decoder::macroblock::decode_macroblock_layer;
+use crate::decoder::nalu::dec_ref_base_pic_marking;
 use log::debug;
 
 /// Follows section 7.3.3.1
 fn ref_pic_list_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
     if sh.slice_type % 5 != 2 && sh.slice_type % 5 != 4 {
         // ref_pic_list_modification_flag_l0
-        let r = bs.read_bits(1);
-        sh.ref_pic_list_modification_flag_l0 = 1 == r;
-        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l0", &r, 63);
+        sh.ref_pic_list_modification_flag_l0 = 1 == bs.read_bits(1);
+        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l0", &sh.ref_pic_list_modification_flag_l0, 63);
 
         if sh.ref_pic_list_modification_flag_l0 {
             // do while trick for Rust: https://gist.github.com/huonw/8435502
@@ -82,10 +83,9 @@ fn ref_pic_list_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
 
     if sh.slice_type % 5 == 1 {
         // ref_pic_list_modification_flag_l1
-        let r = bs.read_bits(1);
-        sh.ref_pic_list_modification_flag_l1 = r == 1;
+        sh.ref_pic_list_modification_flag_l1 = 1 == bs.read_bits(1);
 
-        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l1", &r, 63);
+        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l1", &sh.ref_pic_list_modification_flag_l1, 63);
 
         if sh.ref_pic_list_modification_flag_l1 {
             let mut i = 0;
@@ -139,9 +139,8 @@ fn ref_pic_list_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
 fn ref_pic_list_mvc_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
     if sh.slice_type % 5 != 2 && sh.slice_type % 5 != 4 {
         // ref_pic_list_modification_flag_l0
-        let r = bs.read_bits(1);
-        sh.ref_pic_list_modification_flag_l0 = 1 == r;
-        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l0", &r, 63);
+        sh.ref_pic_list_modification_flag_l0 = 1 == bs.read_bits(1);
+        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l0", &sh.ref_pic_list_modification_flag_l0, 63);
 
         if sh.ref_pic_list_modification_flag_l0 {
             let mut i = 0;
@@ -206,10 +205,9 @@ fn ref_pic_list_mvc_modification(sh: &mut SliceHeader, bs: &mut ByteStream) {
 
     if sh.slice_type % 5 == 1 {
         // ref_pic_list_modification_flag_l1
-        let r = bs.read_bits(1);
-        sh.ref_pic_list_modification_flag_l1 = r == 1;
+        sh.ref_pic_list_modification_flag_l1 = 1 == bs.read_bits(1);
 
-        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l1", &r, 63);
+        decoder_formatted_print("SH: ref_pic_list_reordering_flag_l1", &sh.ref_pic_list_modification_flag_l1, 63);
 
         if sh.ref_pic_list_modification_flag_l1 {
             let mut i = 0;
@@ -721,14 +719,6 @@ fn decode_slice_header(
     // equation 7-29
     sh.pic_size_in_mbs = vp.pic_width_in_mbs * sh.pic_height_in_mbs;
 
-    // bottom of section field_pic_flag
-    // if !sh.field_pic_flag {
-    //     sh.max_pic_num = vp.max_frame_num;
-    //     sh.curr_pic_num = sh.frame_num;
-    // } else {
-    //     sh.max_pic_num = 2 * vp.max_frame_num;
-    //     sh.curr_pic_num = 2 * sh.frame_num + 1;
-    // }
     // equation 7-30
     sh.slice_qp_y = 26 + sh.slice_qp_delta + p.pic_init_qp_minus26;
     if sh.slice_qp_y < 0 || sh.slice_qp_y > 51 {
@@ -1229,7 +1219,7 @@ pub fn decode_slice_layer_extension_rbsp(
     ppses: &Vec<PicParameterSet>,
     only_headers: bool,
     decode_strict_fmo: bool,
-) -> Slice {
+) -> SliceExtension {
     if nh.svc_extension_flag {
         println!("[WARNING] NALU SVC Extension Flag enabled - Decoding may not be correct");
     } else if nh.avc_3d_extension_flag {
@@ -1238,46 +1228,529 @@ pub fn decode_slice_layer_extension_rbsp(
 
     // TODO: Uncomment whenever implementation below is done
 
-    //let sh : SliceHeader;
-    //let sd : SliceData;
-    //if nh.svc_extension_flag {
-    //    let res = decode_slice_header_in_scalable_extension(); // specified in Annex G
-    //    sh = res.0;
-    //    let slice_skip_flag = res.1;
-    //    if !slice_skip_flag {
-    //        sd = decode_slice_data_in_scalable_extension(); // specified in Annex G
-    //    } else {
-    //        sd = SliceData::new();
-    //    }
-    //} else if nh.avc_3d_extension_flag {
-    //    sh = decode_slice_header_in_3davc_extension();
-    //    sd = decode_slice_data_in_3davc_extension();
-    //} else {
-    let mut spses = Vec::new();
-    for s in subset_spses {
-        spses.push(s.sps.clone());
+    let sh : SliceHeader;
+    let sd : SliceData;
+    if nh.svc_extension_flag {
+        let res = decode_slice_header_in_scalable_extension(nalu_data, nh, subset_spses, &ppses); // specified in Annex G
+        sh = res.0;
+        let _sps_idx = res.1;
+        let _pps_idx = res.2;
+        let slice_skip_flag = res.3;
+        if !slice_skip_flag {
+            sd = decode_slice_data_in_scalable_extension(); // specified in Annex G
+        } else {
+            sd = SliceData::new();
+        }
+    } else if nh.avc_3d_extension_flag {
+        sh = decode_slice_header_in_3davc_extension();
+        sd = decode_slice_data_in_3davc_extension();
+    } else {
+        let mut spses = Vec::new();
+        for s in subset_spses {
+            spses.push(s.sps.clone());
+        }
+        let res = decode_slice_layer_without_partitioning_rbsp(
+            nalu_data,
+            nh,
+            &spses,
+            &ppses,
+            only_headers,
+            decode_strict_fmo,
+        );
+
+        sh = res.sh;
+        sd = res.sd;
     }
-    decode_slice_layer_without_partitioning_rbsp(
-        nalu_data,
-        nh,
-        &spses,
-        ppses,
-        only_headers,
-        decode_strict_fmo,
-    )
-    //}
-    //
-    //return Slice{ sh : sh, sd : sd};
+    
+    SliceExtension{ sh, sd}
 }
 
 /// Follows section G.7.3.3.4
 #[allow(dead_code)]
-fn decode_slice_header_in_scalable_extension() -> (SliceHeader, bool) {
-    let res = SliceHeader::new();
+fn decode_slice_header_in_scalable_extension(    
+    bs: &mut ByteStream,
+    nh: &NALUheader,
+    spses: &Vec<SubsetSPS>,
+    ppses: &Vec<PicParameterSet>,
+) -> (SliceHeader, usize, usize, bool) {
     let slice_skip_flag = true;
     // TODO: Annex G
 
-    (res, slice_skip_flag)
+    let mut sh = SliceHeader::new();
+    let mut pps_idx = 0; // search in reverse
+    let mut sps_idx = 0; // search in reverse
+
+    // first_mb_in_slice
+    sh.first_mb_in_slice = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+    decoder_formatted_print("SH(SVC): first_mb_in_slice", sh.first_mb_in_slice, 63);
+
+    // slice_type
+    sh.slice_type = exp_golomb_decode_one_wrapper(bs, false, 0) as u8;
+    decoder_formatted_print("SH: slice_type", sh.slice_type, 63);
+
+    // pic_parameter_set_id
+    sh.pic_parameter_set_id = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+    decoder_formatted_print("SH: pic_parameter_set_id", sh.pic_parameter_set_id, 63);
+    let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
+    // retrieve the corresponding PPS
+    for i in (0..ppses.len()).rev() {
+        if ppses[i].pic_parameter_set_id == sh.pic_parameter_set_id {
+            cur_pps_wrapper = Some(&ppses[i]);
+            pps_idx = i;
+            break;
+        }
+    }
+
+    let p: &PicParameterSet;
+    match cur_pps_wrapper {
+        Some(x) => p = x,
+        _ => panic!(
+            "decode_slice_header - PPS with id {} not found",
+            sh.pic_parameter_set_id
+        ),
+    }
+
+    let mut cur_subset_sps_wrapper: Option<&SubsetSPS> = None;
+
+    for i in (0..spses.len()).rev() {
+        if spses[i].sps.seq_parameter_set_id == p.seq_parameter_set_id {
+            cur_subset_sps_wrapper = Some(&spses[i]);
+            sps_idx = i;
+            break;
+        }
+    }
+
+    let s: &SubsetSPS;
+    match cur_subset_sps_wrapper {
+        Some(x) => s = x,
+        _ => panic!(
+            "decode_slice_header - SPS with id {} not found",
+            p.seq_parameter_set_id
+        ),
+    }
+
+    let mut vp = VideoParameters::new(nh, p, &s.sps);
+
+    // colour_plane_id
+    if s.sps.separate_colour_plane_flag {
+        // consume two unsigned bits
+        sh.colour_plane_id = bs.read_bits(2) as u8;
+        decoder_formatted_print("SH: colour_plane_id", sh.colour_plane_id, 63);
+    }
+
+    // frame_num
+    // - this is represented by log2_max_frame_num_minus4 + 4 bits in the bitstream
+    sh.frame_num = bs.read_bits((s.sps.log2_max_frame_num_minus4 + 4) as u8);
+    decoder_formatted_print("SH: frame_num", sh.frame_num, 63);
+
+    // field_pic_flag and bottom_field_flag
+    if !s.sps.frame_mbs_only_flag {
+        sh.field_pic_flag = bs.read_bits(1) == 1;
+        decoder_formatted_print("SH: field_pic_flag", sh.field_pic_flag, 63);
+
+        // bottom_field_flag
+        if sh.field_pic_flag {
+            sh.bottom_field_flag = bs.read_bits(1) == 1;
+            decoder_formatted_print("SH: bottom_field_flag", sh.bottom_field_flag, 63);
+        }
+    }
+
+    //idr_pic_id
+    // check the NAL Unit Type to see if it is an IDR picture
+    if vp.idr_pic_flag {
+        sh.idr_pic_id = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+        decoder_formatted_print("SH: idr_pic_id", sh.idr_pic_id, 63);
+    }
+
+    // pic_order_cnt_lsb and delta_pic_order_cnt_bottom
+    if s.sps.pic_order_cnt_type == 0 {
+        // the length is log2_max_pic_order_cnt_lsb_minus4 + 4
+        sh.pic_order_cnt_lsb = bs.read_bits(s.sps.log2_max_pic_order_cnt_lsb_minus4 + 4);
+        decoder_formatted_print("SH: pic_order_cnt_lsb", sh.pic_order_cnt_lsb, 63);
+
+        // delta_pic_order_cnt_bottom
+        if p.bottom_field_pic_order_in_frame_present_flag && !sh.field_pic_flag {
+            sh.delta_pic_order_cnt_bottom = exp_golomb_decode_one_wrapper(bs, true, 0);
+            decoder_formatted_print(
+                "SH: delta_pic_order_cnt_bottom",
+                sh.delta_pic_order_cnt_bottom,
+                63,
+            );
+        }
+    }
+
+    // delta_pic_order_cnt[0] and [1]
+    if s.sps.pic_order_cnt_type == 1 && !s.sps.delta_pic_order_always_zero_flag {
+        sh.delta_pic_order_cnt
+            .push(exp_golomb_decode_one_wrapper(bs, true, 0));
+        decoder_formatted_print("SH: delta_pic_order_cnt[0]", sh.delta_pic_order_cnt[0], 63);
+
+        // delta_pic_order_cnt[1]
+        if p.bottom_field_pic_order_in_frame_present_flag && !sh.field_pic_flag {
+            sh.delta_pic_order_cnt
+                .push(exp_golomb_decode_one_wrapper(bs, true, 0));
+            decoder_formatted_print("SH: delta_pic_order_cnt[1]", sh.delta_pic_order_cnt[1], 63);
+        }
+    }
+
+    // redundant_pic_cnt
+    if p.redundant_pic_cnt_present_flag {
+        sh.redundant_pic_cnt = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+        decoder_formatted_print("SH: redundant_pic_cnt", sh.redundant_pic_cnt, 63);
+    }
+
+    if nh.svc_extension.quality_id == 0 {
+        if is_slice_type(sh.slice_type, "EB") {
+            // direct_spatial_mv_pred_flag
+            let r = bs.read_bits(1);
+            sh.direct_spatial_mv_pred_flag = r == 1;
+            decoder_formatted_print("SH: direct_spatial_mv_pred_flag", &r, 63);
+        }
+        // num_ref_idx_active_override_flag and num_ref_idxl0_active_minus1
+        //     and num_ref_idx_l1_active_minus1
+        if is_slice_type(sh.slice_type, "EP")
+        || is_slice_type(sh.slice_type, "EB")
+        {
+            let r = bs.read_bits(1);
+            sh.num_ref_idx_active_override_flag = r == 1;
+            decoder_formatted_print("SH: num_ref_idx_override_flag", &r, 63);
+
+            // num_ref_idxl0_active_minus1
+            if sh.num_ref_idx_active_override_flag {
+                sh.num_ref_idx_l0_active_minus1 = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+                decoder_formatted_print(
+                    "SH: num_ref_idx_l0_active_minus1",
+                    sh.num_ref_idx_l0_active_minus1,
+                    63,
+                );
+                // num_ref_idxl1_active_minus1
+                if is_slice_type(sh.slice_type, "B") {
+                    sh.num_ref_idx_l1_active_minus1 =
+                        exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+                    decoder_formatted_print(
+                        "SH: num_ref_idx_l1_active_minus1",
+                        sh.num_ref_idx_l1_active_minus1,
+                        63,
+                    );
+                }
+            } else {
+                // if we're not overriding, then we set it to the default as dictated in the Spec (i.e. grab it from the PPS)
+                sh.num_ref_idx_l0_active_minus1 = p.num_ref_idx_l0_default_active_minus1;
+                sh.num_ref_idx_l1_active_minus1 = p.num_ref_idx_l1_default_active_minus1;
+            }
+        }
+        ref_pic_list_modification(&mut sh, bs);
+
+        // pred_weight_table()
+        if (p.weighted_pred_flag && is_slice_type(sh.slice_type, "EP"))
+            || (p.weighted_bipred_idc == 1 && is_slice_type(sh.slice_type, "EB"))
+        {
+            if !nh.svc_extension.no_inter_layer_pred_flag {
+                sh.base_pred_weight_table_flag = 1 == bs.read_bits(1);
+                decoder_formatted_print(
+                    "SH: base_pred_weight_table_flag",
+                    sh.base_pred_weight_table_flag,
+                    63,
+                );
+            }
+            
+            if nh.svc_extension.no_inter_layer_pred_flag || !sh.base_pred_weight_table_flag {
+                pred_weight_table(&mut sh, bs, vp.chroma_array_type);
+            }
+        }
+
+        // dec_ref_pic_marking()
+        if nh.nal_ref_idc != 0 {
+            dec_ref_pic_marking(&mut sh, bs, vp.idr_pic_flag);
+            if !s.sps_svc.slice_header_restriction_flag {
+                sh.store_ref_base_pic_flag = 1 == bs.read_bits(1);
+                decoder_formatted_print(
+                    "SH: store_ref_base_pic_flag",
+                    sh.store_ref_base_pic_flag,
+                    63,
+                );
+
+                if (nh.svc_extension.use_ref_base_pic_flag || sh.store_ref_base_pic_flag) && !nh.svc_extension.idr_flag {
+                    dec_ref_base_pic_marking(&mut sh.ref_base_pic_marking, bs);
+                }
+            }
+        }
+    }
+    // cabac_init_idc
+    if p.entropy_coding_mode_flag
+        && !is_slice_type(sh.slice_type, "EI")
+    {
+        sh.cabac_init_idc = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+        decoder_formatted_print("SH: cabac_init_idc", sh.cabac_init_idc, 63);
+    }
+
+    // slice_qp_delta
+    sh.slice_qp_delta = exp_golomb_decode_one_wrapper(bs, true, 0);
+    decoder_formatted_print("SH: slice_qp_delta", sh.slice_qp_delta, 63);
+
+    // disable_deblocking_filter_idc and slice_alpha_c0_offset_div2 and slice_beta_offset_div2
+    if p.deblocking_filter_control_present_flag {
+        sh.disable_deblocking_filter_idc = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+        decoder_formatted_print(
+            "SH: disable_deblocking_filter_idc",
+            sh.disable_deblocking_filter_idc,
+            63,
+        );
+
+        if sh.disable_deblocking_filter_idc != 1 {
+            sh.slice_alpha_c0_offset_div2 = exp_golomb_decode_one_wrapper(bs, true, 0);
+            sh.slice_beta_offset_div2 = exp_golomb_decode_one_wrapper(bs, true, 0);
+
+            decoder_formatted_print(
+                "SH: slice_alpha_c0_offset_div2",
+                sh.slice_alpha_c0_offset_div2,
+                63,
+            );
+            decoder_formatted_print("SH: slice_beta_offset_div2", sh.slice_beta_offset_div2, 63);
+        }
+    }
+
+    // slice_group_change_cycle
+    if p.num_slice_groups_minus1 > 0 && p.slice_group_map_type >= 3 && p.slice_group_map_type <= 5 {
+        // size is dictated by equation 7-35:
+        // Ceil(log2(PicSizeInMapUnits / SliceGroupChangeRate + 1))
+        let bits_to_read = ((vp.pic_size_in_map_units / (p.slice_group_change_rate_minus1 + 1) + 1)
+            as f64)
+            .log2()
+            .ceil() as u8;
+        sh.slice_group_change_cycle = bs.read_bits(bits_to_read);
+        decoder_formatted_print(
+            "SH: slice_group_change_cycle",
+            sh.slice_group_change_cycle,
+            63,
+        );
+    }
+
+    if !nh.svc_extension.no_inter_layer_pred_flag && nh.svc_extension.quality_id == 0 {
+        sh.ref_layer_dq_id = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+
+        decoder_formatted_print(
+            "SH(SVC): ref_layer_dq_id",
+            sh.ref_layer_dq_id,
+            63,
+        );
+
+        if s.sps_svc.inter_layer_deblocking_filter_control_present_flag {
+            sh.disable_inter_layer_deblocking_filter_idc = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+            decoder_formatted_print(
+                "SH(SVC): disable_inter_layer_deblocking_filter_idc",
+                sh.disable_inter_layer_deblocking_filter_idc,
+                63,
+            );
+            if sh.disable_inter_layer_deblocking_filter_idc != 1 {
+                sh.inter_layer_slice_alpha_c0_offset_div2 = exp_golomb_decode_one_wrapper(bs, true, 0);
+                decoder_formatted_print(
+                    "SH(SVC): inter_layer_slice_alpha_c0_offset_div2",
+                    sh.inter_layer_slice_alpha_c0_offset_div2,
+                    63,
+                );
+
+                sh.inter_layer_slice_beta_offset_div2 = exp_golomb_decode_one_wrapper(bs, true, 0);
+                decoder_formatted_print(
+                    "SH(SVC): inter_layer_slice_beta_offset_div2",
+                    sh.inter_layer_slice_beta_offset_div2,
+                    63,
+                );
+            }
+        }
+
+        sh.constrained_intra_resampling_flag = 1 == bs.read_bits(1);
+        decoder_formatted_print(
+            "SH(SVC): constrained_intra_resampling_flag",
+            sh.constrained_intra_resampling_flag,
+            63,
+        );
+
+        if s.sps_svc.extended_spatial_scalability_idc == 2 {
+            if vp.chroma_array_type > 0 {
+                sh.ref_layer_chroma_phase_x_plus1_flag = 1 == bs.read_bits(1);
+                decoder_formatted_print(
+                    "SH(SVC): ref_layer_chroma_phase_x_plus1_flag",
+                    sh.ref_layer_chroma_phase_x_plus1_flag,
+                    63,
+                );
+
+                sh.ref_layer_chroma_phase_y_plus1 = bs.read_bits(2) as u8;
+                decoder_formatted_print(
+                    "SH(SVC): ref_layer_chroma_phase_y_plus1",
+                    sh.ref_layer_chroma_phase_y_plus1,
+                    63,
+                );
+            }
+            sh.scaled_ref_layer_left_offset = exp_golomb_decode_one_wrapper(bs, true, 0);
+            decoder_formatted_print(
+                "SH(SVC): scaled_ref_layer_left_offset",
+                sh.scaled_ref_layer_left_offset,
+                63,
+            );
+
+            sh.scaled_ref_layer_top_offset = exp_golomb_decode_one_wrapper(bs, true, 0);
+            decoder_formatted_print(
+                "SH(SVC): scaled_ref_layer_top_offset",
+                sh.scaled_ref_layer_top_offset,
+                63,
+            );
+
+
+            sh.scaled_ref_layer_right_offset = exp_golomb_decode_one_wrapper(bs, true, 0);
+            decoder_formatted_print(
+                "SH(SVC): scaled_ref_layer_right_offset",
+                sh.scaled_ref_layer_right_offset,
+                63,
+            );
+
+            sh.scaled_ref_layer_bottom_offset = exp_golomb_decode_one_wrapper(bs, true, 0);
+            decoder_formatted_print(
+                "SH(SVC): scaled_ref_layer_bottom_offset",
+                sh.scaled_ref_layer_bottom_offset,
+                63,
+            );
+        }
+    }
+
+    if !nh.svc_extension.no_inter_layer_pred_flag {
+        sh.slice_skip_flag = 1 == bs.read_bits(1);
+        decoder_formatted_print(
+            "SH(SVC): slice_skip_flag",
+            sh.slice_skip_flag,
+            63,
+        );
+
+        if sh.slice_skip_flag {
+            sh.num_mbs_in_slice_minus1 = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+            decoder_formatted_print(
+                "SH(SVC): num_mbs_in_slice_minus1",
+                sh.num_mbs_in_slice_minus1,
+                63,
+            );
+        } else {
+            sh.adaptive_base_mode_flag = 1 == bs.read_bits(1);
+            decoder_formatted_print(
+                "SH(SVC): adaptive_base_mode_flag",
+                sh.adaptive_base_mode_flag,
+                63,
+            );
+            if !sh.adaptive_base_mode_flag {
+                sh.default_base_mode_flag = 1 == bs.read_bits(1);
+                decoder_formatted_print(
+                    "SH(SVC): default_base_mode_flag",
+                    sh.default_base_mode_flag,
+                    63,
+                );   
+            }
+            if !sh.default_base_mode_flag {
+                sh.adaptive_motion_prediction_flag = 1 == bs.read_bits(1);
+                decoder_formatted_print(
+                    "SH(SVC): adaptive_motion_prediction_flag",
+                    sh.adaptive_motion_prediction_flag,
+                    63,
+                );
+                if !sh.adaptive_motion_prediction_flag {
+                    sh.default_motion_prediction_flag = 1 == bs.read_bits(1);
+                    decoder_formatted_print(
+                        "SH(SVC): default_motion_prediction_flag",
+                        sh.default_motion_prediction_flag,
+                        63,
+                    );
+                }
+            }
+            sh.adaptive_residual_prediction_flag = 1 == bs.read_bits(1);
+            decoder_formatted_print(
+                "SH(SVC): adaptive_residual_prediction_flag",
+                sh.adaptive_residual_prediction_flag,
+                63,
+            );
+
+            if !sh.adaptive_residual_prediction_flag {
+                sh.default_residual_prediction_flag = 1 == bs.read_bits(1);
+                decoder_formatted_print(
+                    "SH(SVC): default_residual_prediction_flag",
+                    sh.default_residual_prediction_flag,
+                    63,
+                );
+            }
+        }
+
+        if s.sps_svc.adaptive_tcoeff_level_prediction_flag {
+            sh.tcoeff_level_prediction_flag = 1 == bs.read_bits(1);
+            decoder_formatted_print(
+                "SH(SVC): tcoeff_level_prediction_flag",
+                sh.tcoeff_level_prediction_flag,
+                63,
+            );
+        }
+    }
+
+    if !s.sps_svc.slice_header_restriction_flag && !sh.slice_skip_flag {
+        sh.scan_idx_start = bs.read_bits(4) as u8;
+        decoder_formatted_print(
+            "SH(SVC): scan_idx_start",
+            sh.scan_idx_start,
+            63,
+        );
+        sh.scan_idx_end = bs.read_bits(4) as u8;
+        decoder_formatted_print(
+            "SH(SVC): scan_idx_end",
+            sh.scan_idx_end,
+            63,
+        );
+    }
+
+
+    // Variables that are computed from the spec but not decoded from the stream
+    // page 87
+    if vp.idr_pic_flag {
+        sh.prev_ref_frame_num = 0;
+    } else {
+        // see clause 8.2.5.2
+        sh.prev_ref_frame_num = sh.frame_num;
+    }
+    // derivation from equation 7-25 in Spec
+    sh.mbaff_frame_flag = s.sps.mb_adaptive_frame_field_flag && !sh.field_pic_flag;
+    // to be used in neighbor decoding
+    vp.mbaff_frame_flag = sh.mbaff_frame_flag;
+
+    // equation 7-26
+    sh.pic_height_in_mbs = vp.frame_height_in_mbs
+        / (1 + match sh.field_pic_flag {
+            true => 1,
+            false => 0,
+        });
+
+    // equation 7-27
+    sh.pic_height_in_samples_luma = sh.pic_height_in_mbs * 16;
+
+    // equation 7-28
+    sh.pic_height_in_samples_chroma = sh.pic_height_in_mbs * (vp.mb_height_c as u32);
+
+    // equation 7-29
+    sh.pic_size_in_mbs = vp.pic_width_in_mbs * sh.pic_height_in_mbs;
+
+    // equation 7-30
+    sh.slice_qp_y = 26 + sh.slice_qp_delta + p.pic_init_qp_minus26;
+    if sh.slice_qp_y < 0 || sh.slice_qp_y > 51 {
+        println!(
+            "[WARNING] slice_qp_y {} is outside of bounds [0, 51] - likely issues decoding",
+            sh.slice_qp_y
+        );
+    }
+    sh.qp_y_prev = sh.slice_qp_y;
+
+    // equation 7-31
+    sh.qs_y = (26 + sh.slice_qs_delta + p.pic_init_qs_minus26) as u8;
+
+    // equation 7-32
+    sh.filter_offset_a = sh.slice_alpha_c0_offset_div2 << 1;
+
+    // equation 7-33
+    sh.filter_offset_b = sh.slice_beta_offset_div2 << 1;
+
+    (sh, sps_idx, pps_idx, slice_skip_flag)
 }
 
 /// Follows section G.7.3.4.1
