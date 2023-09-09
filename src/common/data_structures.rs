@@ -317,7 +317,7 @@ pub struct VideoParameters {
     // //pub flat_8x8_16: [u8; 64], // 7-9
     // //pub default_4x4_intra: [u8; 16], // table 7-3
     // //pub default_8x8_intra: [u8; 64], // table 7-4
-    pub max_frame_num: u32, // 7-10
+    // pub max_frame_num: u32, // 7-10
     // pub max_pic_order_cnt_lsb: u32, // 7-11
     // pub expected_delta_per_pic_order_cnt_cycle: i32, // equation 7-12
     pub pic_width_in_mbs: u32, // 7-13
@@ -440,7 +440,7 @@ impl VideoParameters {
         // TODO: flat and default values should be set in setup (seq_scaling_list_present_flag[i])
 
         // equation 7-10
-        let max_frame_num: u32 = 2u32.pow(s.log2_max_frame_num_minus4 as u32 + 4);
+        //let max_frame_num: u32 = 2u32.pow(s.log2_max_frame_num_minus4 as u32 + 4);
 
         // equation 7-11
         //max_pic_order_cnt_lsb = 2u32.pow(s.log2_max_pic_order_cnt_lsb_minus4 as u32 + 4);
@@ -516,7 +516,7 @@ impl VideoParameters {
             bit_depth_y: bit_depth_y,
             qp_bd_offset_y: qp_bd_offset_y,
             bit_depth_c: bit_depth_c,
-            max_frame_num: max_frame_num,
+            //max_frame_num: max_frame_num,
             pic_width_in_mbs: pic_width_in_mbs,
             pic_height_in_map_units: pic_height_in_map_units,
             pic_size_in_map_units: pic_size_in_map_units,
@@ -4868,7 +4868,7 @@ pub struct SeqParameterSet {
     pub use_default_scaling_matrix_4x4: Vec<bool>, // list len 6
     pub use_default_scaling_matrix_8x8: Vec<bool>, // list len 2 or 6
 
-    pub log2_max_frame_num_minus4: u8, //ue(v)
+    pub log2_max_frame_num_minus4: u32, //ue(v)
 
     pub pic_order_cnt_type: u32,               //ue(v)
     pub log2_max_pic_order_cnt_lsb_minus4: u8, //ue(v) - the range of this must be between 0 to 12 inclusive

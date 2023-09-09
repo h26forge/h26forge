@@ -443,7 +443,7 @@ pub fn decode_seq_parameter_set(bs: &mut ByteStream) -> SeqParameterSet {
         }
     }
 
-    res.log2_max_frame_num_minus4 = exp_golomb_decode_one_wrapper(bs, false, 0) as u8;
+    res.log2_max_frame_num_minus4 = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
     decoder_formatted_print(
         "SPS: log2_max_frame_num_minus4",
         &res.log2_max_frame_num_minus4,

@@ -756,13 +756,13 @@ fn decode_slice_header(
     sh.pic_size_in_mbs = vp.pic_width_in_mbs * sh.pic_height_in_mbs;
 
     // bottom of section field_pic_flag
-    if !sh.field_pic_flag {
-        sh.max_pic_num = vp.max_frame_num;
-        sh.curr_pic_num = sh.frame_num;
-    } else {
-        sh.max_pic_num = 2 * vp.max_frame_num;
-        sh.curr_pic_num = 2 * sh.frame_num + 1;
-    }
+    // if !sh.field_pic_flag {
+    //     sh.max_pic_num = vp.max_frame_num;
+    //     sh.curr_pic_num = sh.frame_num;
+    // } else {
+    //     sh.max_pic_num = 2 * vp.max_frame_num;
+    //     sh.curr_pic_num = 2 * sh.frame_num + 1;
+    // }
     // equation 7-30
     sh.slice_qp_y = 26 + sh.slice_qp_delta + p.pic_init_qp_minus26;
     if sh.slice_qp_y < 0 || sh.slice_qp_y > 51 {
