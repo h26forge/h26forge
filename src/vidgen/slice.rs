@@ -801,8 +801,13 @@ pub fn random_slice_header(
             ds.slices[slice_idx].sh.frame_num = slice_idx as u32;
         }
     } else {
-        let frame_num_length_in_bits = sps.log2_max_frame_num_minus4 + 4;
-        let max_frame_num = 2u32.pow(frame_num_length_in_bits as u32) - 1;
+        // NOTE: We cap maximum possible frame number to u32::MAX for simplicity
+        let max_frame_num : u32;
+        if sps.log2_max_frame_num_minus4 > 28 {
+            max_frame_num = u32::MAX;
+        } else {
+            max_frame_num = 2u32.pow(sps.log2_max_frame_num_minus4 + 4);
+        }
         ds.slices[slice_idx].sh.frame_num = rconfig.frame_num.sample(0, max_frame_num, film);
     }
 

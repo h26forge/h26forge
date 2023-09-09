@@ -5,6 +5,7 @@ use crate::common::data_structures::SliceHeader;
 use crate::common::data_structures::SubMbType;
 use crate::common::helper::is_slice_type;
 use crate::encoder::expgolomb;
+use std::cmp;
 
 /// Encode a num as unary
 pub fn generate_unary_value(num: u32) -> Vec<u8> {
@@ -708,8 +709,19 @@ pub fn generate_coeff_abs_level_minus1_value(num: u32) -> Vec<u8> {
 
 /// Encode an unsigned binary value of a passed in length
 pub fn generate_unsigned_binary(num: u32, len: usize) -> Vec<u8> {
-    let mut num_bits: Vec<u8> = Vec::new();
-    for i in (0..len).rev() {
+    let mut num_bits: Vec<u8>;
+
+    // The number of bits to encode is the min of the desired length and the actual number of bits
+    let num_bit_size = cmp::min(len, (num as f64 + 1.0).log2().ceil() as usize);
+
+    // If the requested length is too big, pad the output with 0s
+    if len > num_bit_size {
+        num_bits = vec![0; len-num_bit_size]
+    } else {
+        num_bits = Vec::new();
+    }
+
+    for i in (0..num_bit_size).rev() {
         num_bits.push(((num & (1 << i)) >> i) as u8);
     }
     num_bits
@@ -884,11 +896,37 @@ mod tests {
                 23,
                 32,
                 vec![
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 1, 0, 1, 1, 1,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 1, 0, 1, 1, 1,
                 ],
             ),
             (16, 4, vec![0, 0, 0, 0]),
+            (
+                u32::MAX,
+                32,
+                vec![
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                ],
+            ),
+            (
+                u32::MAX,
+                64,
+                vec![
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1,
+                ],
+            )
         ];
 
         for t in test_cases.iter() {

@@ -435,7 +435,7 @@ pub fn random_sps(
         }
     }
 
-    sps.log2_max_frame_num_minus4 = rconfig.log2_max_frame_num_minus4.sample(film) as u8;
+    sps.log2_max_frame_num_minus4 = rconfig.log2_max_frame_num_minus4.sample(film);
     sps.pic_order_cnt_type = rconfig.pic_order_cnt_type.sample(film);
 
     if sps.pic_order_cnt_type == 0 {

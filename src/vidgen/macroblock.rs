@@ -616,7 +616,7 @@ fn fill_in_ac_residue(
                     level_code += 15;
                 }
                 if level_prefix >= 16 {
-                    level_code += (1 << (level_prefix - 3)) - 4096;
+                    level_code += 1i32.checked_shl(level_prefix - 3).unwrap_or(0).wrapping_sub(4096);
                 }
                 if i == coeff_token.trailing_ones && coeff_token.trailing_ones < 3 {
                     level_code += 2;

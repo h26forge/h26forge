@@ -16,6 +16,8 @@ use crate::common::helper::is_slice_type;
 use crate::encoder::expgolomb;
 use log::debug;
 
+use super::binarization_functions::generate_unsigned_binary;
+
 const CAVLC_DEBUG: bool = false;
 
 /// Turns the decoded mb_type number into the actual
@@ -238,10 +240,7 @@ pub fn cavlc_encode_prev_intra4x4_pred_mode_flag(se_val: bool, stream: &mut Vec<
 /// Macroblock Prediction - intra4x4_pred_mode
 pub fn cavlc_encode_rem_intra4x4_pred_mode(se_val: u32, stream: &mut Vec<u8>) {
     // u(3)
-    let mut encoded: Vec<u8> = Vec::new();
-    for i in (0..3).rev() {
-        encoded.push(((se_val & (1 << i)) >> i) as u8);
-    }
+    let mut encoded: Vec<u8> = generate_unsigned_binary(se_val, 3);
     if CAVLC_DEBUG {
         debug!(target: "encode","\t rem_intra4x4_pred_mod - Se_val is {:?} and the binarized value is {:?}", se_val, encoded);
     } else {
@@ -268,10 +267,8 @@ pub fn cavlc_encode_prev_intra8x8_pred_mode_flag(se_val: bool, stream: &mut Vec<
 /// Macroblock Prediction - intra8x8_pred_mode
 pub fn cavlc_encode_rem_intra8x8_pred_mode(se_val: u32, stream: &mut Vec<u8>) {
     // u(3)
-    let mut encoded: Vec<u8> = Vec::new();
-    for i in (0..3).rev() {
-        encoded.push(((se_val & (1 << i)) >> i) as u8);
-    }
+    let mut encoded: Vec<u8> = generate_unsigned_binary(se_val, 3);
+
     if CAVLC_DEBUG {
         debug!(target: "encode","\t rem_intra8x8_pred_mod - Se_val is {:?} and the binarized value is {:?}", se_val, encoded);
     } else {
@@ -4267,10 +4264,9 @@ pub fn cavlc_encode_level_suffix(
     if CAVLC_DEBUG {
         debug!(target: "encode","\t level_suffix - level_suffix_size is {:?}", level_suffix_size);
     }
-    let mut encoded: Vec<u8> = Vec::new();
-    for i in (0..level_suffix_size).rev() {
-        encoded.push(((se_val & (1 << i)) >> i) as u8);
-    }
+
+    let mut encoded = generate_unsigned_binary(se_val, level_suffix_size as usize);
+
     if CAVLC_DEBUG {
         debug!(target: "encode","\t level_suffix - Se_val is {:?} and encoded value is {:?}", se_val, encoded);
     } else {
