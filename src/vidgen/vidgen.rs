@@ -106,14 +106,21 @@ pub fn random_video(
 
                 ds.slices[slice_idx].sd.macroblock_vec = vec![MacroBlock::new(); macroblock_amount];
                 // use the most recent PPS and SPS
-                let cur_sps = &ds.spses[sps_idx - 1].clone();
+
                 let cur_pps = &ds.ppses[pps_idx - 1].clone();
+                let cur_sps: SeqParameterSet;
+                if cur_pps.is_subset_pps {
+                    cur_sps = ds.subset_spses[subset_sps_idx - 1].sps.clone();
+                } else {
+                    cur_sps = ds.spses[sps_idx - 1].clone();
+                }
+
                 let randomize_header = true;
                 random_slice(
                     nalu_idx,
                     slice_idx,
                     cur_pps,
-                    cur_sps,
+                    &cur_sps,
                     ignore_intra_pred,
                     ignore_edge_intra_pred,
                     ignore_ipcm,
