@@ -18,7 +18,6 @@ use crate::vidgen::nalu::random_nalu_header;
 use crate::vidgen::nalu::random_prefix_nalu;
 use crate::vidgen::parameter_sets::random_pps;
 use crate::vidgen::parameter_sets::random_sps;
-use crate::vidgen::parameter_sets::random_subset_pps;
 use crate::vidgen::parameter_sets::random_subset_sps;
 use crate::vidgen::sei::random_sei;
 use crate::vidgen::slice::random_slice;
@@ -45,7 +44,6 @@ pub fn random_video(
     let mut sps_idx = 0;
     let mut subset_sps_idx = 0;
     let mut pps_idx = 0;
-    let mut subset_pps_idx = 0;
     let mut sei_idx = 0;
     let mut slice_idx = 0;
     let mut aud_idx = 0;
@@ -176,25 +174,18 @@ pub fn random_video(
                 // use the most recent SPS
                 // choose either the most recent SPS or subsetSPS
                 let cur_sps: SeqParameterSet;
+                ds.ppses.push(PicParameterSet::new());
+
                 if ds.nalu_headers[nalu_idx - 1].nal_unit_type == 15 {
-                    ds.subset_ppses.push(PicParameterSet::new());
                     cur_sps = ds.subset_spses[subset_sps_idx - 1].sps.clone();
-                    random_subset_pps(
-                        subset_pps_idx,
-                        &cur_sps,
-                        rconfig.random_pps_range,
-                        &mut ds,
-                        film,
-                    );
-                    generated_nalu_type_str += "SubsetPPS(8);";
-                    subset_pps_idx += 1;
+                    ds.ppses[pps_idx].is_subset_pps = true;
                 } else {
-                    ds.ppses.push(PicParameterSet::new());
                     cur_sps = ds.spses[sps_idx - 1].clone();
-                    random_pps(pps_idx, &cur_sps, rconfig.random_pps_range, &mut ds, film);
-                    generated_nalu_type_str += "PPS(8);";
-                    pps_idx += 1;
                 }
+
+                random_pps(pps_idx, &cur_sps, rconfig.random_pps_range, &mut ds, film);
+                generated_nalu_type_str += "PPS(8);";
+                pps_idx += 1;
             }
             9 => {
                 // Access Unit Delimiter
@@ -313,7 +304,7 @@ pub fn random_video(
                 random_slice_layer_extension(
                     nalu_idx,
                     slice_idx,
-                    subset_pps_idx - 1,
+                    pps_idx - 1,
                     subset_sps_idx - 1,
                     ignore_intra_pred,
                     ignore_edge_intra_pred,

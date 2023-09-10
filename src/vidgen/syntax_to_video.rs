@@ -45,7 +45,6 @@ pub fn video_to_syntax(ds: &H264DecodedStream, no_nalu_elements: bool, filename:
         new_ds.subset_spses = ds.subset_spses.clone();
         new_ds.sps_extensions = ds.sps_extensions.clone();
         new_ds.ppses = ds.ppses.clone();
-        new_ds.subset_ppses = ds.subset_ppses.clone();
         new_ds.prefix_nalus = ds.prefix_nalus.clone();
         new_ds.slices = ds.slices.clone();
 

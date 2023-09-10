@@ -1144,7 +1144,7 @@ pub fn random_slice_layer_extension(
     //    random_slice_data_in_3davc_extension();
     //} else {
     let cur_sps = &ds.subset_spses[subset_sps_idx].sps.clone();
-    let cur_pps = &ds.subset_ppses[subset_pps_idx].clone();
+    let cur_pps = &ds.ppses[subset_pps_idx].clone();
     random_slice(
         nalu_idx,
         slice_idx,

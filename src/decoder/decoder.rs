@@ -54,7 +54,6 @@ pub fn decode_bitstream(
     let mut subset_spses: Vec<SubsetSPS> = Vec::new();
     let mut sps_extensions: Vec<SPSExtension> = Vec::new();
     let mut ppses: Vec<PicParameterSet> = Vec::new();
-    let mut subset_ppses: Vec<PicParameterSet> = Vec::new();
     let mut prefix_nalus: Vec<PrefixNALU> = Vec::new();
     let mut seis: Vec<SEINalu> = Vec::new();
     let mut slices: Vec<Slice> = Vec::new();
@@ -187,13 +186,7 @@ pub fn decode_bitstream(
                         }
                     }
                 }
-                // TODO: FIXME -- If SubsetSPS and SPS have the same seq_parameter_set_id, then it'll default to SPS, even if
-                //       encoding was with SubsetSPS
-                if r.1 {
-                    subset_ppses.push(r.0);
-                } else {
-                    ppses.push(r.0);
-                }
+                ppses.push(r);
             }
             9 => {
                 println!(
@@ -339,7 +332,7 @@ pub fn decode_bitstream(
                     &mut nalu_data,
                     &header,
                     &subset_spses,
-                    &subset_ppses,
+                    &ppses,
                     only_headers,
                     decode_strict_fmo,
                 );
@@ -447,7 +440,6 @@ pub fn decode_bitstream(
         subset_spses,
         sps_extensions,
         ppses,
-        subset_ppses,
         prefix_nalus,
         slices,
         seis,

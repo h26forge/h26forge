@@ -17,7 +17,6 @@ pub struct H264DecodedStream {
     pub subset_spses: Vec<SubsetSPS>,
     pub sps_extensions: Vec<SPSExtension>,
     pub ppses: Vec<PicParameterSet>,
-    pub subset_ppses: Vec<PicParameterSet>,
     pub prefix_nalus: Vec<PrefixNALU>,
     pub slices: Vec<Slice>,
     pub seis: Vec<SEINalu>,
@@ -33,7 +32,6 @@ impl H264DecodedStream {
             subset_spses: Vec::new(),
             sps_extensions: Vec::new(),
             ppses: Vec::new(),
-            subset_ppses: Vec::new(),
             prefix_nalus: Vec::new(),
             slices: Vec::new(),
             seis: Vec::new(),
@@ -49,7 +47,6 @@ impl H264DecodedStream {
             subset_spses: self.subset_spses.clone(),
             sps_extensions: self.sps_extensions.clone(),
             ppses: self.ppses.clone(),
-            subset_ppses: self.subset_ppses.clone(),
             prefix_nalus: self.prefix_nalus.clone(),
             slices: self.slices.clone(),
             seis: self.seis.clone(),
@@ -3171,6 +3168,8 @@ impl Default for Slice {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PicParameterSet {
     pub available: bool, // used to determine if the PicParameterSet has been set or not
+    #[serde(default)]
+    pub is_subset_pps: bool,
     pub pic_parameter_set_id: u32, //ue(v)
     pub seq_parameter_set_id: u32, // ue(v)
     pub entropy_coding_mode_flag: bool,
@@ -3218,6 +3217,7 @@ impl PicParameterSet {
     pub fn new() -> PicParameterSet {
         PicParameterSet {
             available: false,
+            is_subset_pps: false,
             pic_parameter_set_id: 0,
             seq_parameter_set_id: 0,
             entropy_coding_mode_flag: false,
@@ -3261,6 +3261,7 @@ impl PicParameterSet {
     pub fn clone(&self) -> PicParameterSet {
         PicParameterSet {
             available: self.available,
+            is_subset_pps: self.is_subset_pps,
             pic_parameter_set_id: self.pic_parameter_set_id,
             seq_parameter_set_id: self.seq_parameter_set_id,
             entropy_coding_mode_flag: self.entropy_coding_mode_flag,

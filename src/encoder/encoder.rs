@@ -799,7 +799,6 @@ pub fn reencode_syntax_elements(
     let mut subset_sps_idx = 0;
     let mut sps_extension_idx = 0;
     let mut pps_idx = 0;
-    let mut subset_pps_idx = 0;
     let mut prefix_nalu_idx = 0;
     let mut slice_idx = 0;
     let mut sei_idx = 0;
@@ -874,12 +873,23 @@ pub fn reencode_syntax_elements(
 
                 // we search in reverse to get the most recent; ID collision is possible with random video generation
                 // we use sps_idx to ensure only already encoded SPS's are used
-                for i in (0..sps_idx).rev() {
-                    if ds.spses[i].seq_parameter_set_id == associated_sps_id {
-                        cur_sps_wrapper = Some(&ds.spses[i]);
-                        break;
+                if cur_pps.is_subset_pps {
+                    // try subset sps
+                    for i in (0..ds.subset_spses.len()).rev() {
+                        if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
+                            cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
+                            break;
+                        }
+                    }
+                } else {
+                    for i in (0..sps_idx).rev() {
+                        if ds.spses[i].seq_parameter_set_id == associated_sps_id {
+                            cur_sps_wrapper = Some(&ds.spses[i]);
+                            break;
+                        }
                     }
                 }
+                
 
                 let cur_sps: &SeqParameterSet;
                 match cur_sps_wrapper {
@@ -995,10 +1005,20 @@ pub fn reencode_syntax_elements(
 
                 // we search in reverse to get the most recent; ID collision is possible with random video generation
                 // we use sps_idx to ensure only already encoded SPS's are used
-                for i in (0..sps_idx).rev() {
-                    if ds.spses[i].seq_parameter_set_id == associated_sps_id {
-                        cur_sps_wrapper = Some(&ds.spses[i]);
-                        break;
+                if cur_pps.is_subset_pps {
+                    // try subset sps
+                    for i in (0..ds.subset_spses.len()).rev() {
+                        if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
+                            cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
+                            break;
+                        }
+                    }
+                } else {
+                    for i in (0..sps_idx).rev() {
+                        if ds.spses[i].seq_parameter_set_id == associated_sps_id {
+                            cur_sps_wrapper = Some(&ds.spses[i]);
+                            break;
+                        }
                     }
                 }
 
@@ -1091,37 +1111,7 @@ pub fn reencode_syntax_elements(
                 let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
                 if pps_idx < ds.ppses.len() {
                     let associated_sps_id = ds.ppses[pps_idx].seq_parameter_set_id;
-
-                    // we search in reverse to get the most recent; ID collision is possible with random video generation
-                    for i in (0..sps_idx).rev() {
-                        if ds.spses[i].seq_parameter_set_id == associated_sps_id {
-                            cur_sps_wrapper = Some(&ds.spses[i]);
-                            break;
-                        }
-                    }
-                }
-
-                let cur_sps: &SeqParameterSet;
-                match cur_sps_wrapper {
-                    Some(x) => {
-                        cur_sps = x;
-                        let res =
-                            insert_emulation_three_byte(&encode_pps(&ds.ppses[pps_idx], cur_sps));
-
-                        if avcc_out {
-                            let mut cur_encoded_pps = encoded_header.clone();
-                            cur_encoded_pps.extend(&res);
-
-                            avcc_encoding.pps_list.push(cur_encoded_pps);
-                        }
-
-                        encoded_str.extend(res);
-                        pps_idx += 1;
-                    }
-                    _ => {
-                        let associated_sps_id =
-                            ds.subset_ppses[subset_pps_idx].seq_parameter_set_id;
-
+                    if ds.ppses[pps_idx].is_subset_pps {
                         // try subset sps
                         for i in (0..ds.subset_spses.len()).rev() {
                             if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
@@ -1129,27 +1119,39 @@ pub fn reencode_syntax_elements(
                                 break;
                             }
                         }
-
-                        match cur_sps_wrapper {
-                            Some(x) => {
-                                cur_sps = x;
-                                let res = insert_emulation_three_byte(&encode_pps(
-                                    &ds.subset_ppses[subset_pps_idx],
-                                    cur_sps,
-                                ));
-                                if avcc_out {
-                                    let mut cur_encoded_pps = encoded_header.clone();
-                                    cur_encoded_pps.extend(&res);
-
-                                    avcc_encoding.pps_list.push(cur_encoded_pps);
-                                }
-                                encoded_str.extend(res);
-                                subset_pps_idx += 1;
+                    } else {
+                        // we search in reverse to get the most recent; ID collision is possible with random video generation
+                        for i in (0..sps_idx).rev() {
+                            if ds.spses[i].seq_parameter_set_id == associated_sps_id {
+                                cur_sps_wrapper = Some(&ds.spses[i]);
+                                break;
                             }
-                            _ => panic!(
-                                "reencode_syntax_elements - SPS or SubsetSPS with id {} not found",
-                                associated_sps_id
-                            ),
+                        }
+                    }
+
+                    let cur_sps: &SeqParameterSet;
+                    match cur_sps_wrapper {
+                        Some(x) => {
+                            cur_sps = x;
+                            let res =
+                                insert_emulation_three_byte(&encode_pps(&ds.ppses[pps_idx], cur_sps));
+
+                            if avcc_out {
+                                let mut cur_encoded_pps = encoded_header.clone();
+                                cur_encoded_pps.extend(&res);
+
+                                avcc_encoding.pps_list.push(cur_encoded_pps);
+                            }
+
+                            encoded_str.extend(res);
+                            pps_idx += 1;
+                        }
+                        _ => {
+                            // TODO: We could consider not panicking and continuing with a default SPS (e.g., LRU)
+                            panic!(
+                                    "reencode_syntax_elements - SPS or SubsetSPS with id {} not found",
+                                    associated_sps_id
+                                )   
                         }
                     }
                 }
@@ -1360,10 +1362,9 @@ pub fn reencode_syntax_elements(
                 let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
                 // retrieve the corresponding PPS
                 // we search in reverse to get the most recent; ID collision is possible with random video generation
-                // we use subset_pps_idx to ensure only already encoded PPS's are used
-                for i in (0..ds.subset_ppses.len()).rev() {
-                    if ds.subset_ppses[i].pic_parameter_set_id == associated_pps_id {
-                        cur_pps_wrapper = Some(&ds.subset_ppses[i]);
+                for i in (0..ds.ppses.len()).rev() {
+                    if ds.ppses[i].pic_parameter_set_id == associated_pps_id {
+                        cur_pps_wrapper = Some(&ds.ppses[i]);
                         break;
                     }
                 }

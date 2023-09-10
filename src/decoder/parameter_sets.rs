@@ -22,7 +22,7 @@ pub fn decode_pic_parameter_set(
     bs: &mut ByteStream,
     spses: &Vec<SeqParameterSet>,
     subset_spses: &Vec<SubsetSPS>,
-) -> (PicParameterSet, bool) {
+) -> PicParameterSet {
     let mut res = PicParameterSet::new();
     res.available = true;
 
@@ -41,8 +41,6 @@ pub fn decode_pic_parameter_set(
         }
     }
 
-    let mut is_subset_sps = false;
-
     let s: &SeqParameterSet;
     match cur_sps_wrapper {
         Some(x) => s = x,
@@ -58,7 +56,7 @@ pub fn decode_pic_parameter_set(
             match cur_sps_wrapper {
                 Some(x) => {
                     s = x;
-                    is_subset_sps = true;
+                    res.is_subset_pps = true;
                 }
                 _ => panic!(
                     "decode_pic_parameter_set - SPS or SubsetSPS with id {} not found",
@@ -277,7 +275,7 @@ pub fn decode_pic_parameter_set(
         );
     }
 
-    (res, is_subset_sps)
+    res
 }
 
 /// Described in 7.3.2.1.1 -- Sequence Parameter Set

@@ -1260,7 +1260,7 @@ pub fn decode_slice_layer_extension_rbsp(
     nalu_data: &mut ByteStream,
     nh: &NALUheader,
     subset_spses: &Vec<SubsetSPS>,
-    subset_ppses: &Vec<PicParameterSet>,
+    ppses: &Vec<PicParameterSet>,
     only_headers: bool,
     decode_strict_fmo: bool,
 ) -> Slice {
@@ -1295,7 +1295,7 @@ pub fn decode_slice_layer_extension_rbsp(
         nalu_data,
         nh,
         &spses,
-        subset_ppses,
+        ppses,
         only_headers,
         decode_strict_fmo,
     )
