@@ -875,7 +875,7 @@ pub fn reencode_syntax_elements(
                 // we use sps_idx to ensure only already encoded SPS's are used
                 if cur_pps.is_subset_pps {
                     // try subset sps
-                    for i in (0..ds.subset_spses.len()).rev() {
+                    for i in (0..subset_sps_idx).rev() {
                         if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
                             cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
                             break;
@@ -890,7 +890,6 @@ pub fn reencode_syntax_elements(
                     }
                 }
                 
-
                 let cur_sps: &SeqParameterSet;
                 match cur_sps_wrapper {
                     Some(x) => {
@@ -1007,7 +1006,7 @@ pub fn reencode_syntax_elements(
                 // we use sps_idx to ensure only already encoded SPS's are used
                 if cur_pps.is_subset_pps {
                     // try subset sps
-                    for i in (0..ds.subset_spses.len()).rev() {
+                    for i in (0..subset_sps_idx).rev() {
                         if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
                             cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
                             break;
@@ -1113,7 +1112,7 @@ pub fn reencode_syntax_elements(
                     let associated_sps_id = ds.ppses[pps_idx].seq_parameter_set_id;
                     if ds.ppses[pps_idx].is_subset_pps {
                         // try subset sps
-                        for i in (0..ds.subset_spses.len()).rev() {
+                        for i in (0..subset_sps_idx).rev() {
                             if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
                                 cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
                                 break;
@@ -1362,7 +1361,7 @@ pub fn reencode_syntax_elements(
                 let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
                 // retrieve the corresponding PPS
                 // we search in reverse to get the most recent; ID collision is possible with random video generation
-                for i in (0..ds.ppses.len()).rev() {
+                for i in (0..pps_idx).rev() {
                     if ds.ppses[i].pic_parameter_set_id == associated_pps_id {
                         cur_pps_wrapper = Some(&ds.ppses[i]);
                         break;
@@ -1380,7 +1379,7 @@ pub fn reencode_syntax_elements(
 
                 // we search in reverse to get the most recent; ID collision is possible with random video generation
                 // we use sps_idx to ensure only already encoded SPS's are used
-                for i in (0..ds.subset_spses.len()).rev() {
+                for i in (0..subset_sps_idx).rev() {
                     if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
                         cur_subset_sps_wrapper = Some(&ds.subset_spses[i]);
                         break;
