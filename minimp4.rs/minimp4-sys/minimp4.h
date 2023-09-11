@@ -44,7 +44,7 @@ extern "C" {
 #define MP4D_TRACE_TIMESTAMPS     1
 // Support parsing of supplementary information, not necessary for decoding:
 // duration, language, bitrate, metadata tags, etc
-#define MP4D_INFO_SUPPORTED       1
+#define MP4D_INFO_SUPPORTED       0
 
 // Enable code, which prints to stdout supplementary MP4 information:
 #define MP4D_PRINT_INFO_SUPPORTED 0
@@ -132,6 +132,12 @@ typedef enum
     e_private
 } track_media_kind_t;
 
+typedef struct 
+{
+    int width;
+    int height;
+} video_params;
+
 typedef struct
 {
     // MP4 object type code, which defined codec class for the track.
@@ -147,20 +153,7 @@ typedef struct
     unsigned time_scale;
     unsigned default_duration;
 
-    union
-    {
-        struct
-        {
-            // number of channels in the audio track.
-            unsigned channelcount;
-        } a;
-
-        struct
-        {
-            int width;
-            int height;
-        } v;
-    } u;
+    video_params v;
 
 } MP4E_track_t;
 
@@ -1339,8 +1332,8 @@ static int mp4e_flush_index(MP4E_mux_t *mux)
                 WRITE_4(0); // height
             } else
             {
-                WRITE_4(tr->info.u.v.width*0x10000);  // width
-                WRITE_4(tr->info.u.v.height*0x10000); // height
+                WRITE_4(tr->info.v.width*0x10000);  // width
+                WRITE_4(tr->info.v.height*0x10000); // height
             }
             END_ATOM;
 
@@ -1431,7 +1424,7 @@ static int mp4e_flush_index(MP4E_mux_t *mux)
                             {
                                 // AudioSampleEntry
                                 WRITE_4(0); WRITE_4(0); // reserved[2]
-                                WRITE_2(tr->info.u.a.channelcount); // channelcount
+                                WRITE_2(1); // channelcount
                                 WRITE_2(16); // samplesize
                                 WRITE_4(0);  // pre_defined+reserved
                                 WRITE_4((tr->info.time_scale << 16));  // samplerate == = {timescale of media}<<16;
@@ -1464,7 +1457,7 @@ static int mp4e_flush_index(MP4E_mux_t *mux)
                                         WRITE_1(208); // 208 = private video
                                         WRITE_1(32 << 2); // stream_type == user private
                                     }
-                                    WRITE_3(tr->info.u.a.channelcount * 6144/8); // bufferSizeDB in bytes, constant as in reference decoder
+                                    WRITE_3(1 * 6144/8); // bufferSizeDB in bytes, constant as in reference decoder
                                     WRITE_4(0); // maxBitrate TODO
                                     WRITE_4(0); // avg_bitrate_bps TODO
 
@@ -1502,8 +1495,8 @@ static int mp4e_flush_index(MP4E_mux_t *mux)
                             WRITE_4(0); // pre_defined
                             WRITE_4(0); // pre_defined
                             WRITE_4(0); // pre_defined
-                            WRITE_2(tr->info.u.v.width);
-                            WRITE_2(tr->info.u.v.height);
+                            WRITE_2(tr->info.v.width);
+                            WRITE_2(tr->info.v.height);
                             WRITE_4(0x00480000); // horizresolution = 72 dpi
                             WRITE_4(0x00480000); // vertresolution  = 72 dpi
                             WRITE_4(0); // reserved
@@ -2271,8 +2264,8 @@ int mp4_h26x_write_init(mp4_h26x_writer_t *h, MP4E_mux_t *mux, int width, int he
     tr.object_type_indication = is_hevc ? MP4_OBJECT_TYPE_HEVC : MP4_OBJECT_TYPE_AVC;
     tr.time_scale = 90000;
     tr.default_duration = 0;
-    tr.u.v.width = width;
-    tr.u.v.height = height;
+    tr.v.width = width;
+    tr.v.height = height;
     h->mux_track_id = MP4E_add_track(mux, &tr);
     h->mux = mux;
 
@@ -3518,10 +3511,7 @@ void MP4D_printf_info(const MP4D_demux_t *mp4)
         printf(" %-23s|", GetMP4StreamTypeName(tr->stream_type));
         printf(" %-23s", GetMP4ObjectTypeName(tr->object_type_indication));
 
-        if (tr->handler_type == MP4D_HANDLER_TYPE_SOUN)
-        {
-            printf("  -  %d ch %d hz", tr->SampleDescription.audio.channelcount, tr->SampleDescription.audio.samplerate_hz);
-        } else if (tr->handler_type == MP4D_HANDLER_TYPE_VIDE)
+        if (tr->handler_type == MP4D_HANDLER_TYPE_VIDE)
         {
             printf("  -  %dx%d", tr->SampleDescription.video.width, tr->SampleDescription.video.height);
         }
