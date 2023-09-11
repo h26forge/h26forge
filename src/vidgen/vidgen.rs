@@ -296,6 +296,17 @@ pub fn random_video(
                     );
                 }
                 ds.slices.push(Slice::new());
+
+                // Get the most recent PPS associated with a subset SPS, which 
+                // should also be the most recent subset SPS
+                let mut subset_pps_idx : usize = ds.ppses.len()-1;
+                for i in (0..ds.ppses.len()).rev(){
+                    if ds.ppses[i].is_subset_pps {
+                        subset_pps_idx = i;
+                        break;
+                    }
+                }
+
                 // for amount of macroblocks, assume frames only
                 let macroblock_amount = ((ds.subset_spses[subset_sps_idx - 1]
                     .sps
@@ -311,7 +322,7 @@ pub fn random_video(
                 random_slice_layer_extension(
                     nalu_idx,
                     slice_idx,
-                    pps_idx - 1,
+                    subset_pps_idx,
                     subset_sps_idx - 1,
                     ignore_intra_pred,
                     ignore_edge_intra_pred,
