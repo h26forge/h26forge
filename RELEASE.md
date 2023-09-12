@@ -15,4 +15,5 @@ Get a video's syntax elements: `./h26forge passthrough -i input.264 -o output.26
 
 ## Changelog
 
+9-12-2023: Bug fix in video encoding.
 9-11-2023: Bug fixes in video generation.
