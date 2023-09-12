@@ -1362,7 +1362,7 @@ pub fn reencode_syntax_elements(
                 // retrieve the corresponding PPS
                 // we search in reverse to get the most recent; ID collision is possible with random video generation
                 for i in (0..pps_idx).rev() {
-                    if ds.ppses[i].pic_parameter_set_id == associated_pps_id {
+                    if ds.ppses[i].pic_parameter_set_id == associated_pps_id && ds.ppses[i].is_subset_pps {
                         cur_pps_wrapper = Some(&ds.ppses[i]);
                         break;
                     }
