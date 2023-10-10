@@ -82,6 +82,9 @@ struct H26ForgeOptions {
     /// Manually set the MP4 height
     #[arg(long = "mp4-height", default_value = "-1")]
     output_mp4_height: i32,
+    // Output video_replay file for WebRTC, see: https://webrtchacks.com/video_replay/
+   #[arg(long = "rtp-replay")]
+    output_rtp: bool
 }
 
 #[derive(Subcommand)]
@@ -235,6 +238,7 @@ impl H26ForgeOptions {
         debug!(target: "encode"," - output_mp4_randomsize: {}", self.output_mp4_randomsize);
         debug!(target: "encode"," - output_mp4_width: {}", self.output_mp4_width);
         debug!(target: "encode"," - output_mp4_height: {}", self.output_mp4_height);
+        debug!(target: "encode"," - output_rtp: {}", self.output_rtp);
     }
 }
 
@@ -354,9 +358,11 @@ fn mode_synthesize(input_filename: &str, output_filename: &str, options: &H26For
         options.output_cut,
         options.output_avcc,
         options.print_silent,
+        options.output_rtp,
     );
     let encoded_str = res.0;
     let avcc_encoding = res.1;
+    let rtp = res.2;
     encoder::encoder::save_encoded_stream(
         encoded_str,
         avcc_encoding,
@@ -368,6 +374,7 @@ fn mode_synthesize(input_filename: &str, output_filename: &str, options: &H26For
         false,
         options.output_avcc,
         options.include_safestart,
+        rtp,
     );
 }
 
@@ -646,9 +653,11 @@ fn mode_randomize(
         options.output_cut,
         options.output_avcc,
         options.print_silent,
+        options.output_rtp,
     );
     let encoded_str = res.0;
     let avcc_encoding = res.1;
+    let rtp = res.2;
     encoder::encoder::save_encoded_stream(
         encoded_str,
         avcc_encoding,
@@ -660,6 +669,7 @@ fn mode_randomize(
         false,
         options.output_avcc,
         options.include_safestart,
+        rtp,
     );
 }
 
@@ -710,9 +720,11 @@ fn mode_modify(
             options.output_cut,
             options.output_avcc,
             options.print_silent,
+            options.output_rtp,
         );
         let encoded_str = res.0;
         let avcc_encoding = res.1;
+        let rtp = res.2;
         encoder::encoder::save_encoded_stream(
             encoded_str,
             avcc_encoding,
@@ -724,6 +736,7 @@ fn mode_modify(
             false,
             options.output_avcc,
             options.include_safestart,
+            rtp,
         );
     } else {
         println!("Skipping writing out new file");
@@ -889,6 +902,7 @@ fn mode_generate(
         options.output_cut,
         options.output_avcc,
         options.print_silent,
+        options.output_rtp,
     );
     if options.print_perf {
         let duration = start_time.elapsed();
@@ -906,6 +920,7 @@ fn mode_generate(
     }
     let encoded_str = res.0;
     let avcc_encoding = res.1;
+    let rtp = res.2;
     let start_time = SystemTime::now();
     encoder::encoder::save_encoded_stream(
         encoded_str,
@@ -918,6 +933,7 @@ fn mode_generate(
         false,
         options.output_avcc,
         options.include_safestart,
+        rtp,
     );
     if options.print_perf {
         let duration = start_time.elapsed();
@@ -1020,6 +1036,7 @@ fn main() {
                 options.output_cut,
                 options.output_avcc,
                 options.print_silent,
+                options.output_rtp,
             );
 
             if options.print_perf {
@@ -1038,6 +1055,7 @@ fn main() {
             }
             let encoded_str = res.0;
             let avcc_encoding = res.1;
+            let rtp = res.2;
             let start_time = SystemTime::now();
             encoder::encoder::save_encoded_stream(
                 encoded_str,
@@ -1050,6 +1068,7 @@ fn main() {
                 false,
                 options.output_avcc,
                 options.include_safestart,
+                rtp,
             );
             if options.print_perf {
                 let duration = start_time.elapsed();
@@ -1413,6 +1432,7 @@ fn main() {
             let width = 1920;
             let height = 1080;
             let start_time = SystemTime::now();
+            let rtp:Vec<Vec<u8>> = Vec::new();
             encoder::encoder::save_encoded_stream(
                 encoded_str,
                 common::data_structures::AVCCFormat::new(),
@@ -1424,6 +1444,7 @@ fn main() {
                 true,
                 false,
                 false,
+                rtp,
             );
 
             if options.print_perf {

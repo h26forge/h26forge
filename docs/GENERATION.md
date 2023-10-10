@@ -96,6 +96,7 @@ Here are all the options available for video generation.
 - `--mp4-width <width>`: Set the output MP4 width to a particular value.
 - `--mp4-height <height>`: Set the output MP4 height to a particular value.
 - `--avcc`: Produce a [WebCodecs](https://w3c.github.io/webcodecs/) friendly output file. This creates a `<output>.avcc.js` file that contains the AVCC extradata in [this](https://stackoverflow.com/a/24890903/8169613) format. The variable `avcC` can be passed into a [VideoDecoderConfig](https://w3c.github.io/webcodecs/#dom-videodecoderconfig-description). See [CanIUse](https://caniuse.com/webcodecs) to identify support.
+- `--rtp-replay`: Output an [rtpdump](https://webrtchacks.com/video_replay/) file. If safestart is enabled, decodable frames will be prepended to the rtpdump file. The config file for the generated dump is rtp_config/replay.config
 - `--json`: Outputs the entire generated/parsed video as a [H264DecodedStream](../src/common/data_structures.rs#L13). Note that this file can get really big.
 - `-e`: Outputs the generated entropy encoded values in a human readable format. This slows down video encoding, and may produce a really large file. This is best used for identifying what particular syntax element values are causing issues. 
 
