@@ -188,7 +188,7 @@ pub fn generate_video_from_seed(
     );
 
     let avcc_out = false;
-    let encoded_vid = reencode_syntax_elements(&mut vid, cut_nalu, avcc_out, silent_mode);
+    let encoded_vid = reencode_syntax_elements(&mut vid, cut_nalu, avcc_out, silent_mode, false);
 
     encoded_vid.0
 }
@@ -241,7 +241,7 @@ pub fn generate_video_from_film_contents(
     );
 
     let avcc_out = false;
-    let encoded_vid = reencode_syntax_elements(&mut vid, cut_nalu, avcc_out, silent_mode);
+    let encoded_vid = reencode_syntax_elements(&mut vid, cut_nalu, avcc_out, silent_mode, false);
 
     encoded_vid.0
 }
