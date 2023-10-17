@@ -382,8 +382,12 @@ fn random_pic_timing(
                     + 1);
         }
 
-        pt.cpb_removal_delay = rconfig.cpb_removal_delay.sample(0, (cpb_max - 1) as u32, film);
-        pt.dpb_output_delay = rconfig.dpb_output_delay.sample(0, (dpb_max - 1) as u32, film);
+        pt.cpb_removal_delay = rconfig
+            .cpb_removal_delay
+            .sample(0, (cpb_max - 1) as u32, film);
+        pt.dpb_output_delay = rconfig
+            .dpb_output_delay
+            .sample(0, (dpb_max - 1) as u32, film);
     }
 
     let pic_struct_present_flag = sps.vui_parameters.pic_struct_present_flag;

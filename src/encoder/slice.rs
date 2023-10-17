@@ -645,8 +645,8 @@ fn encode_slice_header(
 
     bitstream_array.append(&mut generate_unsigned_binary(
         sh.frame_num,
-        (s.log2_max_frame_num_minus4 + 4) as usize)
-    );
+        (s.log2_max_frame_num_minus4 + 4) as usize,
+    ));
     encoder_formatted_print("SH: frame_num", sh.frame_num, 63);
 
     // field_pic_flag
@@ -679,7 +679,10 @@ fn encode_slice_header(
     if s.pic_order_cnt_type == 0 {
         // pic_order_cnt_lsb u(v)
         // length is defined by SPS log2_max_pic_order_cnt_lsb_minus4 + 4 number of bits
-        let mut pic_order_cnt_lsb_vec: Vec<u8> = generate_unsigned_binary(sh.pic_order_cnt_lsb, s.log2_max_pic_order_cnt_lsb_minus4 as usize + 4);
+        let mut pic_order_cnt_lsb_vec: Vec<u8> = generate_unsigned_binary(
+            sh.pic_order_cnt_lsb,
+            s.log2_max_pic_order_cnt_lsb_minus4 as usize + 4,
+        );
 
         bitstream_array.append(&mut pic_order_cnt_lsb_vec);
         encoder_formatted_print("SH: pic_order_cnt_lsb", sh.pic_order_cnt_lsb, 63);
@@ -892,7 +895,8 @@ fn encode_slice_header(
             .log2()
             .ceil() as usize;
 
-        let mut slice_group_change_cycle: Vec<u8> = generate_unsigned_binary(sh.slice_group_change_cycle, bits_to_write);
+        let mut slice_group_change_cycle: Vec<u8> =
+            generate_unsigned_binary(sh.slice_group_change_cycle, bits_to_write);
 
         bitstream_array.append(&mut slice_group_change_cycle);
         encoder_formatted_print(

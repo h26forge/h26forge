@@ -802,7 +802,7 @@ pub fn random_slice_header(
         }
     } else {
         // NOTE: We cap maximum possible frame number to u32::MAX for simplicity
-        let max_frame_num : u32;
+        let max_frame_num: u32;
         if sps.log2_max_frame_num_minus4 > 28 {
             max_frame_num = u32::MAX;
         } else {

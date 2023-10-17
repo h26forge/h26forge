@@ -1143,7 +1143,8 @@ fn encode_residual_block_cavlc(
                     level_code += 15;
                 }
                 if tb.level_prefix[i] >= 16 {
-                    level_code += (1i32.checked_shl(tb.level_prefix[i] - 3).unwrap_or(0)).wrapping_sub(4096);
+                    level_code +=
+                        (1i32.checked_shl(tb.level_prefix[i] - 3).unwrap_or(0)).wrapping_sub(4096);
                 }
                 if i == tb.coeff_token.trailing_ones && tb.coeff_token.trailing_ones < 3 {
                     level_code += 2;

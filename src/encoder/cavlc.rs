@@ -191,14 +191,15 @@ pub fn cavlc_encode_coded_block_pattern(
             debug!(target: "encode","[WARNING] coded_block_pattern {} is out of bounds - max is 47", se_val);
         }
         mapped = ENCODE_MAPPED_EXP_GOLOMB_CAT12[(se_val % 48) as usize][intra_mode as usize];
-    } else { // if chroma_array_type == 0 || chroma_array_type == 3 {
+    } else {
+        // if chroma_array_type == 0 || chroma_array_type == 3 {
         if se_val > 15 {
             debug!(target: "encode","[WARNING] coded_block_pattern {} is out of bounds - max is 15", se_val);
         }
         mapped = ENCODE_MAPPED_EXP_GOLOMB_CAT03[(se_val % 16) as usize][intra_mode as usize];
     } //else {
-        //panic!("Wrong chroma_array_type: {}", chroma_array_type);
-    //}
+      //panic!("Wrong chroma_array_type: {}", chroma_array_type);
+      //}
 
     let mut encoded = expgolomb::exp_golomb_encode_one(mapped, false, 0, false);
     if CAVLC_DEBUG {

@@ -29,14 +29,13 @@ use vidgen::parameter_sets::random_sps;
 use vidgen::slice::random_slice_header;
 use vidgen::vidgen::random_video;
 
-
 /// Generates a single SPS without initializing the random state
 fn generate_single_sps(
     enable_extensions: bool,
     small_video: bool,
     silent_mode: bool,
-    rconfig : &RandomizeConfig,
-    mut film : &mut FilmState,
+    rconfig: &RandomizeConfig,
+    mut film: &mut FilmState,
 ) -> (SeqParameterSet, Vec<u8>) {
     let mut sps = SeqParameterSet::new();
     let mut encoded_sps = vec![0, 0, 0, 1];
@@ -49,7 +48,14 @@ fn generate_single_sps(
     encoded_sps.push(nalu_header);
 
     // Generate a random Sequence Parameter Set
-    random_sps(&mut sps, enable_extensions, &rconfig.random_sps_range, small_video, silent_mode, &mut film);
+    random_sps(
+        &mut sps,
+        enable_extensions,
+        &rconfig.random_sps_range,
+        small_video,
+        silent_mode,
+        &mut film,
+    );
     encoded_sps.extend_from_slice(&insert_emulation_three_byte(&encode_sps(&sps, false)));
 
     (sps, encoded_sps)
@@ -57,9 +63,9 @@ fn generate_single_sps(
 
 /// Generates a single PPS without initializing the random state
 fn generate_single_pps(
-    sps : &SeqParameterSet,
-    rconfig : &RandomizeConfig,
-    mut film : &mut FilmState,
+    sps: &SeqParameterSet,
+    rconfig: &RandomizeConfig,
+    mut film: &mut FilmState,
 ) -> (PicParameterSet, Vec<u8>) {
     let mut encoded_pps = vec![0, 0, 0, 1];
 
@@ -73,28 +79,21 @@ fn generate_single_pps(
     ds.ppses.push(PicParameterSet::new());
 
     // Generate a random Picture Parameter Set
-    random_pps(
-        0,
-        sps,
-        rconfig.random_pps_range,
-        &mut ds,
-        &mut film);
+    random_pps(0, sps, rconfig.random_pps_range, &mut ds, &mut film);
 
     encoded_pps.extend_from_slice(&insert_emulation_three_byte(&encode_pps(&ds.ppses[0], sps)));
 
     (ds.ppses[0].clone(), encoded_pps)
 }
 
-
 fn generate_single_slice_header(
-    sps : &SeqParameterSet,
-    pps : &PicParameterSet,
+    sps: &SeqParameterSet,
+    pps: &PicParameterSet,
     silent_mode: bool,
-    rconfig : &RandomizeConfig,
-    film : &mut FilmState,
+    rconfig: &RandomizeConfig,
+    film: &mut FilmState,
 ) -> Vec<u8> {
     let mut encoded_slice_header = vec![0, 0, 0, 1];
-
 
     let mut ds = H264DecodedStream::new();
     ds.nalu_headers.push(NALUheader::new());
@@ -107,7 +106,8 @@ fn generate_single_slice_header(
         false,
         &rconfig.random_nalu_range,
         &mut ds,
-        film);
+        film,
+    );
 
     // NALU Type of 1 or 5
     ds.nalu_headers[0].nal_unit_type = 1;
@@ -143,12 +143,10 @@ fn generate_single_slice_header(
         &pps,
         &vp,
         silent_mode,
-        )));
-
+    )));
 
     encoded_slice_header
 }
-
 
 /// Generates a video from a seed value
 ///
@@ -272,9 +270,15 @@ pub fn generate_sps_from_film_contents(
 
     let rconfig = RandomizeConfig::new();
 
-    generate_single_sps(enable_extensions, small_video, silent_mode, &rconfig, &mut film).1
+    generate_single_sps(
+        enable_extensions,
+        small_video,
+        silent_mode,
+        &rconfig,
+        &mut film,
+    )
+    .1
 }
-
 
 /// Generates a collection of Parameter Sets from a sequence of bytes called a FILM
 ///
@@ -286,12 +290,11 @@ pub fn generate_sps_from_film_contents(
 pub fn generate_parameter_sets_from_film_contents(
     film_contents: Vec<u8>,
     seed: u64,
-    count : u8,
+    count: u8,
     enable_extensions: bool,
     small_video: bool,
     silent_mode: bool,
 ) -> Vec<u8> {
-
     let mut film = vidgen::film::FilmState::setup_film_from_seed(seed);
 
     film.use_film_file = true;
@@ -304,26 +307,41 @@ pub fn generate_parameter_sets_from_film_contents(
 
     let rconfig = RandomizeConfig::new();
 
-    let mut encoded_stream : Vec<u8> = Vec::new();
+    let mut encoded_stream: Vec<u8> = Vec::new();
 
-    let mut sps_array : Vec<SeqParameterSet> = Vec::new();
+    let mut sps_array: Vec<SeqParameterSet> = Vec::new();
 
     // Generate an initial SPS
-    let init_sps = generate_single_sps(enable_extensions, small_video, silent_mode, &rconfig, &mut film);
+    let init_sps = generate_single_sps(
+        enable_extensions,
+        small_video,
+        silent_mode,
+        &rconfig,
+        &mut film,
+    );
 
     sps_array.push(init_sps.0);
     encoded_stream.extend(init_sps.1.iter());
-
 
     for _ in 0..count {
         let gen_pps = film.read_film_bool(0, 1, 1);
 
         if gen_pps {
             // use any previously generated SPS as a basis for the PPS
-            let sps_idx = film.read_film_u32(0, sps_array.len() as u32 -1);
-            encoded_stream.extend(generate_single_pps(&sps_array[sps_idx as usize], &rconfig, &mut film).1.iter());
+            let sps_idx = film.read_film_u32(0, sps_array.len() as u32 - 1);
+            encoded_stream.extend(
+                generate_single_pps(&sps_array[sps_idx as usize], &rconfig, &mut film)
+                    .1
+                    .iter(),
+            );
         } else {
-            let new_sps = generate_single_sps(enable_extensions, small_video, silent_mode, &rconfig, &mut film);
+            let new_sps = generate_single_sps(
+                enable_extensions,
+                small_video,
+                silent_mode,
+                &rconfig,
+                &mut film,
+            );
             sps_array.push(new_sps.0);
             encoded_stream.extend(new_sps.1.iter());
         }
@@ -342,12 +360,11 @@ pub fn generate_parameter_sets_from_film_contents(
 pub fn generate_parameters_and_slices_from_film_contents(
     film_contents: Vec<u8>,
     seed: u64,
-    count : u8,
+    count: u8,
     enable_extensions: bool,
     small_video: bool,
     silent_mode: bool,
 ) -> Vec<u8> {
-
     let mut film = vidgen::film::FilmState::setup_film_from_seed(seed);
 
     film.use_film_file = true;
@@ -360,22 +377,27 @@ pub fn generate_parameters_and_slices_from_film_contents(
 
     let rconfig = RandomizeConfig::new();
 
-    let mut encoded_stream : Vec<u8> = Vec::new();
+    let mut encoded_stream: Vec<u8> = Vec::new();
 
-    let mut sps_array : Vec<SeqParameterSet> = Vec::new();
-    let mut pps_array : Vec<(usize, PicParameterSet)> = Vec::new();
+    let mut sps_array: Vec<SeqParameterSet> = Vec::new();
+    let mut pps_array: Vec<(usize, PicParameterSet)> = Vec::new();
 
     // Generate an initial SPS
-    let init_sps = generate_single_sps(enable_extensions, small_video, silent_mode, &rconfig, &mut film);
+    let init_sps = generate_single_sps(
+        enable_extensions,
+        small_video,
+        silent_mode,
+        &rconfig,
+        &mut film,
+    );
     sps_array.push(init_sps.0);
     encoded_stream.extend(init_sps.1.iter());
 
     // Generate an initial PPS
-    let sps_idx = film.read_film_u32(0, sps_array.len() as u32 -1) as usize;
+    let sps_idx = film.read_film_u32(0, sps_array.len() as u32 - 1) as usize;
     let init_pps = generate_single_pps(&sps_array[sps_idx], &rconfig, &mut film);
     pps_array.push((sps_idx, init_pps.0));
     encoded_stream.extend(init_pps.1.iter());
-
 
     for _ in 0..count {
         let gen_type = film.read_film_u32(0, 2);
@@ -383,20 +405,25 @@ pub fn generate_parameters_and_slices_from_film_contents(
         match gen_type {
             0 => {
                 // new SPS
-                let new_sps = generate_single_sps(enable_extensions, small_video, silent_mode, &rconfig, &mut film);
+                let new_sps = generate_single_sps(
+                    enable_extensions,
+                    small_video,
+                    silent_mode,
+                    &rconfig,
+                    &mut film,
+                );
                 sps_array.push(new_sps.0);
                 encoded_stream.extend(new_sps.1.iter());
-            },
+            }
             1 => {
                 // use any previously generated SPS as a basis for the PPS
-                let sps_idx = film.read_film_u32(0, sps_array.len() as u32 -1) as usize;
+                let sps_idx = film.read_film_u32(0, sps_array.len() as u32 - 1) as usize;
                 let new_pps = generate_single_pps(&sps_array[sps_idx], &rconfig, &mut film);
                 pps_array.push((sps_idx, new_pps.0));
                 encoded_stream.extend(new_pps.1.iter());
-            },
+            }
             _ => {
-
-                let pps_idx = film.read_film_u32(0, pps_array.len() as u32 -1) as usize;
+                let pps_idx = film.read_film_u32(0, pps_array.len() as u32 - 1) as usize;
                 let sps = &sps_array[pps_array[pps_idx].0];
                 let pps = &pps_array[pps_idx].1;
 

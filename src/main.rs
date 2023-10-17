@@ -83,8 +83,8 @@ struct H26ForgeOptions {
     #[arg(long = "mp4-height", default_value = "-1")]
     output_mp4_height: i32,
     // Output video_replay file for WebRTC, see: https://webrtchacks.com/video_replay/
-   #[arg(long = "rtp-replay")]
-    output_rtp: bool
+    #[arg(long = "rtp-replay")]
+    output_rtp: bool,
 }
 
 #[derive(Subcommand)]
@@ -1432,7 +1432,7 @@ fn main() {
             let width = 1920;
             let height = 1080;
             let start_time = SystemTime::now();
-            let rtp:Vec<Vec<u8>> = Vec::new();
+            let rtp: Vec<Vec<u8>> = Vec::new();
             encoder::encoder::save_encoded_stream(
                 encoded_str,
                 common::data_structures::AVCCFormat::new(),

@@ -704,7 +704,7 @@ pub fn encode_pps(p: &PicParameterSet, s: &SeqParameterSet) -> Vec<u8> {
                             bitstream_array
                                 .append(&mut encode_scaling_list(p.delta_scale_8x8[i].clone(), 64));
                         }
-                     }
+                    }
                 }
             }
         }

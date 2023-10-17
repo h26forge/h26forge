@@ -297,10 +297,10 @@ pub fn random_video(
                 }
                 ds.slices.push(Slice::new());
 
-                // Get the most recent PPS associated with a subset SPS, which 
+                // Get the most recent PPS associated with a subset SPS, which
                 // should also be the most recent subset SPS
-                let mut subset_pps_idx : usize = ds.ppses.len()-1;
-                for i in (0..ds.ppses.len()).rev(){
+                let mut subset_pps_idx: usize = ds.ppses.len() - 1;
+                for i in (0..ds.ppses.len()).rev() {
                     if ds.ppses[i].is_subset_pps {
                         subset_pps_idx = i;
                         break;

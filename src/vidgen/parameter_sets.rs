@@ -688,7 +688,6 @@ pub fn random_pps(
     }
 }
 
-
 /// Generate a random Subset SPS
 pub fn random_subset_sps(
     subset_sps_idx: usize,

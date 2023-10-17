@@ -235,7 +235,8 @@ fn random_ref_base_pic_marking(
                             .sample(film),
                     );
 
-                if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 1 {
+                if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 1
+                {
                     ds.prefix_nalus[prefix_nalu_idx]
                         .difference_of_base_pic_nums_minus1
                         .push(rconfig.difference_of_base_pic_nums_minus1.sample(film));
@@ -245,7 +246,8 @@ fn random_ref_base_pic_marking(
                         .push(0);
                 }
 
-                if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 2 {
+                if ds.prefix_nalus[prefix_nalu_idx].memory_management_base_control_operation[i] == 2
+                {
                     ds.prefix_nalus[prefix_nalu_idx]
                         .long_term_base_pic_num
                         .push(rconfig.long_term_base_pic_num.sample(film));
