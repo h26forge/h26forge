@@ -798,6 +798,8 @@ const SAFESTART_RTP_10: [u8; 173] = [
     0xC4, 0x78, 0x8F, 0x11, 0xE2, 0x17, 0x10, 0xB8, 0x85, 0xC4, 0x2E, 0x21, 0x6E, 
 ];
 
+const FRAGMENT_SIZE: usize = 1400;
+
 /// Prepends the already encoded SAFESTART_VIDEO to the encoded_str
 fn prepend_safe_video(encoded_str: &[u8]) -> Vec<u8> {
     let mut new_vid = SAFESTART_VIDEO.to_vec();
@@ -853,12 +855,13 @@ pub fn save_rtp_file(
         rtp_nal_mod.push(SAFESTART_RTP_8.to_vec());
         rtp_nal_mod.push(SAFESTART_RTP_9.to_vec());
         rtp_nal_mod.push(SAFESTART_RTP_10.to_vec());
-        rtp_nal_mod.extend(rtp_nal.clone());
     }
-        for i in 0..rtp_nal_mod.len() {
+    
+    rtp_nal_mod.extend(rtp_nal.clone());
+    for i in 0..rtp_nal_mod.len() {
 
-        let mut header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
-	let mut nal_type = rtp_nal_mod[i][0] & 0x1f;
+        let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
+	let nal_type = rtp_nal_mod[i][0] & 0x1f;
 
         packets.push(Vec::new());
 	packets[i].push(header_byte);
@@ -890,7 +893,7 @@ pub fn save_rtp_file(
     }
     
     let mut out_bytes: Vec<u8> = Vec::new();
-    let s = "#!rtpplay1.0 2620:0:1000:2511:7874:bc0e:49a6:2591/48888\n";
+    let s = "#!rtpplay1.0 127.0.0.1/48888\n";
     let header = s.bytes();
     out_bytes.extend(header);
     
@@ -1123,8 +1126,8 @@ pub fn reencode_syntax_elements(
             println!("type {}", ds.nalu_headers[i].nal_unit_type);
             let mut rtp_bytes: Vec<u8> = Vec::new();
             let mut header:u8 = ds.nalu_headers[i].nal_unit_type;
-            let (forbidden, overflow) = ds.nalu_headers[i].forbidden_zero_bit.overflowing_shl(8);
-            header = header | forbidden | (ds.nalu_headers[i].nal_ref_idc << 6);
+            let (forbidden, _overflow) = ds.nalu_headers[i].forbidden_zero_bit.overflowing_shl(7);
+            header = header | forbidden | (ds.nalu_headers[i].nal_ref_idc << 5);
             rtp_bytes.push(header);
             curr_nal.extend(rtp_bytes);      
         }
@@ -1925,17 +1928,17 @@ pub fn reencode_syntax_elements(
         }
         
         if rtp_out { // fragment if too large
-            if curr_nal.len() > 1400 {
+            if curr_nal.len() > FRAGMENT_SIZE {
         	println!("Fragmenting {} type {}", curr_nal.len(), ds.nalu_headers[i].nal_unit_type);
-        	let mut nal = curr_nal;
-        	let mut fua_chunks = nal.chunks(1400);
+        	let nal = curr_nal;
+        	let fua_chunks = nal.chunks(FRAGMENT_SIZE);
         	let mut j = 0;
-        	let mut nal_type: u8 = ds.nalu_headers[i].nal_unit_type;
+        	let nal_type: u8 = ds.nalu_headers[i].nal_unit_type;
         	let num_chunks = fua_chunks.len();
         	for chunk in fua_chunks{
         	    let mut fua_bytes: Vec<u8> = Vec::new();
-        	    let (forbidden, overflow) = ds.nalu_headers[i].forbidden_zero_bit.overflowing_shl(8);
-        	    let fu_indicator: u8 = 28 | forbidden | (ds.nalu_headers[i].nal_ref_idc << 6); // 28 is FU-A
+        	    let (forbidden, _overflow) = ds.nalu_headers[i].forbidden_zero_bit.overflowing_shl(7);
+        	    let fu_indicator: u8 = 28 | forbidden | (ds.nalu_headers[i].nal_ref_idc << 5); // 28 is FU-A
         	    fua_bytes.push(fu_indicator);
         	    let mut fu_header = nal_type;
         	    if j == 0 {
