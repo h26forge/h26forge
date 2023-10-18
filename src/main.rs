@@ -11,9 +11,10 @@ use log4rs::{
     config::{Appender, Config, Logger, Root},
     encode::pattern::PatternEncoder,
 };
+use std::net::UdpSocket;
 use std::path::Path;
+use std::time::Duration;
 use std::time::SystemTime;
-
 /// Runtime options for H26Forge
 #[derive(Parser)]
 #[command(name = "H26Forge")]
@@ -199,6 +200,35 @@ enum Commands {
         /// Save the film file that was used to generate a video
         #[arg(long = "output-film")]
         output_film: bool,
+    },
+    /// Stream RTP packets containing random H264
+    Stream {
+        #[arg(long = "ignore-intra-pred")]
+        ignore_intra_pred: bool,
+        /// Ignores intra prediction along the edges of the video
+        #[arg(long = "ignore-edge-intra-pred")]
+        ignore_edge_intra_pred: bool,
+        /// Ignores IPCM Macroblock types
+        #[arg(long = "ignore-ipcm")]
+        ignore_ipcm: bool,
+        /// Limit the produced video to be at most than 128x128 pixels
+        #[arg(long = "small")]
+        property_small_video: bool,
+        /// Produce a video that has empty slice data - i.e. all MBs containing no residue
+        #[arg(long = "empty-slice-data")]
+        property_empty_slice_data: bool,
+        /// Incorporate undefined NALUs (e.g., 17, 18, 22-31) into generated video
+        #[arg(long = "include-undefined-nalus")]
+        include_undefined_nalus: bool,
+        /// Seed value for the RNG
+        #[arg(short = 's', long)]
+        seed: u64,
+        /// Path to configuration file containing the ranges to use in random video generation
+        #[arg(short = 'c', long)]
+        config: Option<String>,
+        /// RTP port
+        #[arg(long = "port")]
+        port: String,
     },
     /// Mux an encoded H.264 video into an MP4
     Mux {
@@ -951,6 +981,120 @@ fn mode_generate(
     }
 }
 
+// Determined by testing
+// rtp-to-webrtc is the weak point, it confuses sequence numbers if
+// h26forge fuzzes any faster
+
+const PACKET_DELAY: u64 = 50;
+
+fn mode_stream(
+    rconfig: vidgen::generate_configurations::RandomizeConfig,
+    ignore_intra_pred: bool,
+    ignore_edge_intra_pred: bool,
+    ignore_ipcm: bool,
+    property_empty_slice_data: bool,
+    property_small_video: bool,
+    include_undefined_nalus: bool,
+    options: &H26ForgeOptions,
+    port: String,
+    seed: u64,
+) {
+    let mut seq_num: u16 = 0x1234;
+    let socket = UdpSocket::bind("0.0.0.0:0").expect("failed to bind host socket");
+    let mut film_state: vidgen::film::FilmState;
+    film_state = vidgen::film::FilmState::setup_film_from_seed(seed);
+    let mut timestamp: u32 = 0x11223344;
+    let mut start = false;
+    let mut ind = 1;
+    // 1. Generate video
+
+    loop {
+        let mut rtp: Vec<Vec<u8>> = Vec::new();
+        if ind % 5 == 4{
+            start = false
+        }
+        if ind < 10 {
+            start = false;
+        }
+        ind += 1;
+        if !start{
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_0.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_1.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_2.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_3.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_4.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_5.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_6.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_7.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_8.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_9.to_vec());
+            rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_10.to_vec());
+            start = true;
+        }else{
+            let mut decoded_elements = vidgen::vidgen::random_video(
+                ignore_intra_pred,
+                ignore_edge_intra_pred,
+                ignore_ipcm,
+                property_empty_slice_data,
+                property_small_video,
+                options.print_silent,
+                include_undefined_nalus,
+                &rconfig,
+                &mut film_state,
+            );
+
+        // 2. Re-encode the NALUs
+
+            let res = encoder::encoder::reencode_syntax_elements(
+                &mut decoded_elements,
+                options.output_cut,
+                false,
+                options.print_silent,
+                true,
+           );
+           rtp = res.2;
+        }
+
+        let ssrc:u32 = 0x77777777;
+
+        for pack in rtp {
+            let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
+        let nal_type = pack[0] & 0x1f;
+        let mut output_pack = Vec::new();
+        output_pack.push(header_byte);
+        let mut payload_type = 102;
+        if nal_type == 5 {
+            payload_type = payload_type + 0x80; // add marker
+        }
+        if nal_type == 1 {
+            payload_type = payload_type + 0x80; // add marker
+            timestamp += 3000;
+        }
+        if nal_type == 28 {
+            if nal_type == 5 {
+                 payload_type = payload_type + 0x80; // add marker
+            }
+            if nal_type == 1 {
+                payload_type = payload_type + 0x80; // add marker
+                if (pack[1] & 0x80) != 0{
+                    timestamp += 3000;
+                }
+            }
+        }
+        output_pack.push(payload_type);
+        output_pack.extend(seq_num.to_be_bytes());
+        seq_num += 1;
+        output_pack.extend(timestamp.to_be_bytes());
+        output_pack.extend(ssrc.to_be_bytes());
+        output_pack.extend(pack);
+
+        socket.send_to(output_pack.as_slice(), "127.0.0.1:".to_owned() + &port).expect("couldn't send data");
+        std::thread::sleep(Duration::from_millis(PACKET_DELAY));
+        }
+    }
+
+}
+
 fn main() {
     let options = H26ForgeOptions::parse();
 
@@ -1213,6 +1357,48 @@ fn main() {
                     }
                 }
             }
+        }
+
+        Some(Commands::Stream {
+            ignore_intra_pred,
+            ignore_edge_intra_pred,
+            ignore_ipcm,
+            property_small_video,
+            property_empty_slice_data,
+            include_undefined_nalus,
+            seed,
+            config,
+            port
+        }) => {
+
+            let rconfig = match config {
+                Some(x) => {
+                    if !options.print_silent {
+                        println!("\t loading config file {}", x);
+                    }
+                    debug!(target: "encode","\t loading config file {}", x);
+                    vidgen::generate_configurations::load_config(x)
+                }
+                _ => {
+                    if !options.print_silent {
+                        println!("\t using default random value ranges");
+                    }
+                    debug!(target: "encode","\t using default random value ranges");
+                    vidgen::generate_configurations::RandomizeConfig::new()
+                }
+            };
+            mode_stream(
+                rconfig,
+                *ignore_intra_pred,
+                *ignore_edge_intra_pred,
+                *ignore_ipcm,
+                *property_empty_slice_data,
+                *property_small_video,
+                *include_undefined_nalus,
+                &options,
+                port.clone(),
+                *seed
+            );
         }
         Some(Commands::Randomize {
             input,

@@ -5,7 +5,7 @@ H26Forge is domain-specific infrastructure for analyzing, generating, and manipu
 H26Forge has three key features:
 1. Given an Annex B H.264 file, randomly mutate the syntax elements.
 2. Given an Annex B H.264 file and a Python script, programmatically modify the syntax elements.
-3. Generate Annex B H.264 files with random syntax elements.
+3. Generate Annex B H.264 with random syntax elements, which can be written to files or streamed over RTP
 
 This tool and its findings are described in the [H26Forge paper](https://wrv.github.io/h26forge.pdf).
 
