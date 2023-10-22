@@ -8,7 +8,7 @@
 # Subsequent values are shifted my multiples of 37
 #
 ##
-def all_frames_pcm(ds):
+def slice_all_pcm(ds):
     print("\t Setting all frames to all IPCM with increasing color")
 
     # UT colors converted from RGB 197, 87, 0 to YUV
@@ -44,4 +44,4 @@ def all_frames_pcm(ds):
     return ds
 
 def modify_video(ds):
-    return all_frames_pcm(ds)
+    return slice_all_pcm(ds)

@@ -17,7 +17,7 @@ def duplicate_p_frames(ds):
 
     slice_idx = 0
     start_length = len(ds["nalu_headers"])
-    # we insert new slices then skip over inserted oens
+    # we insert new slices then skip over inserted ones
     i = 0
     while True:
         # check if it's a video coded layer
@@ -40,7 +40,6 @@ def duplicate_p_frames(ds):
                     # copy over header elements
                     ds["nalu_headers"].insert(i, ds["nalu_headers"][i])
                     ds["nalu_elements"].insert(i, ds["nalu_elements"][i])
-                    ds["video_params"].insert(i, ds["video_params"][i])
 
                     # copy over slices
                     ds["slices"].insert(slice_idx, copy.deepcopy(ds["slices"][og_slice_idx]))

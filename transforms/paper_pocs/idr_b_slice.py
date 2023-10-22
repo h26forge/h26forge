@@ -2,7 +2,7 @@
 # IDR B slice
 #
 def idr_b_slice(ds):
-    from slice_n_remove_residue import remove_nth_frame_residue
+    from slice_n_remove_residue import slice_n_remove_residue
 
     # First slice will be IDR
     ds["nalu_headers"][2]["nal_unit_type"] = 5
@@ -15,7 +15,7 @@ def idr_b_slice(ds):
     ds["slices"][0]["sh"]["ref_pic_list_modification_flag_l0"] = True
     ds["slices"][0]["sh"]["modification_of_pic_nums_idc_l0"] = [3]
 
-    ds = remove_nth_frame_residue(0, ds)
+    ds = slice_n_remove_residue(0, ds)
    
     return ds
 

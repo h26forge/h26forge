@@ -6,7 +6,7 @@
 # Get rid of all residue by setting the coded_block_flag to false
 # and total_coeff and trailing_ones of a CoeffToken to 0
 ##
-def remove_all_frame_residue(ds):
+def slice_all_remove_residue(ds):
     from helpers import set_cbp_chroma_and_luma
     print("\t Setting the residue values of the all frames to 0")
  
@@ -101,4 +101,4 @@ def remove_all_frame_residue(ds):
     return ds
 
 def modify_video(ds):
-    return remove_all_frame_residue(ds)
+    return slice_all_remove_residue(ds)

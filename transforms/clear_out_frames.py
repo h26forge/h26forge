@@ -1,6 +1,6 @@
 def clear_out_frames(ds):
     from helpers import is_slice_type, new_vui_parameter
-    from slice_all_remove_residue import remove_all_frame_residue
+    from slice_all_remove_residue import slice_all_remove_residue
 
     # Remove VUI information
     for i in range(len(ds["spses"])):
@@ -25,7 +25,7 @@ def clear_out_frames(ds):
 
     # Now that we've updated the MB Type, 
     # remove all the residue information from each frame
-    ds = remove_all_frame_residue(ds)
+    ds = slice_all_remove_residue(ds)
 
     return ds
 

@@ -23,7 +23,6 @@ def remove_i_frames(ds):
                 # copy over header elements
                 ds["nalu_headers"].pop(i)
                 ds["nalu_elements"].pop(i)
-                ds["video_params"].pop(i)
 
                 # copy over slices
                 ds["slices"].pop(slice_idx)

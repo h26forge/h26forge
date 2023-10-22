@@ -5,7 +5,7 @@
 #
 #  Get rid of all residue by setting the coded_block_flag to false in the nth slice
 ##
-def remove_nth_frame_residue(n, ds):
+def slice_n_remove_residue(n, ds):
     from helpers import set_cbp_chroma_and_luma
     print("\t Setting the residue values of the frame " + str(n) + " all to 0")
    
@@ -106,4 +106,4 @@ def remove_nth_frame_residue(n, ds):
 
 def modify_video(ds):
     n = int(sys.argv[2])
-    return remove_nth_frame_residue(n, ds)
+    return slice_n_remove_residue(n, ds)

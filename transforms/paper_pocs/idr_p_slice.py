@@ -1,7 +1,7 @@
 ##
 # IDR P slice
 def idr_p_slice(ds):
-    from slice_n_remove_residue import remove_nth_frame_residue
+    #from slice_n_remove_residue import remove_nth_frame_residue
 
     # Adjust the PPS to avoid some paths
     ds["ppses"][0]["weighted_pred_flag"] = False

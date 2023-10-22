@@ -3,7 +3,7 @@
 #
 # Makes the first frame to have an all blue chroma residue, nabbed from solid_blue.png
 ##
-def make_first_frame_all_blue(ds):
+def slice_0_all_blue(ds):
     from helpers import set_cbp_chroma_and_luma, new_transform_block
 
     print("\t Setting the first frame to be all blue")
@@ -79,4 +79,4 @@ def make_first_frame_all_blue(ds):
     return ds
 
 def modify_video(ds):
-    return make_first_frame_all_blue(ds)
+    return slice_0_all_blue(ds)
