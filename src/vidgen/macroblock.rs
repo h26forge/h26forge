@@ -2299,8 +2299,9 @@ pub fn randomize_mb_pred(
             }
         }
     } else if mppm != MbPartPredMode::Direct {
-        let mb_num_partions = ds.slices[slice_idx].sd.macroblock_vec[macroblock_idx].num_mb_part();
-        for mb_part_idx in 0..mb_num_partions {
+        let mb_num_partitions =
+            ds.slices[slice_idx].sd.macroblock_vec[macroblock_idx].num_mb_part();
+        for mb_part_idx in 0..mb_num_partitions {
             if (ds.slices[slice_idx].sh.num_ref_idx_l0_active_minus1 > 0
                 || ds.slices[slice_idx].sd.mb_field_decoding_flag[macroblock_idx]
                     != ds.slices[slice_idx].sh.field_pic_flag)

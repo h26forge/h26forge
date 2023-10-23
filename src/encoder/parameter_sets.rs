@@ -1257,7 +1257,5 @@ fn encode_vui_mvc_parameters(vui: &MVCVUIParameters) -> Vec<u8> {
             false => 0,
         });
     }
-    vui.encoder_pretty_print();
-
     bitstream_array
 }

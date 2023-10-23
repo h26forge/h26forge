@@ -13,7 +13,7 @@ def idr_p_slice(ds):
     ds["slices"][0]["sh"]["slice_type"] = 0
 
    
-    # Ensure ref pic list modification is called 
+    # Ensure ref pic list modification is called
     # This is for CVE-2022-42846 to get into an infinite loop
     #ds["slices"][0]["sh"]["ref_pic_list_modification_flag_l0"] = True
     #ds["slices"][0]["sh"]["modification_of_pic_nums_idc_l0"] = [3]

@@ -33,7 +33,7 @@ def luma_chroma_thief_16x16(ds):
     ds["spses"][0]["log2_max_pic_order_cnt_lsb_minus4"] = 0
     ds["spses"][0]["max_num_ref_frames"] = 0
     ds["spses"][0]["gaps_in_frame_num_value_allowed_flag"] = False
-    #ds["spses"][0]["pic_width_in_mbs_minus1"] = 127 # max works: 127 
+    #ds["spses"][0]["pic_width_in_mbs_minus1"] = 127 # max works: 127
     #ds["spses"][0]["pic_height_in_map_units_minus1"] = False
     ds["spses"][0]["frame_mbs_only_flag"] = True
     ds["spses"][0]["direct_8x8_inference_flag"] = True

@@ -23,7 +23,7 @@ def clear_out_frames(ds):
             for j in range(len(ds["slices"][i]["sd"]["macroblock_vec"])):
                 ds["slices"][i]["sd"]["macroblock_vec"][j]["mb_skip_flag"] = True
 
-    # Now that we've updated the MB Type, 
+    # Now that we've updated the MB Type,
     # remove all the residue information from each frame
     ds = slice_all_remove_residue(ds)
 

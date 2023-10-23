@@ -201,7 +201,7 @@ enum Commands {
         #[arg(long = "output-film")]
         output_film: bool,
     },
-    /// Stream RTP packets containing random H264
+    /// Stream RTP packets containing random H.264
     Stream {
         #[arg(long = "ignore-intra-pred")]
         ignore_intra_pred: bool,
@@ -984,7 +984,6 @@ fn mode_generate(
 // Determined by testing
 // rtp-to-webrtc is the weak point, it confuses sequence numbers if
 // h26forge fuzzes any faster
-
 const PACKET_DELAY: u64 = 50;
 
 fn mode_stream(
@@ -1004,20 +1003,21 @@ fn mode_stream(
     let mut film_state: vidgen::film::FilmState;
     film_state = vidgen::film::FilmState::setup_film_from_seed(seed);
     let mut timestamp: u32 = 0x11223344;
-    let mut start = false;
+    let mut safe_start = true;
     let mut ind = 1;
     // 1. Generate video
 
     loop {
         let mut rtp: Vec<Vec<u8>> = Vec::new();
-        if ind % 5 == 4{
-            start = false
+
+        if ind % 5 == 4 {
+            safe_start = true
         }
         if ind < 10 {
-            start = false;
+            safe_start = true;
         }
-        ind += 1;
-        if !start{
+        if safe_start {
+            println!("[Video {}] Generating safestart", ind);
             rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_0.to_vec());
             rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_1.to_vec());
             rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_2.to_vec());
@@ -1029,8 +1029,9 @@ fn mode_stream(
             rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_8.to_vec());
             rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_9.to_vec());
             rtp.push(h26forge::encoder::encoder::SAFESTART_RTP_10.to_vec());
-            start = true;
-        }else{
+            safe_start = false;
+        } else {
+            println!("[Video {}] Generating random video", ind);
             let mut decoded_elements = vidgen::vidgen::random_video(
                 ignore_intra_pred,
                 ignore_edge_intra_pred,
@@ -1043,7 +1044,7 @@ fn mode_stream(
                 &mut film_state,
             );
 
-        // 2. Re-encode the NALUs
+            // 2. Re-encode the NALUs
 
             let res = encoder::encoder::reencode_syntax_elements(
                 &mut decoded_elements,
@@ -1051,48 +1052,52 @@ fn mode_stream(
                 false,
                 options.print_silent,
                 true,
-           );
-           rtp = res.2;
+            );
+            rtp = res.2;
         }
 
-        let ssrc:u32 = 0x77777777;
+        let ssrc: u32 = 0x77777777;
 
+        println!("[Video {}] Sending {} packets", ind, rtp.len());
         for pack in rtp {
             let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
-        let nal_type = pack[0] & 0x1f;
-        let mut output_pack = Vec::new();
-        output_pack.push(header_byte);
-        let mut payload_type = 102;
-        if nal_type == 5 {
-            payload_type = payload_type + 0x80; // add marker
-        }
-        if nal_type == 1 {
-            payload_type = payload_type + 0x80; // add marker
-            timestamp += 3000;
-        }
-        if nal_type == 28 {
+            let nal_type = pack[0] & 0x1f;
+            let mut output_pack = Vec::new();
+            output_pack.push(header_byte);
+            let mut payload_type = 102;
             if nal_type == 5 {
-                 payload_type = payload_type + 0x80; // add marker
+                payload_type = payload_type + 0x80; // add marker
             }
             if nal_type == 1 {
                 payload_type = payload_type + 0x80; // add marker
-                if (pack[1] & 0x80) != 0{
-                    timestamp += 3000;
+                timestamp += 3000;
+            }
+            if nal_type == 28 {
+                if nal_type == 5 {
+                    payload_type = payload_type + 0x80; // add marker
+                }
+                if nal_type == 1 {
+                    payload_type = payload_type + 0x80; // add marker
+                    if (pack[1] & 0x80) != 0 {
+                        timestamp += 3000;
+                    }
                 }
             }
-        }
-        output_pack.push(payload_type);
-        output_pack.extend(seq_num.to_be_bytes());
-        seq_num += 1;
-        output_pack.extend(timestamp.to_be_bytes());
-        output_pack.extend(ssrc.to_be_bytes());
-        output_pack.extend(pack);
+            output_pack.push(payload_type);
+            output_pack.extend(seq_num.to_be_bytes());
+            seq_num += 1;
+            output_pack.extend(timestamp.to_be_bytes());
+            output_pack.extend(ssrc.to_be_bytes());
+            output_pack.extend(pack);
 
-        socket.send_to(output_pack.as_slice(), "127.0.0.1:".to_owned() + &port).expect("couldn't send data");
-        std::thread::sleep(Duration::from_millis(PACKET_DELAY));
+            socket
+                .send_to(output_pack.as_slice(), "127.0.0.1:".to_owned() + &port)
+                .expect("couldn't send data");
+            std::thread::sleep(Duration::from_millis(PACKET_DELAY));
         }
+        println!("[Video {}] Done", ind);
+        ind += 1;
     }
-
 }
 
 fn main() {
@@ -1368,9 +1373,15 @@ fn main() {
             include_undefined_nalus,
             seed,
             config,
-            port
+            port,
         }) => {
-
+            if options.debug_encode {
+                let res = setup_debug_file(false, options.debug_encode, "", "streaming_output");
+                match res {
+                    Ok(_) => println!("Set up debug logs"),
+                    _ => println!("Issue setting up debug logs"),
+                }
+            }
             let rconfig = match config {
                 Some(x) => {
                     if !options.print_silent {
@@ -1397,7 +1408,7 @@ fn main() {
                 *include_undefined_nalus,
                 &options,
                 port.clone(),
-                *seed
+                *seed,
             );
         }
         Some(Commands::Randomize {

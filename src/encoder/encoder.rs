@@ -858,7 +858,7 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, is_safestart:
 
         packets.push(Vec::new());
         packets[i].push(header_byte);
-        let mut payload_type = 104; // common H264
+        let mut payload_type = 104; // common H.264
         if nal_type == 5 {
             payload_type = payload_type + 0x80; // add marker
         }
@@ -1064,7 +1064,7 @@ pub fn save_encoded_stream(
     }
 }
 
-/// Given a H264 Decoded Stream object, reencode it and write it to a file
+/// Given a H.264 Decoded Stream object, reencode it and write it to a file
 pub fn reencode_syntax_elements(
     ds: &mut H264DecodedStream,
     cut_nalu: i32,
@@ -1114,7 +1114,6 @@ pub fn reencode_syntax_elements(
         }
 
         if rtp_out {
-            println!("type {}", ds.nalu_headers[i].nal_unit_type);
             let mut rtp_bytes: Vec<u8> = Vec::new();
             let mut header: u8 = ds.nalu_headers[i].nal_unit_type;
             let (forbidden, _overflow) = ds.nalu_headers[i].forbidden_zero_bit.overflowing_shl(7);
@@ -1916,11 +1915,13 @@ pub fn reencode_syntax_elements(
         if rtp_out {
             // fragment if too large
             if curr_nal.len() > FRAGMENT_SIZE {
-                println!(
-                    "Fragmenting {} type {}",
-                    curr_nal.len(),
-                    ds.nalu_headers[i].nal_unit_type
-                );
+                if !silent_mode {
+                    println!(
+                        "Fragmenting {} type {}",
+                        curr_nal.len(),
+                        ds.nalu_headers[i].nal_unit_type
+                    );
+                }
                 let nal = curr_nal;
                 let fua_chunks = nal.chunks(FRAGMENT_SIZE);
                 let mut j = 0;

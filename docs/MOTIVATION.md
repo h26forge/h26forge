@@ -8,17 +8,17 @@ Suppose that we find a decoder that is missing a bounds check for `num_ref_frame
 
 ![pic_order_cnt_type SPS snippet with num_ref_frames_in_pic_order_cnt_cycle highlighted.](img/sps_pic_order_cnt_type_highlight.png)
 
-We would like to create a proof-of-concept video that demonstrates what can go wrong with this missing bounds check. 
+We would like to create a proof-of-concept video that demonstrates what can go wrong with this missing bounds check.
 Our proof-of-concept encoded video needs to do three things:
 1. Reach this parsing code.
 2. Have an out-of-bounds `num_ref_frames_in_pic_order_cnt_cycle`.
 3. Have enough `offset_for_ref_frame` values.
 
-We will first show why satisfying these three objects manually is possible, but challenging, and how H26Forge simplifies this process. 
+We will first show why satisfying these three objects manually is possible, but challenging, and how H26Forge simplifies this process.
 
 ## Manually Modifying Syntax Elements
 
-We will modify `pic_order_cnt_type` to be 1, `num_ref_frames_in_pic_order_cnt_cycle` to be 300, and each `offset_for_ref_frame` value to 0. Each of these syntax elements is entropy encoded with the `ue(v)` or `se(v)` functions. These are unsigned and signed [exp-Golomb](https://en.wikipedia.org/wiki/Exponential-Golomb_coding) codings, respectively, which are variable length codes. The benefit of using exp-Golomb is that smaller, more likely values take up less space. 
+We will modify `pic_order_cnt_type` to be 1, `num_ref_frames_in_pic_order_cnt_cycle` to be 300, and each `offset_for_ref_frame` value to 0. Each of these syntax elements is entropy encoded with the `ue(v)` or `se(v)` functions. These are unsigned and signed [exp-Golomb](https://en.wikipedia.org/wiki/Exponential-Golomb_coding) codings, respectively, which are variable length codes. The benefit of using exp-Golomb is that smaller, more likely values take up less space.
 
 For a manual modification of syntax elements, we could try to find an example H.264 video that may get us most of the way there, but since the syntax elements are small enough we will work with [input_vids/SPS_PPS_I_P.264](../input_vids/SPS_PPS_I_P.264) inside a hex editor. To view the syntax elements, you can use [FFmpeg](https://developer.ridgerun.com/wiki/index.php/H264_Analysis_Tools#Display_Nal_Unit_.2F_Slice_Information), the [H.264 reference decoder](https://iphome.hhi.de/suehring/tml/download/), or any [H.264](https://github.com/aizvorski/h264bitstream) [bitstream](https://github.com/IENT/YUView) [analyzer](https://mradionov.github.io/h264-bitstream-viewer/). Keep in mind that because we are setting the syntax elements to be out-of-bounds values, these tools may not decode the stream correctly.
 
@@ -57,7 +57,7 @@ By either manually encoding the preceding SPS syntax elements, or through trial-
 
 ![Hex dump of SPS_SPS_I_P.264 with encoded pic_order_cnt_type annotated.](img/sps_pps_i_p.264_hex_pic_order_cnt_type_encoding.png)
 
-So to set this to the recovered value of 1, we change the binary from `b1[1]01` to `b1[010]` or from `0xD` to `0xA`. At the moment, we are overwriting the hex and ignoring subsequently decoded syntax elements. 
+So to set this to the recovered value of 1, we change the binary from `b1[1]01` to `b1[010]` or from `0xD` to `0xA`. At the moment, we are overwriting the hex and ignoring subsequently decoded syntax elements.
 
 ![Hex dump of SPS_SPS_I_P.264 with pic_order_cnt_type changed.](img/sps_pps_i_p.264_change1.png)
 
@@ -140,7 +140,7 @@ Now we will insert more bytes into the bitstream to have enough `offset_for_ref_
 
 ### 3. Include enough `offset_for_ref_frame` to overflow
 
-Our modifications have led us to the end of the SPS, so we need to insert more bytes into the bitstream to ensure we will have enough `offset_for_ref_frame` values to decode. 
+Our modifications have led us to the end of the SPS, so we need to insert more bytes into the bitstream to ensure we will have enough `offset_for_ref_frame` values to decode.
 
 For simplicity, we will set each `offset_for_ref_frame` value to 0 which is an exp-Golomb encoding of `b1`. This means we insert 75 `0xF`s into the bitstream, and some more for the rest of the bitstream:
 
