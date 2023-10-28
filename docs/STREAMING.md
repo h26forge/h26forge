@@ -1,35 +1,26 @@
-# Streaming RTP with H26Forge
+# Streaming RTP to WebRTC with H26Forge
 
-## Streaming Set-up
+Streaming requires a target (the device that will process the generated H.264) and a host (the device H26Forge runs on). These can be the same device. Because we are establishing a peer-to-peer connection via a Google Stun server, we need to configure the target and the host for communication.
 
-Streaming requires a target (the device that will process the generated H.264) and a host (the device h26forge runs on). These can be the same device.
+## Setting up the Target and Host
+1. On the **target** device, go to this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/) and copy the "Browser base64 Session Description" and sent it to the host.
+2. On the **host** device, save the "Browser base64 Session Description" to a file. In this example we call it `stream_config.txt`. Then run the following command:
 
-On the host, set-up webrtc-rs. First, get the source:
+    ```./h26forge stream --small --seed 1234 --webrtc-file stream_config.txt```.'
 
-```git clone https://github.com/webrtc-rs/webrtc.git```
+    This command will generate a base64 session description on the command line. Copy this and send it to the target device.
+3. On the **target** device, paste the base64 into the empty "Golang base64 Session Description" box, then click "Start Session".
 
-The needed code supports VP8. To change it to H.264, open webrtc/examples/examples/rtp-to-webrtc/rtp-to-webrtc.rs, and change 'VP8' to 'H264' on lines 8 and 103 (i.e. "use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_VP8};" becomes "use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_H264};". **WARNING:** do not skip this step!
+You should then begin to see the host generating videos and playback begin on the target.
 
-Build the needed example using:
+## Video Generation Details
 
-```cargo build --example rtp-to-webrtc```
-
-Go to this [JS fiddler](https://jsfiddle.net/z7ms3u5r/) on the target device, and copy the base64 session description. Then, on the host, run:
-
-```echo $BROWSER_SDP | ./target/debug/examples/rtp-to-webrtc```
-
-where BROWSER_SDP is the base64 text copied from the target device.
-
-This command will generate a base64 session description on the command line. Copy this into the empty box on the target device, then click "Start Session".
-
-The target is now ready to receive H.264 packets.
-
-## Running H26forge
-
-To stream to the above set-up, run:
-
-```./h26forge  stream --small --seed 1234 --port 5004````
-
-The seed is a random value used to generate the H.264 output and running H26forge with the same seed again will generate the same output, for crash reproduction purposes. For better fuzzing, run H26forge with a different seed each time.
+The seed is a random value used to generate the H.264 output and running H26Forge with the same seed again will generate the same output, for crash reproduction purposes. For better fuzzing, run H26Forge with a different seed each time.
 
 Most flags in [GENERATION.md](GENERATION.md), including config files, will work while streaming.
+
+## Limitations
+
+The code is hard-coded to work with `stun:stun.l.google.com:19302` and this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/).
+
+Future work may enable other streaming modes.
