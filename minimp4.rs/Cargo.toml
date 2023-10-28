@@ -12,5 +12,5 @@ keywords = ["minimp4", "mp4", "muxer", "h264", "h265"]
 repository = "https://github.com/darkskygit/minimp4.rs"
 
 [dependencies]
-libc = "0.2.66"
+libc = "0.2.141"
 minimp4-sys = {path="minimp4-sys" } #"0.1.0"
