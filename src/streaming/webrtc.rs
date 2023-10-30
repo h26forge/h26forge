@@ -6,7 +6,6 @@
 use std::fs;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
 use crate::encoder::encoder::reencode_syntax_elements;
 use crate::encoder::encoder::{
@@ -42,7 +41,7 @@ pub fn encode(b: &str) -> String {
 
 /// decode decodes the input from base64
 pub fn decode(s: &str) -> Result<String> {
-    let b = BASE64_STANDARD.decode(s.trim())?;
+    let b = BASE64_STANDARD.decode(s)?;
     let s = String::from_utf8(b)?;
     Ok(s)
 }
@@ -61,7 +60,6 @@ pub async fn stream(
     output_cut: i32,
     seed: u64,
     webrtc_file: &str,
-    packet_delay: u64,
 ) -> Result<()> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -300,9 +298,6 @@ pub async fn stream(
                     output_pack.extend(pack.clone());
 
                     let _ = vid_tx.send(output_pack).await;
-                    if packet_delay != 0 {
-                        std::thread::sleep(Duration::from_millis(packet_delay));
-                    }
                 }
                 println!("[Video {}] Done", ind);
                 ind += 1;

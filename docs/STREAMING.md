@@ -1,9 +1,9 @@
 # Streaming RTP to WebRTC with H26Forge
 
-Streaming requires a target (the device that will process the generated H.264) and a host (the device H26Forge runs on). These can be the same device. Because we are establishing a peer-to-peer connection, we need to configure the target and the host for communication.
+Streaming requires a target (the device that will process the generated H.264) and a host (the device H26Forge runs on). These can be the same device. Because we are establishing a peer-to-peer connection via a Google Stun server, we need to configure the target and the host for communication.
 
 ## Setting up the Target and Host
-1. On the **target** device, go to this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/) and copy the "Browser base64 Session Description" and send it to the host.
+1. On the **target** device, go to this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/) and copy the "Browser base64 Session Description" and sent it to the host.
 2. On the **host** device, save the "Browser base64 Session Description" to a file. In this example we call it `stream_config.txt`. Then run the following command:
 
     ```./h26forge stream --small --seed 1234 --webrtc-file stream_config.txt```.'
@@ -19,10 +19,8 @@ The seed is a random value used to generate the H.264 output and running H26Forg
 
 Most flags in [GENERATION.md](GENERATION.md), including config files, will work while streaming.
 
-If the target is experiencing SRTP decryption failure, it is likely receiving video traffic too fast. The --packet-delay flag can be used to slow down the RTP send rate. A delay of 50 ms works with most targets.
-
 ## Limitations
 
-The code is hard-coded to work with `stun:stun.l.google.com:19302` and the HTML JavaScript in this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/).
+The code is hard-coded to work with `stun:stun.l.google.com:19302` and this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/).
 
 Future work may enable other streaming modes.
