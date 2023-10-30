@@ -11,6 +11,7 @@ fn main() {
         .compile("minimp4");
     let bindings = bindgen::Builder::default()
         .header("minimp4.h")
+        .size_t_is_usize(false)
         .generate()
         .expect("Unable to generate bindings");
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());

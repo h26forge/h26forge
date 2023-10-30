@@ -87,10 +87,11 @@ impl<W: Write + Seek> Mp4Muxer<W> {
     extern "C" fn write(
         offset: i64,
         buffer: *const c_void,
-        size: usize,
+        size: u64,
         token: *mut c_void,
     ) -> i32 {
         let p_self = token as *mut Self;
+        let size: usize = size.try_into().unwrap();
         unsafe {
             let buf = from_raw_parts(buffer as *const u8, size);
             ((&mut *p_self).write_data(offset, buf) != size) as i32
