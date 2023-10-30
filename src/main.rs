@@ -225,9 +225,12 @@ enum Commands {
         /// Path to configuration file containing the ranges to use in random video generation
         #[arg(short = 'c', long)]
         config: Option<String>,
-        /// WebRTC settings file
+        /// WebRTC SDP file
         #[arg(long = "webrtc-file")]
         webrtc_file: String,
+        /// Packet delay in milliseconds
+        #[arg(long = "packet-delay", default_value="0")]
+        packet_delay: u64,
     },
     /// Mux an encoded H.264 video into an MP4
     Mux {
@@ -1253,6 +1256,7 @@ fn main() {
             seed,
             config,
             webrtc_file,
+            packet_delay,
         }) => {
             if options.debug_encode {
                 let res = setup_debug_file(false, options.debug_encode, "", "streaming_output");
@@ -1289,6 +1293,7 @@ fn main() {
                 options.output_cut,
                 *seed,
                 webrtc_file,
+                *packet_delay,
             );
         }
         Some(Commands::Randomize {
