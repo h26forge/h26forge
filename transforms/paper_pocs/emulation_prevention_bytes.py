@@ -18,7 +18,7 @@ def too_many_epbs(ds):
     ds["spses"][sps_idx]["offset_for_top_to_bottom_field"] = -1073741824
 
     # This generates 514 emulation prevention bytes
-    num = 255 
+    num = 255
     ds["spses"][sps_idx]["num_ref_frames_in_pic_order_cnt_cycle"] = num
     ds["spses"][sps_idx]["offset_for_ref_frame"] = [-1073741824] * (num)
 

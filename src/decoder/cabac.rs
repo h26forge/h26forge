@@ -116,7 +116,7 @@ fn get_binarization_params(
     let mut ctx_idx_offset: u32 = 0;
     let mut bypass_flag: bool = true;
 
-    // from Table 9-11 in H264 Spec
+    // from Table 9-11 in H.264 Spec
     // We use this to run the binarization and get the contextID which is used to choose m,n values
     match syntax_element {
         // slice_data()

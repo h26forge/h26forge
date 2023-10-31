@@ -979,7 +979,7 @@ pub struct RandomVUIMVCParametersRange {
 impl RandomVUIMVCParametersRange {
     pub fn new() -> RandomVUIMVCParametersRange {
         RandomVUIMVCParametersRange {
-            vui_mvc_num_ops_minus1: RandomU32Range::new(0, 1000),
+            vui_mvc_num_ops_minus1: RandomU32Range::new(0, 1500),
             vui_mvc_temporal_id: RandomU32Range::new(0, 7), // u(3)
             vui_mvc_num_target_output_views_minus1: RandomU32Range::new(0, 10000),
             vui_mvc_view_id: RandomU32Range::new(0, 10000),

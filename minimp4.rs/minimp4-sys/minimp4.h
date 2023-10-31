@@ -132,7 +132,7 @@ typedef enum
     e_private
 } track_media_kind_t;
 
-typedef struct 
+typedef struct
 {
     int width;
     int height;

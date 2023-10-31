@@ -2,6 +2,7 @@ mod common;
 mod decoder;
 mod encoder;
 mod experimental;
+mod streaming;
 mod vidgen;
 
 use clap::{Parser, Subcommand};
@@ -13,7 +14,6 @@ use log4rs::{
 };
 use std::path::Path;
 use std::time::SystemTime;
-
 /// Runtime options for H26Forge
 #[derive(Parser)]
 #[command(name = "H26Forge")]
@@ -82,7 +82,7 @@ struct H26ForgeOptions {
     /// Manually set the MP4 height
     #[arg(long = "mp4-height", default_value = "-1")]
     output_mp4_height: i32,
-    // Output video_replay file for WebRTC, see: https://webrtchacks.com/video_replay/
+    /// Output video_replay file for WebRTC, see: https://webrtchacks.com/video_replay/
     #[arg(long = "rtp-replay")]
     output_rtp: bool,
 }
@@ -199,6 +199,38 @@ enum Commands {
         /// Save the film file that was used to generate a video
         #[arg(long = "output-film")]
         output_film: bool,
+    },
+    /// Stream RTP packets containing random H.264
+    Stream {
+        #[arg(long = "ignore-intra-pred")]
+        ignore_intra_pred: bool,
+        /// Ignores intra prediction along the edges of the video
+        #[arg(long = "ignore-edge-intra-pred")]
+        ignore_edge_intra_pred: bool,
+        /// Ignores IPCM Macroblock types
+        #[arg(long = "ignore-ipcm")]
+        ignore_ipcm: bool,
+        /// Limit the produced video to be at most than 128x128 pixels
+        #[arg(long = "small")]
+        property_small_video: bool,
+        /// Produce a video that has empty slice data - i.e. all MBs containing no residue
+        #[arg(long = "empty-slice-data")]
+        property_empty_slice_data: bool,
+        /// Incorporate undefined NALUs (e.g., 17, 18, 22-31) into generated video
+        #[arg(long = "include-undefined-nalus")]
+        include_undefined_nalus: bool,
+        /// Seed value for the RNG
+        #[arg(short = 's', long)]
+        seed: u64,
+        /// Path to configuration file containing the ranges to use in random video generation
+        #[arg(short = 'c', long)]
+        config: Option<String>,
+        /// WebRTC SDP file
+        #[arg(long = "webrtc-file")]
+        webrtc_file: String,
+        /// Packet delay in milliseconds
+        #[arg(long = "packet-delay", default_value="0")]
+        packet_delay: u64,
     },
     /// Mux an encoded H.264 video into an MP4
     Mux {
@@ -1213,6 +1245,56 @@ fn main() {
                     }
                 }
             }
+        }
+        Some(Commands::Stream {
+            ignore_intra_pred,
+            ignore_edge_intra_pred,
+            ignore_ipcm,
+            property_small_video,
+            property_empty_slice_data,
+            include_undefined_nalus,
+            seed,
+            config,
+            webrtc_file,
+            packet_delay,
+        }) => {
+            if options.debug_encode {
+                let res = setup_debug_file(false, options.debug_encode, "", "streaming_output");
+                match res {
+                    Ok(_) => println!("Set up debug logs"),
+                    _ => println!("Issue setting up debug logs"),
+                }
+            }
+            let rconfig = match config {
+                Some(x) => {
+                    if !options.print_silent {
+                        println!("\t loading config file {}", x);
+                    }
+                    debug!(target: "encode","\t loading config file {}", x);
+                    vidgen::generate_configurations::load_config(x)
+                }
+                _ => {
+                    if !options.print_silent {
+                        println!("\t using default random value ranges");
+                    }
+                    debug!(target: "encode","\t using default random value ranges");
+                    vidgen::generate_configurations::RandomizeConfig::new()
+                }
+            };
+            let _ = streaming::webrtc::stream(
+                rconfig,
+                *ignore_intra_pred,
+                *ignore_edge_intra_pred,
+                *ignore_ipcm,
+                *property_empty_slice_data,
+                *property_small_video,
+                *include_undefined_nalus,
+                options.print_silent,
+                options.output_cut,
+                *seed,
+                webrtc_file,
+                *packet_delay,
+            );
         }
         Some(Commands::Randomize {
             input,

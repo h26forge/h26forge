@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-/// Takes in a json encoding of the H264 Decoded Stream and
+/// Takes in a json encoding of the H.264 Decoded Stream and
 /// produces the H264DecodedStream to encode out
 pub fn syntax_to_video(input_file: &str) -> H264DecodedStream {
     // recover the JSON and fill it into an H264DecodedStream object

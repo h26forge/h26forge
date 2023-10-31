@@ -9,7 +9,7 @@ def overflow_qs_y(ds):
     # SI slice
     ds["slices"][0]["sh"]["slice_type"] = 4
     ds["slices"][0]["sh"]["slice_qs_delta"] = -2147483645
-   
+
     return ds
 
 def modify_video(ds):

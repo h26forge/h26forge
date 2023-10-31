@@ -54,6 +54,10 @@ See [GENERATION.md](GENERATION.md) for details.
 
 See [EDITING.md](EDITING.md) for details.
 
+###  Streaming H.264 over RTP
+
+See [STREAMING.md](STREAMING.md) for details.
+
 ## Other Modes
 
 The following modes may be useful.

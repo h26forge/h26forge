@@ -1,7 +1,7 @@
 ##
 # remove_nth_frame_residue
 #
-# Takes in a decoded h264 bitstream
+# Takes in a decoded H.264 bitstream
 #
 #  Get rid of all residue by setting the coded_block_flag to false in the nth slice
 ##

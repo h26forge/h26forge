@@ -1,7 +1,7 @@
 def cve_2022_22675(ds):
   from helpers import new_vui_parameter, new_hrd_parameter, clone_and_append_existing_slice
   import math
- 
+
   # This is the offset from the start of the context
   # - Object size is    0x8642b0
   # - Allocated size is 0x868000

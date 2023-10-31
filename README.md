@@ -1,11 +1,11 @@
 # H26Forge
 
-H26Forge is domain-specific infrastructure for analyzing, generating, and manipulating syntactically correct but semantically spec-non-compliant H.264 video files. 
+H26Forge is domain-specific infrastructure for analyzing, generating, and manipulating syntactically correct but semantically spec-non-compliant H.264 video files.
 
 H26Forge has three key features:
 1. Given an Annex B H.264 file, randomly mutate the syntax elements.
 2. Given an Annex B H.264 file and a Python script, programmatically modify the syntax elements.
-3. Generate Annex B H.264 files with random syntax elements.
+3. Generate Annex B H.264 with random syntax elements, which can be written to files or streamed over RTP
 
 This tool and its findings are described in the [H26Forge paper](https://wrv.github.io/h26forge.pdf).
 
@@ -96,9 +96,13 @@ where `<DIRECTORY>` points to any folder with `.264` files.
 
 ## Trophies
 
-The following bugs have been found with H26Forge's video generator. If you use H26Forge to find and report an issue, please let us know so we can include it in this list. 
+The following bugs have been found with H26Forge's video generator. If you use H26Forge to find and report an issue, please let us know so we can include it in this list.
 - [CVE-2022-48434](https://nvd.nist.gov/vuln/detail/CVE-2022-48434): Use-after-free in FFmpeg as used by VLC due to an SPS change mid-video.
 - [CVE-2022-42850](https://support.apple.com/en-us/HT213530): A lack of bounds-checking in SPS StRefPic list parsing leads to an iOS kernel heap overflow.
 - CVE-2022-42846 [[1]](https://support.apple.com/en-us/HT213531), [[2]](https://support.apple.com/en-us/HT213530): An IDR Inter predicted first slice leads to an iOS kernel infinite loop during reference picture list modification. 0-clickable.
 - CVE-2022-32939 [[1]](https://support.apple.com/en-us/HT213490), [[2]](https://support.apple.com/en-us/HT213489): More than 256 emulation prevention bytes in a correctly encoded H.264 bitstream led to an arbitrary iOS kernel write primitive. 0-clickable.
 - [CVE-2022-3266](https://www.mozilla.org/en-US/security/advisories/mfsa2022-40/#CVE-2022-3266): Video width and height was not updated between container and SPS, and also across SPSes in Firefox. This led to a crash of the Firefox GPU process and an information leak.
+
+## Contributors
+
+- [Natalie Silvanovich](https://github.com/natashenka): Streaming mode and RTP output.
