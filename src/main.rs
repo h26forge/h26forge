@@ -82,7 +82,7 @@ struct H26ForgeOptions {
     /// Manually set the MP4 height
     #[arg(long = "mp4-height", default_value = "-1")]
     output_mp4_height: i32,
-    // Output video_replay file for WebRTC, see: https://webrtchacks.com/video_replay/
+    /// Output video_replay file for WebRTC, see: https://webrtchacks.com/video_replay/
     #[arg(long = "rtp-replay")]
     output_rtp: bool,
 }

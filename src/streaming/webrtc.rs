@@ -1,7 +1,7 @@
 //! WebRTC Streaming Mode
 //!
 //! This file is adapted from the rtp-to-webrtc WebRTC-rs example found
-//! here: https://github.com/webrtc-rs/webrtc/tree/master/examples/examples/rtp-to-webrtc
+//! in the webrtc-rs repo: https://github.com/webrtc-rs/webrtc/tree/master/examples/examples/rtp-to-webrtc
 
 use std::fs;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -137,10 +137,16 @@ pub async fn stream(
             println!("Connection State has changed {connection_state}");
             if connection_state == RTCIceConnectionState::Failed {
                 let _ = done_tx1.try_send(());
+                // Halt video generation
                 status1.store(2, Ordering::Relaxed);
             } else if connection_state == RTCIceConnectionState::Connected {
+                // Start video generation
                 status1.store(1, Ordering::Relaxed);
             } else if connection_state == RTCIceConnectionState::Closed {
+                // Halt video generation
+                status1.store(2, Ordering::Relaxed);
+            } else if connection_state == RTCIceConnectionState::Disconnected {
+                // Halt video generation
                 status1.store(2, Ordering::Relaxed);
             }
             Box::pin(async {})
@@ -161,18 +167,24 @@ pub async fn stream(
             // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
             println!("Peer Connection has gone to failed exiting: Done forwarding");
             let _ = done_tx2.try_send(());
+            // Halt video generation
             status2.store(2, Ordering::Relaxed);
         } else if s == RTCPeerConnectionState::Connected {
+            // Start video generation
             status2.store(1, Ordering::Relaxed);
         } else if s == RTCPeerConnectionState::Closed {
+            // Halt video generation
+            status2.store(2, Ordering::Relaxed);
+        } else if s == RTCPeerConnectionState::Disconnected {
+            // Halt video generation
             status2.store(2, Ordering::Relaxed);
         }
 
         Box::pin(async {})
     }));
 
-    let encoded_descr = fs::read_to_string(webrtc_file)?;
-    let desc_data = decode(&encoded_descr)?;
+    let encoded_desc = fs::read_to_string(webrtc_file)?;
+    let desc_data = decode(&encoded_desc)?;
     let offer = serde_json::from_str::<RTCSessionDescription>(&desc_data)?;
 
     // Set the remote SessionDescription

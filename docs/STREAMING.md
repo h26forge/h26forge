@@ -19,7 +19,7 @@ The seed is a random value used to generate the H.264 output and running H26Forg
 
 Most flags in [GENERATION.md](GENERATION.md), including config files, will work while streaming.
 
-If the target is experiencing SRTP decryption failure, it is likely receiving video traffic too fast. The --packet-delay flag can be used to slow down the RTP send rate. A delay of 50 ms works with most targets.
+If the target is experiencing SRTP decryption failure, it is likely receiving video traffic too fast. The `--packet-delay` flag can be used to slow down the RTP send rate. A delay of 50 ms works with most targets.
 
 ## Limitations
 
