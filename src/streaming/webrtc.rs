@@ -4,9 +4,13 @@
 //! in the webrtc-rs repo: https://github.com/webrtc-rs/webrtc/tree/master/examples/examples/rtp-to-webrtc
 
 use std::fs;
+use std::io::Read;
+use std::io::Write;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+
+use std::net::{TcpStream};
 
 use crate::encoder::encoder::reencode_syntax_elements;
 use crate::encoder::encoder::{
@@ -62,6 +66,8 @@ pub async fn stream(
     seed: u64,
     webrtc_file: &str,
     packet_delay: u64,
+    server: &str,
+    port: u32,
 ) -> Result<()> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -183,7 +189,34 @@ pub async fn stream(
         Box::pin(async {})
     }));
 
-    let encoded_desc = fs::read_to_string(webrtc_file)?;
+    let mut encoded_desc = "".to_owned();
+    if !server.is_empty() {
+        let mut server_string = server.clone().to_owned();
+        server_string.push_str(":");
+        server_string.push_str(&port.to_string());
+        match TcpStream::connect(&server_string) {
+        Ok(mut stream) => {
+            let msg = b"Hello!";
+            stream.write(msg).unwrap();
+            println!("Awaiting SDP from server {}", server_string);
+            while !encoded_desc .ends_with("\n"){
+            match stream.read_to_string(&mut encoded_desc ) {
+                Ok(_) => {
+                },
+                Err(e) => {
+                    println!("Failed to receive data: {}", e);
+                }
+            }
+        }
+        },
+        Err(e) => {
+            println!("Failed to connect: {} {}", e, server_string);
+        }
+        }
+        encoded_desc.pop();
+    } else {
+        encoded_desc = fs::read_to_string(webrtc_file)?;
+    }
     let desc_data = decode(&encoded_desc)?;
     let offer = serde_json::from_str::<RTCSessionDescription>(&desc_data)?;
 
@@ -205,12 +238,29 @@ pub async fn stream(
     let _ = gather_complete.recv().await;
 
     // Output the answer in base64 so we can paste it in browser
+    let mut b64 = "".to_owned(); 
     if let Some(local_desc) = peer_connection.local_description().await {
         let json_str = serde_json::to_string(&local_desc)?;
-        let b64 = encode(&json_str);
+        b64 = encode(&json_str);
         println!("{b64}");
     } else {
         println!("generate local_description failed!");
+    }
+
+    if !server.is_empty() {
+        b64.push('\n');
+        let mut server_string = server.clone().to_owned();
+        server_string.push_str(":");
+        server_string.push_str(&(port).to_string());
+        match TcpStream::connect(&server_string) {
+            Ok(mut stream) => {
+                let msg = b64;
+                stream.write(msg.as_bytes()).unwrap();
+            },
+            Err(e) => {
+                println!("Failed to connect and send local desc: {} {}", e, server_string);
+            }
+        }
     }
 
     let done_tx3 = done_tx.clone();

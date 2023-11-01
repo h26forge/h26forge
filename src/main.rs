@@ -226,11 +226,17 @@ enum Commands {
         #[arg(short = 'c', long)]
         config: Option<String>,
         /// WebRTC SDP file
-        #[arg(long = "webrtc-file")]
+        #[arg(long = "webrtc-file", required=false, default_value="")]
         webrtc_file: String,
         /// Packet delay in milliseconds
         #[arg(long = "packet-delay", default_value="0")]
         packet_delay: u64,
+        /// SDP exchange server
+        #[arg(long = "server", default_value="")]
+        server: String,
+        /// Server port
+        #[arg(long = "port", default_value="0")]
+        port: u32,
     },
     /// Mux an encoded H.264 video into an MP4
     Mux {
@@ -1257,6 +1263,8 @@ fn main() {
             config,
             webrtc_file,
             packet_delay,
+            server,
+            port,
         }) => {
             if options.debug_encode {
                 let res = setup_debug_file(false, options.debug_encode, "", "streaming_output");
@@ -1294,6 +1302,8 @@ fn main() {
                 *seed,
                 webrtc_file,
                 *packet_delay,
+                server,
+                *port,
             );
         }
         Some(Commands::Randomize {
