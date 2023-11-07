@@ -229,7 +229,7 @@ enum Commands {
         #[arg(long = "webrtc-file", required=false, default_value="")]
         webrtc_file: String,
         /// Packet delay in milliseconds
-        #[arg(long = "packet-delay", default_value="0")]
+        #[arg(long = "packet-delay", default_value="50")]
         packet_delay: u64,
         /// SDP exchange server
         #[arg(long = "server", default_value="")]

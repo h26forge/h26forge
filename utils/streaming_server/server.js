@@ -3,16 +3,13 @@ const socket = new WebSocket("ws://<SERVER IP>:8765");
 
 // Listen for messages
 socket.addEventListener("message", (event) => {
-
   var enc = new TextDecoder("utf-8");
   event.data.arrayBuffer().then(buffer=>{
-          var e = enc.decode(buffer);
+    var e = enc.decode(buffer);
 	  console.log(e);
 	  document.getElementById('remoteSessionDescription').value = e;
-      });
+  });
 });
-
-
 
 let pc = new RTCPeerConnection({
   iceServers: [

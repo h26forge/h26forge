@@ -1,4 +1,4 @@
-import socket, os, time
+import socket, time
 import asyncio
 from websockets.server import serve
 import threading
@@ -14,7 +14,7 @@ async def main_func(websocket):
         global curr_socket
         curr_socket = websocket
         global locald
-        locald = message;
+        locald = message
 
 async def do_send(remote):
     await curr_socket.send(remote[0:len(remote)-1])
@@ -25,12 +25,11 @@ async def main():
         await asyncio.Future()  # run forever
 
 def thread_function():
-     asyncio.run(main())
+    asyncio.run(main())
 
 
 x = threading.Thread(target=thread_function, args=())
 x.start()
-
 
 HOST = '0.0.0.0'
 PORT = 8787
@@ -38,7 +37,7 @@ PORT = 8787
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
     PORT = PORT + 1
-    print("listening to", PORT-1);
+    print("listening to", PORT-1)
     s.listen()
     while 1:
       conn, addr = s.accept()
@@ -46,7 +45,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
       with conn:
           while True:
               if conn == 0:
-                  break;
+                  break
               data = conn.recv(1024)
               if data == b'Hello!':
                   while locald == 0:
@@ -54,15 +53,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                   sdp = locald
                   print(sdp)
-                  sdp = sdp + "\n";
+                  sdp = sdp + "\n"
                   i = 0
                   while i != len(sdp):
                       n = conn.send(bytes(sdp[i:], 'utf-8'))
                       i = i + n
-                  conn.send(b'');
-                  conn.close();
-                  break;
-                  locald = 0
+                  conn.send(b'')
+                  conn.close()
+                  break
               elif len(data) != 0:
                   remote = remote + data
                   if remote[len(remote)-1] == 10:

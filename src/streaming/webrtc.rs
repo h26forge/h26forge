@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use std::net::{TcpStream};
+use std::net::TcpStream;
 
 use crate::encoder::encoder::reencode_syntax_elements;
 use crate::encoder::encoder::{
@@ -191,27 +191,26 @@ pub async fn stream(
 
     let mut encoded_desc = "".to_owned();
     if !server.is_empty() {
-        let mut server_string = server.clone().to_owned();
+        let mut server_string = server.to_owned();
         server_string.push_str(":");
         server_string.push_str(&port.to_string());
         match TcpStream::connect(&server_string) {
-        Ok(mut stream) => {
-            let msg = b"Hello!";
-            stream.write(msg).unwrap();
-            println!("Awaiting SDP from server {}", server_string);
-            while !encoded_desc .ends_with("\n"){
-            match stream.read_to_string(&mut encoded_desc ) {
-                Ok(_) => {
-                },
-                Err(e) => {
-                    println!("Failed to receive data: {}", e);
+            Ok(mut stream) => {
+                let msg = b"Hello!";
+                stream.write(msg).unwrap();
+                println!("Awaiting SDP from server {}", server_string);
+                while !encoded_desc.ends_with("\n"){
+                    match stream.read_to_string(&mut encoded_desc ) {
+                        Ok(_) => {},
+                        Err(e) => {
+                            println!("Failed to receive data: {}", e);
+                        }
+                    }
                 }
+            },
+            Err(e) => {
+                println!("Failed to connect: {} {}", e, server_string);
             }
-        }
-        },
-        Err(e) => {
-            println!("Failed to connect: {} {}", e, server_string);
-        }
         }
         encoded_desc.pop();
     } else {
@@ -249,7 +248,7 @@ pub async fn stream(
 
     if !server.is_empty() {
         b64.push('\n');
-        let mut server_string = server.clone().to_owned();
+        let mut server_string = server.to_owned();
         server_string.push_str(":");
         server_string.push_str(&(port).to_string());
         match TcpStream::connect(&server_string) {
