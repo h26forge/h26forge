@@ -13,6 +13,24 @@ Streaming requires a target (the device that will process the generated H.264) a
 
 You should then begin to see the host generating videos and playback begin on the target.
 
+## Server flag
+
+Setting up a mobile target can be difficult because of the small screen size. The `--server` H26Forge flag allows peer-to-peer communication to be set up using an intermediary web server, avoiding having to copy and paste the session description.
+
+To set up the intermediary web server:
+
+1. Copy server.html and server.js from [`utils/streaming_server/`](../utils/streaming_server/) to the html directory of the intermediary web server. Any web server with a publicly routable IP address should work.
+2. Replace `<SERVER IP>` in server.js with the web server's IP address.
+3. Run [`utils/streaming_server/server.py`](../utils/streaming_server/server.py) on the web server.
+4. Visit `<SERVER IP>/server.html` on the target device. **It is important to not open the page before starting server.py as server.js will try to create a WebSockets connection when opening.**
+5. On the host, run:
+
+    ```./h26forge stream --server <SERVER IP> --port 8787 --seed <SEED> <OTHER FLAGS>```
+
+    You should see the session description auto-populate on the target device.
+6. You can now click "Start Session" on the target device.
+
+
 ## Video Generation Details
 
 The seed is a random value used to generate the H.264 output and running H26Forge with the same seed again will generate the same output, for crash reproduction purposes. For better fuzzing, run H26Forge with a different seed each time.
