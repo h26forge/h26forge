@@ -8,5 +8,6 @@ pub mod expgolomb;
 pub mod macroblock;
 pub mod nalu;
 pub mod parameter_sets;
+pub mod rtp;
 pub mod sei;
 pub mod slice;

@@ -19,6 +19,12 @@ use crate::decoder::parameter_sets::decode_pic_parameter_set;
 use crate::decoder::parameter_sets::decode_seq_parameter_set;
 use crate::decoder::parameter_sets::decode_sps_extension;
 use crate::decoder::parameter_sets::decode_subset_sps;
+use crate::decoder::rtp::decode_fu_a;
+use crate::decoder::rtp::decode_fu_b;
+use crate::decoder::rtp::decode_stap_a;
+use crate::decoder::rtp::decode_stap_b;
+use crate::decoder::rtp::decode_mtap16;
+use crate::decoder::rtp::decode_mtap24;
 use crate::decoder::sei::decode_sei_message;
 use crate::decoder::slice::decode_slice_layer_extension_rbsp;
 use crate::decoder::slice::decode_slice_layer_without_partitioning_rbsp;
@@ -365,6 +371,7 @@ pub fn decode_bitstream(
                     "\t decode_bitstream - NALU {} - {} - RTP STAP-A",
                     i, header.nal_unit_type
                 );
+                decode_stap_a();
             }
             25 => {
                 // STAP-B    Single-time aggregation packet     5.7.1
@@ -372,6 +379,7 @@ pub fn decode_bitstream(
                     "\t decode_bitstream - NALU {} - {} - RTP STAP-B",
                     i, header.nal_unit_type
                 );
+                decode_stap_b();
             }
             26 => {
                 //MTAP16    Multi-time aggregation packet      5.7.2
@@ -379,6 +387,7 @@ pub fn decode_bitstream(
                     "\t decode_bitstream - NALU {} - {} - RTP MTAP16",
                     i, header.nal_unit_type
                 );
+                decode_mtap16();
             }
             27 => {
                 //MTAP24    Multi-time aggregation packet      5.7.2
@@ -386,6 +395,7 @@ pub fn decode_bitstream(
                     "\t decode_bitstream - NALU {} - {} - RTP MTAP24",
                     i, header.nal_unit_type
                 );
+                decode_mtap24();
             }
             28 => {
                 //FU-A      Fragmentation unit                 5.8
@@ -393,6 +403,7 @@ pub fn decode_bitstream(
                     "\t decode_bitstream - NALU {} - {} - RTP FU-A",
                     i, header.nal_unit_type
                 );
+                decode_fu_a();
             }
             29 => {
                 //FU-B      Fragmentation unit                 5.8
@@ -400,6 +411,7 @@ pub fn decode_bitstream(
                     "\t decode_bitstream - NALU {} - {} - RTP FU-B",
                     i, header.nal_unit_type
                 );
+                decode_fu_b();
             }
             // The following types are from SVC RTP https://datatracker.ietf.org/doc/html/rfc6190
             30 => {

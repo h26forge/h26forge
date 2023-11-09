@@ -19,6 +19,12 @@ use crate::vidgen::nalu::random_prefix_nalu;
 use crate::vidgen::parameter_sets::random_pps;
 use crate::vidgen::parameter_sets::random_sps;
 use crate::vidgen::parameter_sets::random_subset_sps;
+use crate::vidgen::rtp::random_fu_a;
+use crate::vidgen::rtp::random_fu_b;
+use crate::vidgen::rtp::random_stap_a;
+use crate::vidgen::rtp::random_stap_b;
+use crate::vidgen::rtp::random_mtap16;
+use crate::vidgen::rtp::random_mtap24;
 use crate::vidgen::sei::random_sei;
 use crate::vidgen::slice::random_slice;
 use crate::vidgen::slice::random_slice_layer_extension;
@@ -337,7 +343,83 @@ pub fn random_video(
                 generated_nalu_type_str += "CodedSliceExt(20);";
                 slice_idx += 1;
             }
-            0 | 17 | 18 | 22..=31 => {
+                        // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
+            24 => {
+                // STAP-A    Single-time aggregation packet     5.7.1
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP STAP-A", nalu_idx);
+                }
+                random_stap_a();
+
+                generated_nalu_type_str += "STAP-A(24);";
+            }
+            25 => {
+                // STAP-B    Single-time aggregation packet     5.7.1
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP STAP-B", nalu_idx);
+                }
+                random_stap_b();
+
+                generated_nalu_type_str += "STAP-B(25);";
+            }
+            26 => {
+                //MTAP16    Multi-time aggregation packet      5.7.2
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP MTAP16", nalu_idx);
+                }
+                random_mtap16();
+
+                generated_nalu_type_str += "MTAP16(26);";
+            }
+            27 => {
+                //MTAP24    Multi-time aggregation packet      5.7.2
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP MTAP24", nalu_idx);
+                }
+                random_mtap24();
+
+                generated_nalu_type_str += "MTAP24(27);";
+            }
+            28 => {
+                //FU-A      Fragmentation unit                 5.8
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP FU-A", nalu_idx);
+                }
+                random_fu_a();
+
+                generated_nalu_type_str += "FU-A(28);";
+            }
+            29 => {
+                //FU-B      Fragmentation unit                 5.8
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP FU-B", nalu_idx);
+                }
+                random_fu_b();
+                
+                generated_nalu_type_str += "FU-B(29);";
+            }
+            // The following types are from SVC RTP https://datatracker.ietf.org/doc/html/rfc6190
+            30 => {
+                // PACSI NAL unit                     4.9
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP SVC PACSI", nalu_idx);
+                }
+                generated_nalu_type_str += "RTP SVC PACSI(30);";
+                // TODO: nothing to do here, but could throw junk in the future
+            }
+            31 => {
+                // Type  SubType   NAME
+                // 31     0       reserved                           4.2.1
+                // 31     1       Empty NAL unit                     4.10
+                // 31     2       NI-MTAP                            4.7.1
+                // 31     3-31    reserved                           4.2.1
+                if !silent_mode {
+                    println!("\t random_video - NALU {} - RTP SVC NALU", nalu_idx);
+                }
+                generated_nalu_type_str += "RTP SVC(31);";
+                // TODO: nothing to do here, but could throw junk in the future
+            }
+            0 | 17 | 18 | 22..=23 => {
                 let random_byte_length =
                     rconfig.random_nalu_range.undefined_nalu_length.sample(film);
                 if !silent_mode {

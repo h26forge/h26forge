@@ -6,6 +6,7 @@ pub mod macroblock;
 pub mod modify_video;
 pub mod nalu;
 pub mod parameter_sets;
+pub mod rtp;
 pub mod sei;
 pub mod slice;
 pub mod syntax_to_video;

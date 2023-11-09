@@ -13,6 +13,12 @@ use crate::encoder::parameter_sets::encode_pps;
 use crate::encoder::parameter_sets::encode_sps;
 use crate::encoder::parameter_sets::encode_sps_extension;
 use crate::encoder::parameter_sets::encode_subset_sps;
+use crate::encoder::rtp::encode_fu_a;
+use crate::encoder::rtp::encode_fu_b;
+use crate::encoder::rtp::encode_stap_a;
+use crate::encoder::rtp::encode_stap_b;
+use crate::encoder::rtp::encode_mtap16;
+use crate::encoder::rtp::encode_mtap24;
 use crate::encoder::sei::encode_sei_message;
 use crate::encoder::slice::encode_slice;
 use crate::encoder::slice::encode_slice_layer_extension_rbsp;
@@ -1871,9 +1877,198 @@ pub fn reencode_syntax_elements(
                     avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
-            24..=31 => {
+            // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
+            24 => {
+                // STAP-A    Single-time aggregation packet     5.7.1
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Unknown nal_unit_type of {} - Copying Bytes", i,  ds.nalu_headers[i].nal_unit_type);
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP STAP-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                encode_stap_a();
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            25 => {
+                // STAP-B    Single-time aggregation packet     5.7.1
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP STAP-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                encode_stap_b();
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            26 => {
+                //MTAP16    Multi-time aggregation packet      5.7.2
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP MTAP16 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                encode_mtap16();
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            27 => {
+                //MTAP24    Multi-time aggregation packet      5.7.2
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP MTAP24 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                encode_mtap24();
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            28 => {
+                //FU-A      Fragmentation unit                 5.8
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP FU-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                encode_fu_a();
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            29 => {
+                //FU-B      Fragmentation unit                 5.8
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP FU-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                encode_fu_b();
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            // The following types are from SVC RTP https://datatracker.ietf.org/doc/html/rfc6190
+            30 => {
+                // PACSI NAL unit                     4.9
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                }
+                // Ignore for now
+                encoded_str.extend(insert_emulation_three_byte(
+                    &ds.nalu_elements[i].content[1..],
+                ));
+
+                if rtp_out {
+                    curr_nal.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+                }
+
+                if avcc_out {
+                    let mut cur_encoded_slice = encoded_header.clone();
+                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                        &ds.nalu_elements[i].content[1..],
+                    ));
+
+                    avcc_encoding.nalus.push(cur_encoded_slice);
+                }
+            }
+            31 => {
+                                // This reads a subtype
+                // Type  SubType   NAME
+                // 31     0       reserved                           4.2.1
+                // 31     1       Empty NAL unit                     4.10
+                // 31     2       NI-MTAP                            4.7.1
+                // 31     3-31    reserved                           4.2.1
+                if !silent_mode {
+                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 // Ignore for now
                 encoded_str.extend(insert_emulation_three_byte(
