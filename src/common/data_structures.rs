@@ -5925,3 +5925,336 @@ impl Default for AccessUnitDelim {
         Self::new()
     }
 }
+
+/// RTP NALUs -- Type 24, 25, 26, 27, 28, and 29
+///
+/// These are wrapper types for the other NALUs, and primarily
+/// contain header information.
+///
+/// They are described in RFC 6184: https://datatracker.ietf.org/doc/html/rfc6184
+
+/// Fragmentation Unit Header
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FuHeader {
+    pub start_bit : bool,
+    pub end_bit : bool,
+    pub reserved_bit : bool,
+    pub nal_unit_type : u8, // Contained NALU type
+}
+
+impl FuHeader {
+    pub fn new() -> FuHeader {
+        FuHeader {
+            start_bit: false,
+            end_bit: false,
+            reserved_bit: false,
+            nal_unit_type: 5,
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        encoder_formatted_print("FU Header: start_bit", self.start_bit, 63);
+        encoder_formatted_print("FU Header: end_bit", self.end_bit, 63);
+        encoder_formatted_print("FU Header: reserved_bit", self.reserved_bit, 63);
+        encoder_formatted_print("FU Header: nal_unit_type", self.nal_unit_type, 63);
+    }
+}
+
+impl Default for FuHeader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// NALU Type 24 - STAP-A Single-time aggregation packet
+///
+///   0                   1                   2                   3
+///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                          RTP Header                           |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |STAP-A NAL HDR |         NALU 1 Size           | NALU 1 HDR    |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                         NALU 1 Data                           |
+///   :                                                               :
+///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |               | NALU 2 Size                   | NALU 2 HDR    |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                         NALU 2 Data                           |
+///   :                                                               :
+///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                               :...OPTIONAL RTP padding        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   Figure 7.  An example of an RTP packet including an STAP-A
+///              containing two single-time aggregation units
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StapA {
+    pub nalu_sizes: Vec<u16>, // 16 bits
+    pub nalus: Vec<NALU>, // includes the header
+}
+
+impl StapA {
+    pub fn new() -> StapA {
+        StapA {
+            nalu_sizes: Vec::new(),
+            nalus: Vec::new(),
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        encoder_formatted_print("STAP-A: number of NALUs contained", self.nalu_sizes.len(), 63);
+    }
+}
+
+impl Default for StapA {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// NALU Type 25 - Single-Time Aggregation Unit with DON (STAP-B)
+///
+///   0                   1                   2                   3
+///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                          RTP Header                           |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |STAP-B NAL HDR | DON                           | NALU 1 Size   |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   | NALU 1 Size   | NALU 1 HDR    | NALU 1 Data                   |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
+///   :                                                               :
+///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |               | NALU 2 Size                   | NALU 2 HDR    |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                       NALU 2 Data                             |
+///   :                                                               :
+///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                               :...OPTIONAL RTP padding        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StapB {
+    pub decoding_order_number: u16, // DON
+    pub nalu_sizes: Vec<u16>, // 16 bits
+    pub nalus: Vec<NALU>, // includes the header
+}
+
+impl StapB {
+    pub fn new() -> StapB {
+        StapB {
+            decoding_order_number: 0,
+            nalu_sizes: Vec::new(),
+            nalus: Vec::new(),
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        encoder_formatted_print("STAP-B: decoding_order_number (DON)", self.decoding_order_number, 63);
+        encoder_formatted_print("STAP-B: number of NALUs contained", self.nalu_sizes.len(), 63);
+    }
+}
+
+impl Default for StapB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// NALU Type 26 - Multi-Time Aggregation Packet (MTAP) with 16-bit timestamp offset (TS)
+///
+///   0                   1                   2                   3
+///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                          RTP Header                           |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |MTAP16 NAL HDR |  decoding order number base   | NALU 1 Size   |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offset        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |  NALU 1 HDR   |  NALU 1 DATA                                  |
+///   +-+-+-+-+-+-+-+-+                                               +
+///   :                                                               :
+///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |               | NALU 2 SIZE                   |  NALU 2 DOND  |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |       NALU 2 TS offset        |  NALU 2 HDR   |  NALU 2 DATA  |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+///   :                                                               :
+///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                               :...OPTIONAL RTP padding        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Mtap16 {
+    pub decoding_order_number_base: u16, // 16 bits
+    pub nalu_sizes: Vec<u16>, // 16 bits
+    pub nalu_decoding_order_number_deltas: Vec<u8>, // 8 bits
+    pub nalu_timestamp_offsets: Vec<u16>, // 16 bits each
+    pub nalus: Vec<NALU>, // includes the header
+}
+
+impl Mtap16 {
+    pub fn new() -> Mtap16 {
+        Mtap16 {
+            decoding_order_number_base: 0,
+            nalu_sizes: Vec::new(),
+            nalu_decoding_order_number_deltas: Vec::new(),
+            nalu_timestamp_offsets: Vec::new(),
+            nalus: Vec::new(),
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        encoder_formatted_print("MTAP16: decoding_order_number_base (DON)", self.decoding_order_number_base, 63);
+        encoder_formatted_print("MTAP16: number of NALUs contained", self.nalu_sizes.len(), 63);
+    }
+}
+
+impl Default for Mtap16 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// NALU Type 27 - Multi-Time Aggregation Packet (MTAP) with 24-bit timestamp offset (TS)
+///
+///   0                   1                   2                   3
+///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                          RTP Header                           |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |MTAP24 NAL HDR |  decoding order number base   | NALU 1 Size   |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offs          |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |NALU 1 TS offs |  NALU 1 HDR   |  NALU 1 DATA                  |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
+///   :                                                               :
+///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |               | NALU 2 SIZE                   |  NALU 2 DOND  |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |       NALU 2 TS offset                        |  NALU 2 HDR   |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |  NALU 2 DATA                                                  |
+///   :                                                               :
+///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                               :...OPTIONAL RTP padding        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Mtap24 {
+    pub decoding_order_number_base: u16, // 16 bits
+    pub nalu_sizes: Vec<u16>, // 16 bits
+    pub nalu_decoding_order_number_deltas: Vec<u8>, // 8 bits
+    pub nalu_timestamp_offsets: Vec<u32>, // 24 bits each
+    pub nalus: Vec<NALU>, // includes the header
+}
+
+impl Mtap24 {
+    pub fn new() -> Mtap24 {
+        Mtap24 {
+            decoding_order_number_base: 0,
+            nalu_sizes: Vec::new(),
+            nalu_decoding_order_number_deltas: Vec::new(),
+            nalu_timestamp_offsets: Vec::new(),
+            nalus: Vec::new(),
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        encoder_formatted_print("MTAP24: decoding_order_number_base (DON)", self.decoding_order_number_base, 63);
+        encoder_formatted_print("MTAP24: number of NALUs contained", self.nalu_sizes.len(), 63);
+    }
+}
+
+impl Default for Mtap24 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+/// NALU Type 28 - Fragmentation Unit (FU) without a DON (FU-A)
+///
+///   0                   1                   2                   3
+///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   | FU indicator  |   FU header   |                               |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+///   |                                                               |
+///   |                         FU payload                            |
+///   |                                                               |
+///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                               :...OPTIONAL RTP padding        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// NOTE: the FU indicator is just a NALU header
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FuA {
+    // FU Header
+    pub header: FuHeader,
+    pub payload: Vec<u8>,
+}
+
+impl FuA {
+    pub fn new() -> FuA {
+        FuA {
+            header: FuHeader::new(),
+            payload: Vec::new(),
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        self.header.encoder_pretty_print();
+        encoder_formatted_print("FU-A: payload size", self.payload.len(), 63);
+    }
+}
+
+impl Default for FuA {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+/// NALU Type 29 - Fragmentation Unit (FU) with a DON (FU-B)
+///
+///   0                   1                   2                   3
+///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   | FU indicator  |   FU header   |               DON             |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+///   |                                                               |
+///   |                         FU payload                            |
+///   |                                                               |
+///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///   |                               :...OPTIONAL RTP padding        |
+///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FuB {
+    // FU Header
+    pub header: FuHeader,
+    pub decoding_order_number: u16,
+    pub payload: Vec<u8>,
+}
+
+impl FuB {
+    pub fn new() -> FuB {
+        FuB {
+            header: FuHeader::new(),
+            decoding_order_number: 0,
+            payload: Vec::new(),
+        }
+    }
+    #[allow(dead_code)]
+    pub fn encoder_pretty_print(&self) {
+        self.header.encoder_pretty_print();
+        encoder_formatted_print("FU-B: decoding_order_number (DON)", self.decoding_order_number, 63);
+        encoder_formatted_print("FU-B: payload size", self.payload.len(), 63);
+    }
+}
+
+impl Default for FuB {
+    fn default() -> Self {
+        Self::new()
+    }
+}

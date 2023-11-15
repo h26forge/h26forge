@@ -2,7 +2,7 @@
 
 
 /// Decode a Single-Time Aggregation Unit without DON (STAP-A)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -20,7 +20,7 @@
 ///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///   |                               :...OPTIONAL RTP padding        |
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   
+///
 ///   Figure 7.  An example of an RTP packet including an STAP-A
 ///              containing two single-time aggregation units
 pub fn decode_stap_a() {
@@ -54,13 +54,13 @@ pub fn decode_stap_b() {
     // Decode a Decoding Order Number (DON) 16 bits long
     // while more_data() {
     //   Decode a NAL unit size that is 16 bits
-    //   Decode a NALU of set size 
+    //   Decode a NALU of set size
     // }
 }
 
 
 /// Decode a Multi-Time Aggregation Packet (MTAP) with 16-bit timestamp offset (TS)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -82,7 +82,7 @@ pub fn decode_stap_b() {
 ///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///   |                               :...OPTIONAL RTP padding        |
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// 
+///
 pub fn decode_mtap16() {
     // While more_data() {
     //   Decode a NALU Size that is 16 bits
@@ -93,7 +93,7 @@ pub fn decode_mtap16() {
 }
 
 /// Decode a Multi-Time Aggregation Packet (MTAP) with 24-bit timestamp offset (TS)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -126,7 +126,7 @@ pub fn decode_mtap24() {
 }
 
 /// Decodes a Fragmentation Unit (FU) without a DON (FU-A)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -148,7 +148,7 @@ pub fn decode_fu_a() {
 }
 
 /// Decodes a Fragmentation Unit (FU) with a DON (FU-B)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

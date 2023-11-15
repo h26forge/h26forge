@@ -395,7 +395,6 @@ pub fn random_video(
                     println!("\t random_video - NALU {} - RTP FU-B", nalu_idx);
                 }
                 random_fu_b();
-                
                 generated_nalu_type_str += "FU-B(29);";
             }
             // The following types are from SVC RTP https://datatracker.ietf.org/doc/html/rfc6190

@@ -2,7 +2,7 @@
 
 
 /// Random a Single-Time Aggregation Unit without DON (STAP-A)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -20,7 +20,7 @@
 ///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///   |                               :...OPTIONAL RTP padding        |
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   
+///
 ///   Figure 7.  An example of an RTP packet including an STAP-A
 ///              containing two single-time aggregation units
 pub fn random_stap_a() {
@@ -54,13 +54,13 @@ pub fn random_stap_b() {
     // Random a Decoding Order Number (DON) 16 bits long
     // while more_data() {
     //   Random a NAL unit size that is 16 bits
-    //   Random a NALU of set size 
+    //   Random a NALU of set size
     // }
 }
 
 
 /// Random a Multi-Time Aggregation Packet (MTAP) with 16-bit timestamp offset (TS)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -82,7 +82,7 @@ pub fn random_stap_b() {
 ///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///   |                               :...OPTIONAL RTP padding        |
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// 
+///
 pub fn random_mtap16() {
     // While more_data() {
     //   Random a NALU Size that is 16 bits
@@ -93,7 +93,7 @@ pub fn random_mtap16() {
 }
 
 /// Random a Multi-Time Aggregation Packet (MTAP) with 24-bit timestamp offset (TS)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -126,7 +126,7 @@ pub fn random_mtap24() {
 }
 
 /// Randoms a Fragmentation Unit (FU) without a DON (FU-A)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -148,7 +148,7 @@ pub fn random_fu_a() {
 }
 
 /// Randoms a Fragmentation Unit (FU) with a DON (FU-B)
-/// 
+///
 ///   0                   1                   2                   3
 ///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
