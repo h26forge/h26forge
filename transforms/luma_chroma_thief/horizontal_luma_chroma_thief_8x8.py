@@ -21,8 +21,8 @@ def luma_chroma_thief_8x8(ds):
 
         # It will try to predict what mode to use. If the signaled mode is less than the
         # predicted mode then the decoder will use the signaled mode. Otherwise, it will take
-        # the signaled value + 1. 
-        # 
+        # the signaled value + 1.
+        #
         # We need to decide when to take the predicted mode to ensure all the values are vertical (0)
         # and not sometimes horizontal (1)
         #
@@ -60,7 +60,6 @@ def luma_chroma_thief_8x8(ds):
             ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra8x8_pred_mode_flag"][3] = True
         else: # internal macroblock
             ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra8x8_pred_mode_flag"] = 4 * [True]
-        
         # should be horizontal - taken from Table 8-3
         ds["slices"][0]["sd"]["macroblock_vec"][i]["rem_intra8x8_pred_mode"] = 4 * [1]
         # horizontal intra chroma prediction

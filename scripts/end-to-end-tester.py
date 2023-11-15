@@ -36,7 +36,6 @@ def cleanup_old_outputs(inputvid, testdir):
         os.remove(f"{inputvid}.json")
     except FileNotFoundError:
         pass
-   
     try:
         os.remove(f"{inputvid}.2_264.json")
     except FileNotFoundError:
@@ -84,7 +83,7 @@ def generate_output_dirs(dir):
     output_dir = os.path.join(dir, "unable_to_decode_input")
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
-   
+
     output_dir = os.path.join(dir, "different_passthrough")
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
@@ -117,11 +116,11 @@ def run_jsondiff(j1, j2):
     cmd_array = ["json_diff", j1, j2]
     logging.info(" ".join(cmd_array))
     jsondiff_output = subprocess.run(cmd_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-   
+
     with open(j1 + ".diff", 'w') as f:
         f.write(jsondiff_output.stdout)
         f.write(jsondiff_output.stderr)
-       
+
     # arbitrarily set jsondiff output size to 5 -- may need to tune this later
     return len(jsondiff_output.stdout) < 5 and len(jsondiff_output.stderr) == 0
 
@@ -146,7 +145,7 @@ def run_test(i, inputvid, testdir, total_videos):
     outputvid = inputvid + ".2_264"
     logfile = inputvid + ".h26forge_out.txt"
     h1 = get_hash(inputvid)
-   
+
     logging.info(f"-- [{i}/{total_videos}] Passthrough 1")
     start_time = time.time()
     success = run_h26forge(inputvid, outputvid, True, logfile)
@@ -232,12 +231,12 @@ def run_test(i, inputvid, testdir, total_videos):
         else:
             logging.info(f"-- [{i}/{total_videos}] Reference ALSO failed")
             reference_fails_on_input_after_hforge_fails += 1
-   
+
     cleanup_old_outputs(inputvid, testdir)
 
     return (match_bitforbit, match_syntax, h26forge_wrong, h26forge_fail_to_decode_input, h26forge_fail_to_decode_passthrough, h26forge_passthrough_two_diff_hash, reference_success_on_input_after_hforge_fails, reference_fails_on_input_after_hforge_fails, reference_fails_on_input_for_yuv_comparison, reference_fails_on_passthrough)
 
-def print_results(results, total_videos):   
+def print_results(results, total_videos):
     match_bitforbit = sum([x[0] for x in results])
     match_syntax = sum([x[1] for x in results])
     match_success = match_bitforbit + match_syntax
@@ -285,7 +284,7 @@ def main():
     tool_name = '''
 
     //=================================================\\\\
-    ||                                                 ||    
+    ||                                                 ||
     ||   _      _____   ____  __                       ||
     ||  | |    / __  \\ / ___|/ _|                      ||
     ||  | |__  `' / /'/ /___| |_ ___  _ __ __ _  ___   ||
@@ -294,12 +293,12 @@ def main():
     ||  |_| |_|\\_____/\\_____/_| \\___/|_|  \\__, |\\___|  ||
     ||                                     __/ |       ||
     ||                                    |___/        ||
-    ||                  (c) wrv                        ||  
+    ||                  (c) wrv                        ||
     \\\\=================================================//
 
     '''
     print(tool_name)
-   
+
     testdir = args.testdir
     logfilename = args.logfilename
 
@@ -320,7 +319,6 @@ def main():
     vid_files = sorted(all_files, key = os.path.getsize)
     total_videos = len(vid_files)
     inputs = zip(range(total_videos), vid_files, [testdir]*total_videos, [total_videos]*total_videos)
-   
     print(f"[X] Found {total_videos} videos")
     print(f"... Running ...")
     # Generate output dirs

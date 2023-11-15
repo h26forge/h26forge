@@ -32,12 +32,9 @@ def slice_all_pcm(ds):
 
             for _ in range(256):
                 ds["slices"][i]["sd"]["macroblock_vec"][j]["pcm_sample_luma"].append((y + 37 * i) % 256)
-           
             ds["slices"][i]["sd"]["macroblock_vec"][j]["pcm_sample_chroma"] = []
-           
             for _ in range(c_dims):
                 ds["slices"][i]["sd"]["macroblock_vec"][j]["pcm_sample_chroma"].append((u + 37 * i) % 256)
-           
             for _ in range(c_dims):
                 ds["slices"][i]["sd"]["macroblock_vec"][j]["pcm_sample_chroma"].append((v + 37 * i) % 256)
 

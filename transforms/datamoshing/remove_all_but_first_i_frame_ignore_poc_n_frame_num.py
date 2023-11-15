@@ -29,7 +29,6 @@ def remove_i_frames(ds):
             else:
                 if is_slice_type(ds["slices"][slice_idx]["sh"]["slice_type"], 'I'):
                     seen_first_i_frame = True
-               
                 slice_idx += 1
         i += 1
 

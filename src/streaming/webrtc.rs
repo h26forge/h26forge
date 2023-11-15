@@ -237,7 +237,7 @@ pub async fn stream(
     let _ = gather_complete.recv().await;
 
     // Output the answer in base64 so we can paste it in browser
-    let mut b64 = "".to_owned(); 
+    let mut b64 = "".to_owned();
     if let Some(local_desc) = peer_connection.local_description().await {
         let json_str = serde_json::to_string(&local_desc)?;
         b64 = encode(&json_str);

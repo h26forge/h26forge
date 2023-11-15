@@ -21,8 +21,8 @@ def luma_chroma_thief_4x4(ds):
 
         # It will try to predict what mode to use. If the signaled mode is less than the
         # predicted mode then the decoder will use the signaled mode. Otherwise, it will take
-        # the signaled value + 1. 
-        # 
+        # the signaled value + 1.
+        #
         # We need to decide when to take the predicted mode to ensure all the values are vertical (0)
         # and not sometimes horizontal (1)
         #
@@ -41,58 +41,57 @@ def luma_chroma_thief_4x4(ds):
         # Predictions are based on the neighbors above and to the left. If one of these is not
         # not available then the prediction will default to 2. In these cases we will signal
         # 0. Whenever the predicted value is supposed to be 0, then we will take the predicted value
-        
         if i == 0:
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][0] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][1] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][2] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][3] = True # take the neighbor values 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][4] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][5] = True 
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][0] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][1] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][2] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][3] = True # take the neighbor values
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][4] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][5] = True
             ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][6] = True
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][7] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][8] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][9] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][10] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][11] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][12] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][13] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][14] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][15] = True 
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][7] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][8] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][9] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][10] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][11] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][12] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][13] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][14] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][15] = True
         elif i < (ds["spses"][0]["pic_width_in_mbs_minus1"] + 1): # indices 1 to 8
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][0] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][1] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][2] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][3] = True # take the neighbor values 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][4] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][5] = True 
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][0] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][1] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][2] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][3] = True # take the neighbor values
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][4] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][5] = True
             ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][6] = True
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][7] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][8] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][9] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][10] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][11] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][12] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][13] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][14] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][15] = True 
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][7] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][8] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][9] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][10] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][11] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][12] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][13] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][14] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][15] = True
         elif i % (ds["spses"][0]["pic_width_in_mbs_minus1"] + 1) == 0: # left most edge
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][0] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][1] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][2] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][3] = True # take the neighbor values 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][4] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][5] = True 
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][0] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][1] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][2] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][3] = True # take the neighbor values
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][4] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][5] = True
             ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][6] = True
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][7] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][8] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][9] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][10] = False 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][11] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][12] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][13] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][14] = True 
-            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][15] = True 
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][7] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][8] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][9] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][10] = False
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][11] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][12] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][13] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][14] = True
+            ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"][15] = True
         else: # internal video
             ds["slices"][0]["sd"]["macroblock_vec"][i]["prev_intra4x4_pred_mode_flag"] = 16 * [True]
 

@@ -37,7 +37,6 @@ def remove_i_frames(ds):
                 pic_order_cnt_lsb += 2
                 if is_slice_type(ds["slices"][slice_idx]["sh"]["slice_type"], 'I'):
                     slice_i_count += 1
-               
                 slice_idx += 1
         i += 1
 

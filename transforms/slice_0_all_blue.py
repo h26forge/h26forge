@@ -7,7 +7,6 @@ def slice_0_all_blue(ds):
     from helpers import set_cbp_chroma_and_luma, new_transform_block
 
     print("\t Setting the first frame to be all blue")
- 
     ds["slices"][0]["sd"]["macroblock_vec"][0]["mb_type"] = "I16x16_2_1_0"
     ds = set_cbp_chroma_and_luma(0, 0, ds)
 
@@ -34,7 +33,6 @@ def slice_0_all_blue(ds):
     if len(ds["slices"][0]["sd"]["macroblock_vec"][0]["chroma_dc_level_transform_blocks"]) < 2:
         ds["slices"][0]["sd"]["macroblock_vec"][0]["chroma_dc_level_transform_blocks"].append(new_transform_block())
         ds["slices"][0]["sd"]["macroblock_vec"][0]["chroma_dc_level_transform_blocks"].append(new_transform_block())
-   
 
     if ds["slices"][0]["sd"]["macroblock_vec"][0]["chroma_dc_level_transform_blocks"][0]["available"]:
         ds["slices"][0]["sd"]["macroblock_vec"][0]["chroma_dc_level_transform_blocks"][0]["coded_block_flag"] = True
