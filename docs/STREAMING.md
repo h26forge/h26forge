@@ -6,7 +6,7 @@ Streaming requires a target (the device that will process the generated H.264) a
 1. On the **target** device, go to this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/) and copy the "Browser base64 Session Description" and send it to the host.
 2. On the **host** device, save the "Browser base64 Session Description" to a file. In this example we call it `stream_config.txt`. Then run the following command:
 
-    ```./h26forge stream --small --seed 1234 --webrtc-file stream_config.txt```.'
+    ```./h26forge stream --small --seed 1234 --webrtc-file stream_config.txt```
 
     This command will generate a base64 session description on the command line. Copy this and send it to the target device.
 3. On the **target** device, paste the base64 into the empty "Golang base64 Session Description" box, then click "Start Session".
