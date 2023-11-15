@@ -3,6 +3,7 @@
 use crate::common::data_structures::AVC3DSPSExtension;
 use crate::common::data_structures::HRDParameters;
 use crate::common::data_structures::MVCDSPSExtension;
+use crate::common::data_structures::MVCDVUIParameters;
 use crate::common::data_structures::MVCSPSExtension;
 use crate::common::data_structures::MVCVUIParameters;
 use crate::common::data_structures::PicParameterSet;
@@ -908,15 +909,90 @@ fn decode_sps_mvc_extension(
 }
 
 /// Described in I.7.3.2.1.5 -- Sequence Parameter Set MVCD extension
-fn decode_sps_mvcd_extension(mut _bs: &mut ByteStream) -> MVCDSPSExtension {
-    let res = MVCDSPSExtension::new();
-    // TODO: MVCD SPS Decoding
-    println!("decode_sps_mvcd_extension - not yet supported");
+fn decode_sps_mvcd_extension(bs: &mut ByteStream) -> MVCDSPSExtension {
+    let mut res = MVCDSPSExtension::new();
+    res.num_views_minus1 = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+
+    for i in 0..=res.num_views_minus1 {
+        res.view_id.push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+        res.depth_view_present_flag.push(1 == bs.read_bits(1));
+        res.depth_view_id[res.num_depth_views as usize] = res.view_id[i as usize];
+        res.num_depth_views += match res.depth_view_present_flag[i as usize] {true => 1, false => 0};
+        res.texture_view_present_flag.push(1 == bs.read_bits(1));
+    }
+    for i in 1..=res.num_views_minus1 {
+        res.num_anchor_refs_l0.push(0);
+        res.num_anchor_refs_l1.push(0);
+        res.anchor_ref_l0.push(Vec::new());
+        res.anchor_ref_l1.push(Vec::new());
+        if res.depth_view_present_flag[i as usize] {
+            res.num_anchor_refs_l0[i as usize] = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+            for _ in 0..res.num_anchor_refs_l0[i as usize] {
+                res.anchor_ref_l0[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            }
+            res.num_anchor_refs_l1[i as usize] = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+            for _ in 0..res.num_anchor_refs_l1[i as usize] {
+                res.anchor_ref_l1[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            }
+        }
+    }
+
+    for i in 1..=res.num_views_minus1 {
+        res.num_non_anchor_refs_l0.push(0);
+        res.num_non_anchor_refs_l1.push(0);
+        res.non_anchor_ref_l0.push(Vec::new());
+        res.non_anchor_ref_l1.push(Vec::new());
+        if res.depth_view_present_flag[i as usize] {
+            res.num_non_anchor_refs_l0[i as usize] = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+            for _ in 0..res.num_non_anchor_refs_l0[i as usize] {
+                res.non_anchor_ref_l0[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            }
+            res.num_non_anchor_refs_l1[i as usize] = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+            for _ in 0..res.num_non_anchor_refs_l1[i as usize] {
+                res.non_anchor_ref_l1[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            }
+        }
+    }
+    res.num_level_values_signalled_minus1 = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+    for i in 0..=res.num_level_values_signalled_minus1 {
+        res.level_idc.push(bs.read_bits(8) as u8);
+        res.num_applicable_ops_minus1.push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+        res.applicable_op_temporal_id.push(Vec::new());
+        res.applicable_op_num_target_views_minus1.push(Vec::new());
+        res.applicable_op_target_view_id.push(Vec::new());
+        res.applicable_op_depth_flag.push(Vec::new());
+        res.applicable_op_texture_flag.push(Vec::new());
+        res.applicable_op_num_texture_views_minus1.push(Vec::new());
+        res.applicable_op_num_depth_views.push(Vec::new());
+        for j in 0..=res.num_applicable_ops_minus1[i as usize] {
+            res.applicable_op_temporal_id[i as usize].push(bs.read_bits(3) as u8);
+            res.applicable_op_num_target_views_minus1[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            res.applicable_op_target_view_id[i as usize].push(Vec::new());
+            res.applicable_op_depth_flag[i as usize].push(Vec::new());
+            res.applicable_op_texture_flag[i as usize].push(Vec::new());
+            for _ in 0..=res.applicable_op_num_target_views_minus1[i as usize][j as usize]{
+                res.applicable_op_target_view_id[i as usize][j as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+                res.applicable_op_depth_flag[i as usize][j as usize].push(1 == bs.read_bits(1));
+                res.applicable_op_texture_flag[i as usize][j as usize].push(1 == bs.read_bits(1));
+            }
+            res.applicable_op_num_texture_views_minus1[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            res.applicable_op_num_depth_views[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+        }
+    }
+    res.mvcd_vui_parameters_present_flag = 1 == bs.read_bits(1);
+    if res.mvcd_vui_parameters_present_flag {
+        res.mvcd_vui_parameters = decode_vui_mvcd_parameters(bs);
+    }
+    res.texture_vui_parameters_present_flag = 1 == bs.read_bits(1);
+    if res.texture_vui_parameters_present_flag {
+        res.mvc_vui_parameters_extension = decode_vui_mvc_parameters(bs);
+    }
+
     res
 }
 
 /// Described in J.7.3.2.1.5 -- Sequence parameter Set 3D-AVC extension
-fn decode_sps_3davc_extension(mut _bs: &mut ByteStream) -> AVC3DSPSExtension {
+fn decode_sps_3davc_extension(_bs: &mut ByteStream) -> AVC3DSPSExtension {
     let res = AVC3DSPSExtension::new();
     // TODO: 3D AVC SPS Decoding
     println!("decode_sps_3davc_extension - not yet supported");
@@ -1516,6 +1592,47 @@ fn decode_vui_mvc_parameters(mut bs: &mut ByteStream) -> MVCVUIParameters {
             &res.vui_mvc_pic_struct_present_flag[i],
             63,
         );
+    }
+
+    res
+}
+
+/// Described in I.14.1 -- MVCD VUI parameters extension syntax
+fn decode_vui_mvcd_parameters(bs: &mut ByteStream) -> MVCDVUIParameters {
+    let mut res = MVCDVUIParameters::new();
+
+    res.vui_mvcd_num_ops_minus1 = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+
+    for i in 0..=res.vui_mvcd_num_ops_minus1 {
+        res.vui_mvcd_temporal_id.push(bs.read_bits(3) as u8);
+        res.vui_mvcd_num_target_output_views_minus1.push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+
+        res.vui_mvcd_view_id.push(Vec::new());
+        res.vui_mvcd_depth_flag.push(Vec::new());
+        res.vui_mvcd_texture_flag.push(Vec::new());
+        for _ in 0..=res.vui_mvcd_num_target_output_views_minus1[i as usize] {
+            res.vui_mvcd_view_id[i as usize].push(exp_golomb_decode_one_wrapper(bs, false, 0) as u32);
+            res.vui_mvcd_depth_flag[i as usize].push(1 == bs.read_bits(1));
+            res.vui_mvcd_texture_flag[i as usize].push(1 == bs.read_bits(1));
+        }
+        res.vui_mvcd_timing_info_present_flag.push(1 == bs.read_bits(1));
+        if res.vui_mvcd_timing_info_present_flag[i as usize]{
+            res.vui_mvcd_num_units_in_tick.push(bs.read_bits(32) as u32);
+            res.vui_mvcd_time_scale.push(bs.read_bits(32) as u32);
+            res.vui_mvcd_fixed_frame_rate_flag.push(1 == bs.read_bits(1));
+        }
+        res.vui_mvcd_nal_hrd_parameters_present_flag.push(1 == bs.read_bits(1));
+        if res.vui_mvcd_nal_hrd_parameters_present_flag[i as usize] {
+            res.vui_mvcd_nal_hrd_parameters.push(decode_hrd_parameters(bs));
+        }
+        res.vui_mvcd_vcl_hrd_parameters_present_flag.push(1 == bs.read_bits(1));
+        if res.vui_mvcd_vcl_hrd_parameters_present_flag[i as usize] {
+            res.vui_mvcd_vcl_hrd_parameters.push(decode_hrd_parameters(bs));
+        }
+        if res.vui_mvcd_nal_hrd_parameters_present_flag[i as usize] || res.vui_mvcd_vcl_hrd_parameters_present_flag[i as usize] {
+            res.vui_mvcd_low_delay_hrd_flag.push(1 == bs.read_bits(1))
+        }
+        res.vui_mvcd_pic_struct_present_flag.push(1 == bs.read_bits(1));
     }
 
     res

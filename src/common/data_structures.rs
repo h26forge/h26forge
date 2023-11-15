@@ -4680,13 +4680,17 @@ pub struct MVCDSPSExtension {
     pub applicable_op_num_target_views_minus1: Vec<Vec<u32>>, // ue(v)
     pub applicable_op_target_view_id: Vec<Vec<Vec<u32>>>, // ue(v)
     pub applicable_op_depth_flag: Vec<Vec<Vec<bool>>>,
-    pub applicable_op_texture_flag: Vec<Vec<Vec<u32>>>,
+    pub applicable_op_texture_flag: Vec<Vec<Vec<bool>>>,
     pub applicable_op_num_texture_views_minus1: Vec<Vec<u32>>, // ue(v)
     pub applicable_op_num_depth_views: Vec<Vec<u32>>,          // ue(v)
     pub mvcd_vui_parameters_present_flag: bool,
     pub mvcd_vui_parameters: MVCDVUIParameters,
     pub texture_vui_parameters_present_flag: bool,
     pub mvc_vui_parameters_extension: MVCVUIParameters,
+
+    // Calculated parameters
+    pub num_depth_views: u32,
+    pub depth_view_id: Vec<u32>
 }
 
 impl MVCDSPSExtension {
@@ -4718,6 +4722,8 @@ impl MVCDSPSExtension {
             mvcd_vui_parameters: MVCDVUIParameters::new(),
             texture_vui_parameters_present_flag: false,
             mvc_vui_parameters_extension: MVCVUIParameters::new(),
+            num_depth_views : 0,
+            depth_view_id: Vec::new(),
         }
     }
 
