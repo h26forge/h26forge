@@ -220,7 +220,7 @@ enum Commands {
         #[arg(long = "include-undefined-nalus")]
         include_undefined_nalus: bool,
         /// Seed value for the RNG
-        #[arg(short = 's', long)]
+        #[arg(short = 's', long, default_value="0")]
         seed: u64,
         /// Path to configuration file containing the ranges to use in random video generation
         #[arg(short = 'c', long)]
@@ -237,6 +237,9 @@ enum Commands {
         /// Server port
         #[arg(long = "port", default_value="0")]
         port: u32,
+        // synthesize JSON file
+        #[arg(long = "synth_from_json", default_value="")]
+        json: String,
     },
     /// Mux an encoded H.264 video into an MP4
     Mux {
@@ -1265,6 +1268,7 @@ fn main() {
             packet_delay,
             server,
             port,
+            json,
         }) => {
             if options.debug_encode {
                 let res = setup_debug_file(false, options.debug_encode, "", "streaming_output");
@@ -1304,6 +1308,7 @@ fn main() {
                 *packet_delay,
                 server,
                 *port,
+                json,
             );
         }
         Some(Commands::Randomize {

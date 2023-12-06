@@ -21,6 +21,7 @@ use crate::encoder::encoder::{
 use crate::vidgen::film::FilmState;
 use crate::vidgen::generate_configurations::RandomizeConfig;
 use crate::vidgen::vidgen::random_video;
+use crate::vidgen::syntax_to_video::syntax_to_video;
 
 use anyhow::Result;
 use base64::prelude::BASE64_STANDARD;
@@ -68,6 +69,7 @@ pub async fn stream(
     packet_delay: u64,
     server: &str,
     port: u32,
+    json: &str,
 ) -> Result<()> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -263,6 +265,7 @@ pub async fn stream(
     }
 
     let done_tx3 = done_tx.clone();
+    let json_filename = json.to_string();
 
     // Video generator
     // Generate and send RTP packets via WebRTC
@@ -271,51 +274,75 @@ pub async fn stream(
         let mut film_state = FilmState::setup_film_from_seed(seed);
         let mut timestamp: u32 = 0x11223344;
         let mut safe_start = true;
-        let mut ind = 1;
+        
+        if json_filename.is_empty() {
 
-        loop {
-            if status.load(Ordering::Relaxed) == 2 {
-                println!("Stopping video generation");
-                return;
-            } else if status.load(Ordering::Relaxed) == 1 {
-                let mut rtp: Vec<Vec<u8>> = Vec::new();
+            let mut ind = 1;
+            loop {
+                if status.load(Ordering::Relaxed) == 2 {
+                    println!("Stopping video generation");
+                    return;
+                } else if status.load(Ordering::Relaxed) == 1 {
+                    let mut rtp: Vec<Vec<u8>> = Vec::new();
 
-                if ind % 5 == 4 {
-                    safe_start = true
+                    if ind % 5 == 4 {
+                        safe_start = true
+                    }
+                    if ind < 10 {
+                        safe_start = true;
+                    }
+                    if safe_start {
+                        println!("[Video {}] Generating safestart", ind);
+                        rtp.push(SAFESTART_RTP_0.to_vec());
+                        rtp.push(SAFESTART_RTP_1.to_vec());
+                        rtp.push(SAFESTART_RTP_2.to_vec());
+                        rtp.push(SAFESTART_RTP_3.to_vec());
+                        rtp.push(SAFESTART_RTP_4.to_vec());
+                        rtp.push(SAFESTART_RTP_5.to_vec());
+                        rtp.push(SAFESTART_RTP_6.to_vec());
+                        rtp.push(SAFESTART_RTP_7.to_vec());
+                        rtp.push(SAFESTART_RTP_8.to_vec());
+                        rtp.push(SAFESTART_RTP_9.to_vec());
+                        rtp.push(SAFESTART_RTP_10.to_vec());
+                        safe_start = false;
+                    } else {
+                        println!("[Video {}] Generating random video", ind);
+                        let mut decoded_elements = random_video(
+                            ignore_intra_pred,
+                            ignore_edge_intra_pred,
+                            ignore_ipcm,
+                            property_empty_slice_data,
+                            property_small_video,
+                            print_silent,
+                            include_undefined_nalus,
+                            &rconfig,
+                            &mut film_state,
+                        );
+
+                        // 2. Re-encode the NALUs
+
+                        let res = reencode_syntax_elements(
+                            &mut decoded_elements,
+                            output_cut,
+                            false,
+                            print_silent,
+                            true,
+                        );
+                        rtp = res.2;
+                    }
+                    println!("[Video {}] Sending {} packets", ind, rtp.len());
+                    (timestamp, seq_num) = packetize_and_send(&vid_tx, rtp, timestamp, seq_num, packet_delay).await;
+                    ind += 1;
                 }
-                if ind < 10 {
-                    safe_start = true;
-                }
-                if safe_start {
-                    println!("[Video {}] Generating safestart", ind);
-                    rtp.push(SAFESTART_RTP_0.to_vec());
-                    rtp.push(SAFESTART_RTP_1.to_vec());
-                    rtp.push(SAFESTART_RTP_2.to_vec());
-                    rtp.push(SAFESTART_RTP_3.to_vec());
-                    rtp.push(SAFESTART_RTP_4.to_vec());
-                    rtp.push(SAFESTART_RTP_5.to_vec());
-                    rtp.push(SAFESTART_RTP_6.to_vec());
-                    rtp.push(SAFESTART_RTP_7.to_vec());
-                    rtp.push(SAFESTART_RTP_8.to_vec());
-                    rtp.push(SAFESTART_RTP_9.to_vec());
-                    rtp.push(SAFESTART_RTP_10.to_vec());
-                    safe_start = false;
-                } else {
-                    println!("[Video {}] Generating random video", ind);
-                    let mut decoded_elements = random_video(
-                        ignore_intra_pred,
-                        ignore_edge_intra_pred,
-                        ignore_ipcm,
-                        property_empty_slice_data,
-                        property_small_video,
-                        print_silent,
-                        include_undefined_nalus,
-                        &rconfig,
-                        &mut film_state,
-                    );
-
-                    // 2. Re-encode the NALUs
-
+            }
+        } else {
+            loop {
+                if status.load(Ordering::Relaxed) == 2 {
+                    println!("Stopping video generation");
+                    return;
+                } else if status.load(Ordering::Relaxed) == 1 {
+                    println!("[Video] Generating from video JSON");
+                    let mut decoded_elements = syntax_to_video(&json_filename);
                     let res = reencode_syntax_elements(
                         &mut decoded_elements,
                         output_cut,
@@ -323,50 +350,10 @@ pub async fn stream(
                         print_silent,
                         true,
                     );
-                    rtp = res.2;
+                    let rtp = res.2;
+                    packetize_and_send(&vid_tx, rtp, timestamp, seq_num, packet_delay).await;
+                    return;
                 }
-
-                let ssrc: u32 = 0x77777777;
-
-                println!("[Video {}] Sending {} packets", ind, rtp.len());
-                for pack in rtp {
-                    let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
-                    let nal_type = pack[0] & 0x1f;
-                    let mut output_pack = Vec::new();
-                    output_pack.push(header_byte);
-                    let mut payload_type = 102;
-                    if nal_type == 5 {
-                        payload_type = payload_type + 0x80; // add marker
-                    }
-                    if nal_type == 1 {
-                        payload_type = payload_type + 0x80; // add marker
-                        timestamp += 3000;
-                    }
-                    if nal_type == 28 {
-                        if nal_type == 5 {
-                            payload_type = payload_type + 0x80; // add marker
-                        }
-                        if nal_type == 1 {
-                            payload_type = payload_type + 0x80; // add marker
-                            if (pack[1] & 0x80) != 0 {
-                                timestamp += 3000;
-                            }
-                        }
-                    }
-                    output_pack.push(payload_type);
-                    output_pack.extend(seq_num.to_be_bytes());
-                    seq_num += 1;
-                    output_pack.extend(timestamp.to_be_bytes());
-                    output_pack.extend(ssrc.to_be_bytes());
-                    output_pack.extend(pack.clone());
-
-                    let _ = vid_tx.send(output_pack).await;
-                    if packet_delay != 0 {
-                        std::thread::sleep(Duration::from_millis(packet_delay));
-                    }
-                }
-                println!("[Video {}] Done", ind);
-                ind += 1;
             }
         }
     });
@@ -399,4 +386,55 @@ pub async fn stream(
     peer_connection.close().await?;
 
     Ok(())
+}
+
+pub async fn packetize_and_send(
+    vid_tx: &tokio::sync::mpsc::Sender<Vec<u8>>,
+    rtp: Vec<Vec<u8>>,
+    timestamp_param: u32,
+    seq_param: u16,
+    packet_delay: u64,
+)-> (u32, u16) {
+
+    let mut seq_num: u16 = seq_param;
+    let mut timestamp: u32 = timestamp_param;
+    let ssrc: u32 = 0x77777777;
+    for pack in rtp {
+        let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
+        let nal_type = pack[0] & 0x1f;
+        let mut output_pack = Vec::new();
+        output_pack.push(header_byte);
+        let mut payload_type = 102;
+        if nal_type == 5 {
+            payload_type = payload_type + 0x80; // add marker
+        }
+        if nal_type == 1 {
+            payload_type = payload_type + 0x80; // add marker
+            timestamp += 3000;
+        }
+        if nal_type == 28 {
+            if nal_type == 5 {
+                payload_type = payload_type + 0x80; // add marker
+            }
+            if nal_type == 1 {
+                payload_type = payload_type + 0x80; // add marker
+                if (pack[1] & 0x80) != 0 {
+                    timestamp += 3000;
+                }
+            }
+        }
+        output_pack.push(payload_type);
+        output_pack.extend(seq_num.to_be_bytes());
+        seq_num += 1;
+        output_pack.extend(timestamp.to_be_bytes());
+        output_pack.extend(ssrc.to_be_bytes());
+        output_pack.extend(pack.clone());
+
+        let _ = vid_tx.send(output_pack).await;
+        if packet_delay != 0 {
+            std::thread::sleep(Duration::from_millis(packet_delay));
+        }
+    }
+    println!("[Video] Done");
+    return(timestamp, seq_num);
 }
