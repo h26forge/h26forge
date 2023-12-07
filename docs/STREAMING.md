@@ -39,6 +39,12 @@ Most flags in [GENERATION.md](GENERATION.md), including config files, will work 
 
 If the target is experiencing SRTP decryption failure, it is likely receiving video traffic too fast. The `--packet-delay` flag can be used to slow down the RTP send rate. A delay of 50 ms works with most targets.
 
+## Serving a Single Video File
+
+You can stream a single video by saving it to json with the `--json` command, and then using the `--synth_from_json` command:
+
+```./h26forge stream --synth_from_json ~/crash.json --server --port 8787```
+
 ## Limitations
 
 The code is hard-coded to work with `stun:stun.l.google.com:19302` and the HTML JavaScript in this [JS Fiddle](https://jsfiddle.net/z7ms3u5r/).

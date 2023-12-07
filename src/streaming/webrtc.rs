@@ -276,7 +276,6 @@ pub async fn stream(
         let mut safe_start = true;
         
         if json_filename.is_empty() {
-
             let mut ind = 1;
             loop {
                 if status.load(Ordering::Relaxed) == 2 {
@@ -337,10 +336,7 @@ pub async fn stream(
             }
         } else {
             loop {
-                if status.load(Ordering::Relaxed) == 2 {
-                    println!("Stopping video generation");
-                    return;
-                } else if status.load(Ordering::Relaxed) == 1 {
+                if status.load(Ordering::Relaxed) == 1 {
                     println!("[Video] Generating from video JSON");
                     let mut decoded_elements = syntax_to_video(&json_filename);
                     let res = reencode_syntax_elements(
@@ -352,9 +348,10 @@ pub async fn stream(
                     );
                     let rtp = res.2;
                     packetize_and_send(&vid_tx, rtp, timestamp, seq_num, packet_delay).await;
-                    return;
+                    break;
                 }
             }
+            println!("All done - press ctrl-c to exit");
         }
     });
 
