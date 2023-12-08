@@ -64,7 +64,7 @@ pub async fn stream(
     include_undefined_nalus: bool,
     print_silent: bool,
     output_cut: i32,
-    seed: u64,
+    mut seed: u64,
     webrtc_file: &str,
     packet_delay: u64,
     server: &str,
@@ -271,7 +271,6 @@ pub async fn stream(
     // Generate and send RTP packets via WebRTC
     tokio::spawn(async move {
         let mut seq_num: u16 = 0x1234;
-        let mut film_state = FilmState::setup_film_from_seed(seed);
         let mut timestamp: u32 = 0x11223344;
         let mut safe_start = true;
         
@@ -305,7 +304,8 @@ pub async fn stream(
                         rtp.push(SAFESTART_RTP_10.to_vec());
                         safe_start = false;
                     } else {
-                        println!("[Video {}] Generating random video", ind);
+                        println!("[Video {}] Generating random video with seed {}", ind, seed);
+                        let mut film_state = FilmState::setup_film_from_seed(seed);
                         let mut decoded_elements = random_video(
                             ignore_intra_pred,
                             ignore_edge_intra_pred,
@@ -317,6 +317,7 @@ pub async fn stream(
                             &rconfig,
                             &mut film_state,
                         );
+                        seed = seed.wrapping_add(1);
 
                         // 2. Re-encode the NALUs
 
