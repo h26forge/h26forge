@@ -84,26 +84,52 @@ A mutation-based fuzzer could perform mutation-based fuzzing to the FILM file, w
 **Bibliography**
 > Rohan Padhye, Caroline Lemieux, Koushik Sen, Mike Papadakis, and Yves Le Traon. 2019. **Semantic Fuzzing with Zest**. In Proceedings of the 28th ACM SIGSOFT International Symposium on Software Testing and Analysis (ISSTA’19), July 15–19, 2019, Beijing, China. ACM, New York, NY, USA, 12 pages. https://doi.org/10.1145/3293882.3330576
 
-## Options
+## Safestart
+Some decoders may only check parameter set bounds at the start of decoding (see [Donenfeld 21](http://phrack.org/issues/70/8.html)), so H26Forge provides the `--safestart` top level flag to prepend a [known safe video](https://www.youtube.com/watch?v=dQw4w9WgXcQ) to each generated video. If safestart is enabled, it will be applied to all output formats.
 
-Here are all the options available for video generation.
+## Output Formats
+H26Forge can output videos in different formats for playback in different scenarios.
 
-### Output Options
-- `--safestart`: Prepend a [known safe video](https://www.youtube.com/watch?v=dQw4w9WgXcQ) to the output.
-- `--mp4`: Output an MP4 file. If safestart is enabled, it will also output an MP4 of the prepended video.
-- `--mp4-frag`: Makes the output MP4 into a [fragmented MP4 file](https://www.pcmag.com/encyclopedia/term/fragmented-mp4). This means that instead of the encoded bitstream existing as one big chunk in the MP4, each NALU will be separate, also containing its own AVCC. This is sometimes required for playing videos on the web.
+### Annex B
+Annex B is the default output format. It refers to Annex B of the [H.264 spec](https://www.itu.int/rec/T-REC-H.264-202108-I/en), and characterizes NALUs divided by _start codes_ that are either `0x00,00,00,01` or `0x00,00,01`. Most players expect NALUs to be organized in Annex B format.
+
+### AVCC
+An AVCC formatted video can be output with the `--avcc` flag. It separates the parameter sets (SPSes and PPSes) from the rest of the encoded video in an `extradata` component. 
+
+The output AVCC file is formatted for playback in a [WebCodecs](https://w3c.github.io/webcodecs/) context by creating a `<output>.avcc.js` file that contains the AVCC extradata. The variable `avcC` can be passed into a [VideoDecoderConfig](https://w3c.github.io/webcodecs/#dom-videodecoderconfig-description). See [CanIUse](https://caniuse.com/webcodecs) to identify WebCodecs support.
+
+See [H264TYPES.md](docs/H264TYPES.md#avcc-extradata-format) for a full description of AVCC.
+
+### MP4
+MP4 files are video containers that combine (mux) video and audio components. H26Forge can output MP4s with the top level `--mp4` flag. 
+
+In some settings a [fragmented MP4 file](https://www.pcmag.com/encyclopedia/term/fragmented-mp4) may be required, so H26Forge has the `--mp4-frag` flag. This means that instead of the encoded bitstream existing as one big chunk in the MP4, each NALU will be separate, also containing its own AVCC. This is sometimes required for playing videos on the web.
+
+By default, H26Forge will set the container height and width to the frame bounds in the first SPS. These can be changed with the following flags:
 - `--mp4-rand-size`: Samples random values to set the output MP4 width and height. The range can be changed in the config file.
 - `--mp4-width <width>`: Set the output MP4 width to a particular value.
 - `--mp4-height <height>`: Set the output MP4 height to a particular value.
-- `--avcc`: Produce a [WebCodecs](https://w3c.github.io/webcodecs/) friendly output file. This creates a `<output>.avcc.js` file that contains the AVCC extradata in [this](https://stackoverflow.com/a/24890903/8169613) format. The variable `avcC` can be passed into a [VideoDecoderConfig](https://w3c.github.io/webcodecs/#dom-videodecoderconfig-description). See [CanIUse](https://caniuse.com/webcodecs) to identify support.
-- `--rtp-replay`: Output an [rtpdump](https://webrtchacks.com/video_replay/) file. If safestart is enabled, decodable frames will be prepended to the rtpdump file. The config file for the generated dump is rtp_config/replay.config
-- `--json`: Outputs the entire generated/parsed video as a [H264DecodedStream](../src/common/data_structures.rs#L13). Note that this file can get really big.
+
+### RTP Replay
+With the `--rtp-replay` top level flag, H26Forge can output an [rtpdump](https://webrtchacks.com/video_replay/) file. This will encapsulate NALUs into aggregated or fragmented RTP NALUs specified in [RFC6184](https://datatracker.ietf.org/doc/html/rfc6184). At the moment, the rtpdump is generated to be playable with the [replay.config](rtp_config/replay.config).
+
+
+### JSON
+H26Forge can output a serde-produced JSON serialization of the generated/parsed [H264DecodedStream](../src/common/data_structures.rs#L13) with the top level `--json` flag. This is helpful for seeing what the syntax elements values are. The JSON can be transformed into an encoded bitstream with `./h26forge synth vid.json`. 
+
+**WARNING** The output JSON can get quite large (~GB range).
+
+## Options
+
+Here are more available options for video generation.
+
+### Debug Output Options
 - `-e`: Outputs the generated entropy encoded values in a human readable format. This slows down video encoding, and may produce a really large file. This is best used for identifying what particular syntax element values are causing issues.
 
 ### Randomness Options
 - `--seed <seed>`: The random seed value used to generate a video.
 - `--film <file>`: The file to use to sample from.
-- `--output-film`: The randomly sampled values encoded in binary.
+- `--output-film`: Output the randomly sampled values for syntax elements encoded in binary.
 
 ### Generated Video Options
 - `--small`: Keeps the frame size to at most 128x128 pixels. This allows for faster video generation, but if testing a decoder for potential vulnerabilities, some effects from larger frame sizes may be missed.
@@ -112,4 +138,3 @@ Here are all the options available for video generation.
 - `--ignore-edge-intra-pred`: Limits the Luma/Chroma Thief effect from being generated.
 - `--ignore-ipcm`: Does not produce losslessly encoded PCM macroblock types.
 - `--include-undefined-nalus`: Will generate random bytes for NALUs that are not defined in the spec.
-
