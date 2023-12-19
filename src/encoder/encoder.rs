@@ -867,10 +867,11 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, is_safestart:
             timestamp += 3000;
         }
         if nal_type == 28 {
-            if nal_type == 5 {
+            let inner_nal_type = rtp_nal_mod[i][1] & 0x1f;
+            if inner_nal_type == 5 {
                 payload_type = payload_type + 0x80; // add marker
             }
-            if nal_type == 1 {
+            if inner_nal_type == 1 {
                 payload_type = payload_type + 0x80; // add marker
                 if (rtp_nal_mod[i][1] & 0x80) != 0 {
                     timestamp += 3000;

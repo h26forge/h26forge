@@ -411,10 +411,11 @@ pub async fn packetize_and_send(
             timestamp += 3000;
         }
         if nal_type == 28 {
-            if nal_type == 5 {
+            let inner_nal_type = pack[1] & 0x1f;
+            if inner_nal_type == 5 {
                 payload_type = payload_type + 0x80; // add marker
             }
-            if nal_type == 1 {
+            if inner_nal_type == 1 {
                 payload_type = payload_type + 0x80; // add marker
                 if (pack[1] & 0x80) != 0 {
                     timestamp += 3000;
