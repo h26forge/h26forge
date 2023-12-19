@@ -13,7 +13,7 @@ use std::time::Duration;
 use std::net::TcpStream;
 
 use crate::encoder::encoder::reencode_syntax_elements;
-use crate::encoder::encoder::{
+use crate::encoder::rtp::{
     SAFESTART_RTP_0, SAFESTART_RTP_1, SAFESTART_RTP_10, SAFESTART_RTP_2, SAFESTART_RTP_3,
     SAFESTART_RTP_4, SAFESTART_RTP_5, SAFESTART_RTP_6, SAFESTART_RTP_7, SAFESTART_RTP_8,
     SAFESTART_RTP_9,
