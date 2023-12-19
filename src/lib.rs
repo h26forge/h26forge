@@ -16,7 +16,7 @@ use common::data_structures::SeqParameterSet;
 use common::data_structures::Slice;
 use common::data_structures::VideoParameters;
 use encoder::encoder::insert_emulation_three_byte;
-use encoder::encoder::reencode_syntax_elements;
+use encoder::encoder::encode_bitstream;
 use encoder::nalu::encode_nalu_header;
 use encoder::parameter_sets::encode_pps;
 use encoder::parameter_sets::encode_sps;
@@ -186,7 +186,7 @@ pub fn generate_video_from_seed(
     );
 
     let avcc_out = false;
-    let encoded_vid = reencode_syntax_elements(&mut vid, cut_nalu, avcc_out, silent_mode, false);
+    let encoded_vid = encode_bitstream(&mut vid, cut_nalu, avcc_out, silent_mode, false);
 
     encoded_vid.0
 }
@@ -239,7 +239,7 @@ pub fn generate_video_from_film_contents(
     );
 
     let avcc_out = false;
-    let encoded_vid = reencode_syntax_elements(&mut vid, cut_nalu, avcc_out, silent_mode, false);
+    let encoded_vid = encode_bitstream(&mut vid, cut_nalu, avcc_out, silent_mode, false);
 
     encoded_vid.0
 }

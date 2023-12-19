@@ -1016,7 +1016,7 @@ fn h265_encode_seq_parameter_set(sps: &H265SeqParameterSet) -> Vec<u8> {
 }
 
 /// Given a H265 Decoded Stream object, reencode it and write it to a file
-pub fn reencode_syntax_elements(ds: &mut H265DecodedStream) -> Vec<u8> {
+pub fn encode_bitstream(ds: &mut H265DecodedStream) -> Vec<u8> {
     let mut encoded_str: Vec<u8> = Vec::new();
 
     let mut sps_idx = 0;
@@ -1047,7 +1047,7 @@ pub fn reencode_syntax_elements(ds: &mut H265DecodedStream) -> Vec<u8> {
 
         match ds.nalu_headers[i].nal_unit_type {
             NalUnitType::NalUnitSps => {
-                println!("\t reencode_syntax_elements - NALU {} - {:?} - Encoding Sequence Parameter Set (SPS)", i,  ds.nalu_headers[i].nal_unit_type);
+                println!("\t encode_bitstream - NALU {} - {:?} - Encoding Sequence Parameter Set (SPS)", i,  ds.nalu_headers[i].nal_unit_type);
 
                 encoded_str.extend(insert_emulation_three_byte(&h265_encode_seq_parameter_set(
                     &ds.spses[sps_idx],
@@ -1056,7 +1056,7 @@ pub fn reencode_syntax_elements(ds: &mut H265DecodedStream) -> Vec<u8> {
             }
             _ => {
                 println!(
-                    "\t reencode_syntax_elements - TODO: {:?} parsing",
+                    "\t encode_bitstream - TODO: {:?} parsing",
                     ds.nalu_headers[i].nal_unit_type
                 );
                 // start at 2 because the header is 2 bytes

@@ -394,7 +394,7 @@ fn mode_synthesize(input_filename: &str, output_filename: &str, options: &H26For
 
     // 2. Encode the file
     println!("2. Writing out Mutated H.264 File");
-    let res = encoder::encoder::reencode_syntax_elements(
+    let res = encoder::encoder::encode_bitstream(
         &mut decoded_elements,
         options.output_cut,
         options.output_avcc,
@@ -689,7 +689,7 @@ fn mode_randomize(
 
     // 3. Re-encode the file
     println!("3. Writing out Mutated H.264 File");
-    let res = encoder::encoder::reencode_syntax_elements(
+    let res = encoder::encoder::encode_bitstream(
         &mut decoded_elements,
         options.output_cut,
         options.output_avcc,
@@ -756,7 +756,7 @@ fn mode_modify(
 
         // 3. Re-encode the file
         println!("3. Writing out Mutated H.264 File");
-        let res = encoder::encoder::reencode_syntax_elements(
+        let res = encoder::encoder::encode_bitstream(
             &mut decoded_elements,
             options.output_cut,
             options.output_avcc,
@@ -938,7 +938,7 @@ fn mode_generate(
         println!("2. Writing out Mutated H.264 File");
     }
     let start_time = SystemTime::now();
-    let res = encoder::encoder::reencode_syntax_elements(
+    let res = encoder::encoder::encode_bitstream(
         &mut decoded_elements,
         options.output_cut,
         options.output_avcc,
@@ -950,7 +950,7 @@ fn mode_generate(
         match duration {
             Ok(elapsed) => {
                 println!(
-                    "[PERF] mode_generate;reencode_syntax_elements;{} ns",
+                    "[PERF] mode_generate;encode_bitstream;{} ns",
                     elapsed.as_nanos()
                 );
             }
@@ -1072,7 +1072,7 @@ fn main() {
             }
 
             let start_time = SystemTime::now();
-            let res = encoder::encoder::reencode_syntax_elements(
+            let res = encoder::encoder::encode_bitstream(
                 &mut decoded_elements,
                 options.output_cut,
                 options.output_avcc,
@@ -1085,7 +1085,7 @@ fn main() {
                 match duration {
                     Ok(elapsed) => {
                         println!(
-                            "[PERF] main_passthrough;reencode_syntax_elements;{} ns",
+                            "[PERF] main_passthrough;encode_bitstream;{} ns",
                             elapsed.as_nanos()
                         );
                     }
@@ -1511,13 +1511,13 @@ fn main() {
 
             println!("2. Saving modified H.265 Stream");
             let start_time = SystemTime::now();
-            let encoded_str = experimental::h265_encoder::reencode_syntax_elements(&mut ds);
+            let encoded_str = experimental::h265_encoder::encode_bitstream(&mut ds);
             if options.print_perf {
                 let duration = start_time.elapsed();
                 match duration {
                     Ok(elapsed) => {
                         println!(
-                            "[PERF] main_passthrough;reencode_syntax_elements;{} ns",
+                            "[PERF] main_passthrough;encode_bitstream;{} ns",
                             elapsed.as_nanos()
                         );
                     }

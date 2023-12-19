@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use std::net::TcpStream;
 
-use crate::encoder::encoder::reencode_syntax_elements;
+use crate::encoder::encoder::encode_bitstream;
 use crate::encoder::rtp::{
     SAFESTART_RTP_0, SAFESTART_RTP_1, SAFESTART_RTP_10, SAFESTART_RTP_2, SAFESTART_RTP_3,
     SAFESTART_RTP_4, SAFESTART_RTP_5, SAFESTART_RTP_6, SAFESTART_RTP_7, SAFESTART_RTP_8,
@@ -321,7 +321,7 @@ pub async fn stream(
 
                         // 2. Re-encode the NALUs
 
-                        let res = reencode_syntax_elements(
+                        let res = encode_bitstream(
                             &mut decoded_elements,
                             output_cut,
                             false,
@@ -340,7 +340,7 @@ pub async fn stream(
                 if status.load(Ordering::Relaxed) == 1 {
                     println!("[Video] Generating from video JSON");
                     let mut decoded_elements = syntax_to_video(&json_filename);
-                    let res = reencode_syntax_elements(
+                    let res = encode_bitstream(
                         &mut decoded_elements,
                         output_cut,
                         false,

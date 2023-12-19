@@ -800,7 +800,7 @@ pub fn save_encoded_stream(
 }
 
 /// Given a H.264 Decoded Stream object, output a correct, emulation prevented, encoded bitstream
-pub fn reencode_syntax_elements(
+pub fn encode_bitstream(
     ds: &mut H264DecodedStream,
     cut_nalu: i32,
     avcc_out: bool,
@@ -858,7 +858,7 @@ pub fn reencode_syntax_elements(
         match ds.nalu_headers[i].nal_unit_type {
             0 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Unknown nal_unit_type of 0 - not affecting encoding process", i);
+                    println!("\t encode_bitstream - NALU {} - Unknown nal_unit_type of 0 - not affecting encoding process", i);
                 }
                 encoded_str.extend(&ds.nalu_elements[i].content[1..]);
                 if rtp_out {
@@ -868,7 +868,7 @@ pub fn reencode_syntax_elements(
             1 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Coded slice of a non-IDR picture",
+                        "\t encode_bitstream - NALU {} - Coded slice of a non-IDR picture",
                         i
                     );
                 }
@@ -889,7 +889,7 @@ pub fn reencode_syntax_elements(
                 let cur_pps: &PicParameterSet;
                 match cur_pps_wrapper {
                     Some(x) => cur_pps = x,
-                    _ => panic!("reencode_syntax_elements - Associated SPS not found for PPS - associated_sps_idx : {}", associated_pps_id),
+                    _ => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_pps_id),
                 }
 
                 let associated_sps_id = cur_pps.seq_parameter_set_id;
@@ -919,7 +919,7 @@ pub fn reencode_syntax_elements(
                     Some(x) => {
                         cur_sps = x;
                     },
-                    None => panic!("reencode_syntax_elements - Associated SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
+                    None => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
                 }
                 let mut vp = VideoParameters::new(&ds.nalu_headers[i], cur_pps, cur_sps);
                 // for neighbor macroblock processing
@@ -954,7 +954,7 @@ pub fn reencode_syntax_elements(
             2 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Coded slice data partition A",
+                        "\t encode_bitstream - NALU {} - Coded slice data partition A",
                         i
                     );
                 }
@@ -975,7 +975,7 @@ pub fn reencode_syntax_elements(
             3 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Coded slice data partition B",
+                        "\t encode_bitstream - NALU {} - Coded slice data partition B",
                         i
                     );
                 }
@@ -996,7 +996,7 @@ pub fn reencode_syntax_elements(
             4 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Coded slice data partition C",
+                        "\t encode_bitstream - NALU {} - Coded slice data partition C",
                         i
                     );
                 }
@@ -1017,7 +1017,7 @@ pub fn reencode_syntax_elements(
             5 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Coded slice of an IDR picture",
+                        "\t encode_bitstream - NALU {} - Coded slice of an IDR picture",
                         i
                     );
                 }
@@ -1038,7 +1038,7 @@ pub fn reencode_syntax_elements(
                 let cur_pps: &PicParameterSet;
                 match cur_pps_wrapper {
                     Some(x) => cur_pps = x,
-                    _ => panic!("reencode_syntax_elements - Associated SPS not found for PPS - associated_sps_idx : {}", associated_pps_id),
+                    _ => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_pps_id),
                 }
 
                 let associated_sps_id = cur_pps.seq_parameter_set_id;
@@ -1068,7 +1068,7 @@ pub fn reencode_syntax_elements(
                     Some(x) => {
                         cur_sps = x;
                     },
-                    None => panic!("reencode_syntax_elements - Associated SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
+                    None => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
                 }
                 let mut vp = VideoParameters::new(&ds.nalu_headers[i], cur_pps, cur_sps);
                 vp.mbaff_frame_flag = ds.slices[slice_idx].sh.mbaff_frame_flag;
@@ -1099,7 +1099,7 @@ pub fn reencode_syntax_elements(
             }
             6 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Supplemental enhancement information", i);
+                    println!("\t encode_bitstream - NALU {} - Supplemental enhancement information", i);
                 }
                 // only pass in already encoded SPSes
                 let res = encode_sei_message(&ds.seis[sei_idx], &ds.spses[0..sps_idx], silent_mode);
@@ -1141,7 +1141,7 @@ pub fn reencode_syntax_elements(
             7 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Encoding Sequence Parameter Set",
+                        "\t encode_bitstream - NALU {} - Encoding Sequence Parameter Set",
                         i
                     );
                 }
@@ -1164,7 +1164,7 @@ pub fn reencode_syntax_elements(
             8 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Encoding Picture Parameter Set",
+                        "\t encode_bitstream - NALU {} - Encoding Picture Parameter Set",
                         i
                     );
                 }
@@ -1215,7 +1215,7 @@ pub fn reencode_syntax_elements(
                         _ => {
                             // TODO: We could consider not panicking and continuing with a default SPS (e.g., LRU)
                             panic!(
-                                "reencode_syntax_elements - SPS or SubsetSPS with id {} not found",
+                                "encode_bitstream - SPS or SubsetSPS with id {} not found",
                                 associated_sps_id
                             )
                         }
@@ -1225,7 +1225,7 @@ pub fn reencode_syntax_elements(
             9 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Access unit delimiter",
+                        "\t encode_bitstream - NALU {} - Access unit delimiter",
                         i
                     );
                 }
@@ -1249,7 +1249,7 @@ pub fn reencode_syntax_elements(
             }
             10 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - End of Sequence", i);
+                    println!("\t encode_bitstream - NALU {} - End of Sequence", i);
                 }
                 // According to 7.3.2.5 there is nothing to parse
                 // According to 7.4.2.5 this signals that the next NALU shall be an IDR
@@ -1275,7 +1275,7 @@ pub fn reencode_syntax_elements(
             }
             11 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - End of Stream", i);
+                    println!("\t encode_bitstream - NALU {} - End of Stream", i);
                 }
                 // According to 7.3.2.6 there is nothing to parse
                 // According to 7.4.2.6 this signals that there is nothing else to decode, so we could just `break;`
@@ -1301,7 +1301,7 @@ pub fn reencode_syntax_elements(
             }
             12 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Filler Data", i);
+                    println!("\t encode_bitstream - NALU {} - Filler Data", i);
                 }
                 // According to 7.3.2.7 and 7.4.2.7 this is, as the name describes, filler data
                 // that should be all 0xff bytes
@@ -1329,7 +1329,7 @@ pub fn reencode_syntax_elements(
             13 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Sequence parameter set extension",
+                        "\t encode_bitstream - NALU {} - Sequence parameter set extension",
                         i
                     );
                 }
@@ -1353,7 +1353,7 @@ pub fn reencode_syntax_elements(
             }
             14 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Prefix NAL unit", i);
+                    println!("\t encode_bitstream - NALU {} - Prefix NAL unit", i);
                 }
 
                 if ds.nalu_headers[i].svc_extension_flag {
@@ -1381,7 +1381,7 @@ pub fn reencode_syntax_elements(
             15 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Subset sequence parameter set",
+                        "\t encode_bitstream - NALU {} - Subset sequence parameter set",
                         i
                     );
                 }
@@ -1406,7 +1406,7 @@ pub fn reencode_syntax_elements(
             16 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Depth parameter set",
+                        "\t encode_bitstream - NALU {} - Depth parameter set",
                         i
                     );
                 }
@@ -1432,7 +1432,7 @@ pub fn reencode_syntax_elements(
             }
             17..=18 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - RESERVED nal_unit_type of {} - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - RESERVED nal_unit_type of {} - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 // Ignore for now
                 encoded_str.extend(insert_emulation_three_byte(
@@ -1456,7 +1456,7 @@ pub fn reencode_syntax_elements(
             }
             19 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Coded slice of an auxiliary coded picture without partitioning", i);
+                    println!("\t encode_bitstream - NALU {} - Coded slice of an auxiliary coded picture without partitioning", i);
                 }
                 // TODO: slice_layer_without_partitioning_rbsp(); // but non-VCL
                 encoded_str.extend(insert_emulation_three_byte(
@@ -1481,7 +1481,7 @@ pub fn reencode_syntax_elements(
             20 => {
                 if !silent_mode {
                     println!(
-                        "\t reencode_syntax_elements - NALU {} - Coded slice extension",
+                        "\t encode_bitstream - NALU {} - Coded slice extension",
                         i
                     );
                 }
@@ -1502,7 +1502,7 @@ pub fn reencode_syntax_elements(
                 let cur_pps: &PicParameterSet;
                 match cur_pps_wrapper {
                     Some(x) => cur_pps = x,
-                    _ =>  panic!("reencode_syntax_elements - Associated PPS not found for coded slice extension - associated_pps_idx : {}", associated_pps_id),
+                    _ =>  panic!("encode_bitstream - Associated PPS not found for coded slice extension - associated_pps_idx : {}", associated_pps_id),
                 }
 
                 let associated_sps_id = cur_pps.seq_parameter_set_id;
@@ -1522,7 +1522,7 @@ pub fn reencode_syntax_elements(
                     Some(x) => {
                         cur_subset_sps = x;
                     },
-                    None => panic!("reencode_syntax_elements - Associated Subset SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
+                    None => panic!("encode_bitstream - Associated Subset SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
                 }
                 let mut vp =
                     VideoParameters::new(&ds.nalu_headers[i], cur_pps, &cur_subset_sps.sps);
@@ -1554,7 +1554,7 @@ pub fn reencode_syntax_elements(
             }
             21 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - Coded slice extension for a depth view component or a 3D-AVC texture view component", i);
+                    println!("\t encode_bitstream - NALU {} - Coded slice extension for a depth view component or a 3D-AVC texture view component", i);
                 }
                 // specified in Annex J
                 // slice_layer_extension_rbsp();
@@ -1579,7 +1579,7 @@ pub fn reencode_syntax_elements(
             }
             22..=23 => {
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - RESERVED nal_unit_type of {} - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - RESERVED nal_unit_type of {} - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 encoded_str.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
@@ -1604,7 +1604,7 @@ pub fn reencode_syntax_elements(
             24 => {
                 // STAP-A    Single-time aggregation packet     5.7.1
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP STAP-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP STAP-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 //encode_stap_a();
                 // Ignore for now
@@ -1630,7 +1630,7 @@ pub fn reencode_syntax_elements(
             25 => {
                 // STAP-B    Single-time aggregation packet     5.7.1
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP STAP-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP STAP-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 //encode_stap_b();
                 // Ignore for now
@@ -1656,7 +1656,7 @@ pub fn reencode_syntax_elements(
             26 => {
                 //MTAP16    Multi-time aggregation packet      5.7.2
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP MTAP16 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP MTAP16 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 //encode_mtap16();
                 // Ignore for now
@@ -1682,7 +1682,7 @@ pub fn reencode_syntax_elements(
             27 => {
                 //MTAP24    Multi-time aggregation packet      5.7.2
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP MTAP24 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP MTAP24 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 //encode_mtap24();
                 // Ignore for now
@@ -1708,7 +1708,7 @@ pub fn reencode_syntax_elements(
             28 => {
                 //FU-A      Fragmentation unit                 5.8
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP FU-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP FU-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 //encode_fu_a();
                 // Ignore for now
@@ -1734,7 +1734,7 @@ pub fn reencode_syntax_elements(
             29 => {
                 //FU-B      Fragmentation unit                 5.8
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP FU-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP FU-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 //encode_fu_b();
                 // Ignore for now
@@ -1761,7 +1761,7 @@ pub fn reencode_syntax_elements(
             30 => {
                 // PACSI NAL unit                     4.9
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 // Ignore for now
                 encoded_str.extend(insert_emulation_three_byte(
@@ -1791,7 +1791,7 @@ pub fn reencode_syntax_elements(
                 // 31     2       NI-MTAP                            4.7.1
                 // 31     3-31    reserved                           4.2.1
                 if !silent_mode {
-                    println!("\t reencode_syntax_elements - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                    println!("\t encode_bitstream - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 // Ignore for now
                 encoded_str.extend(insert_emulation_three_byte(
@@ -1814,7 +1814,7 @@ pub fn reencode_syntax_elements(
                 }
             }
             _ => panic!(
-                "\t reencode_syntax_elements - NALU {} - Unknown nal_unit_type of {}",
+                "\t encode_bitstream - NALU {} - Unknown nal_unit_type of {}",
                 i, ds.nalu_headers[i].nal_unit_type
             ),
         };
@@ -1841,6 +1841,7 @@ pub fn reencode_syntax_elements(
                         ds.nalu_headers[i].nal_unit_type
                     );
                 }
+                // TODO: determine packetization-mode to determine whether to allow FU-B
                 rtp_nal.extend(encapsulate_fu_a(&curr_nal, &ds.nalu_headers[i]));
             } else {
                 rtp_nal.push(curr_nal);
