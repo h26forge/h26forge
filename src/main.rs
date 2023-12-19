@@ -1470,7 +1470,7 @@ fn main() {
                 height = options.output_mp4_height;
             }
 
-            encoder::encoder::save_mp4_file(
+            encoder::mp4::save_mp4_file(
                 output.to_string(),
                 width,
                 height,

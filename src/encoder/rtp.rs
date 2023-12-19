@@ -1,3 +1,5 @@
+//! RTP encoding and saving.
+
 use crate::common::data_structures::NALUheader;
 use crate::common::data_structures::StapA;
 use crate::common::data_structures::StapB;

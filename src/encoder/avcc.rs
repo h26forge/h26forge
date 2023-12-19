@@ -1,3 +1,5 @@
+//! AVCC encoding and output.
+
 use crate::common::data_structures::AVCCFormat;
 use std::fs::File;
 use std::io::prelude::*;
