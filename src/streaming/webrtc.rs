@@ -13,11 +13,7 @@ use std::time::Duration;
 use std::net::TcpStream;
 
 use crate::encoder::encoder::encode_bitstream;
-use crate::encoder::rtp::{
-    SAFESTART_RTP_0, SAFESTART_RTP_1, SAFESTART_RTP_10, SAFESTART_RTP_2, SAFESTART_RTP_3,
-    SAFESTART_RTP_4, SAFESTART_RTP_5, SAFESTART_RTP_6, SAFESTART_RTP_7, SAFESTART_RTP_8,
-    SAFESTART_RTP_9,
-};
+use crate::encoder::safestart::get_rtp_safe_video;
 use crate::vidgen::film::FilmState;
 use crate::vidgen::generate_configurations::RandomizeConfig;
 use crate::vidgen::vidgen::random_video;
@@ -273,7 +269,6 @@ pub async fn stream(
         let mut seq_num: u16 = 0x1234;
         let mut timestamp: u32 = 0x11223344;
         let mut safe_start = true;
-        
         if json_filename.is_empty() {
             let mut ind = 1;
             loop {
@@ -291,17 +286,7 @@ pub async fn stream(
                     }
                     if safe_start {
                         println!("[Video {}] Generating safestart", ind);
-                        rtp.push(SAFESTART_RTP_0.to_vec());
-                        rtp.push(SAFESTART_RTP_1.to_vec());
-                        rtp.push(SAFESTART_RTP_2.to_vec());
-                        rtp.push(SAFESTART_RTP_3.to_vec());
-                        rtp.push(SAFESTART_RTP_4.to_vec());
-                        rtp.push(SAFESTART_RTP_5.to_vec());
-                        rtp.push(SAFESTART_RTP_6.to_vec());
-                        rtp.push(SAFESTART_RTP_7.to_vec());
-                        rtp.push(SAFESTART_RTP_8.to_vec());
-                        rtp.push(SAFESTART_RTP_9.to_vec());
-                        rtp.push(SAFESTART_RTP_10.to_vec());
+                        rtp.extend(get_rtp_safe_video());
                         safe_start = false;
                     } else {
                         println!("[Video {}] Generating random video with seed {}", ind, seed);
