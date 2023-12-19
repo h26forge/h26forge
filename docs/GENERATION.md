@@ -94,14 +94,14 @@ H26Forge can output videos in different formats for playback in different scenar
 Annex B is the default output format. It refers to Annex B of the [H.264 spec](https://www.itu.int/rec/T-REC-H.264-202108-I/en), and characterizes NALUs divided by _start codes_ that are either `0x00,00,00,01` or `0x00,00,01`. Most players expect NALUs to be organized in Annex B format.
 
 ### AVCC
-An AVCC formatted video can be output with the `--avcc` flag. It separates the parameter sets (SPSes and PPSes) from the rest of the encoded video in an `extradata` component. 
+An AVCC formatted video can be output with the `--avcc` flag. It separates the parameter sets (SPSes and PPSes) from the rest of the encoded video in an `extradata` component.
 
 The output AVCC file is formatted for playback in a [WebCodecs](https://w3c.github.io/webcodecs/) context by creating a `<output>.avcc.js` file that contains the AVCC extradata. The variable `avcC` can be passed into a [VideoDecoderConfig](https://w3c.github.io/webcodecs/#dom-videodecoderconfig-description). See [CanIUse](https://caniuse.com/webcodecs) to identify WebCodecs support.
 
 See [H264TYPES.md](docs/H264TYPES.md#avcc-extradata-format) for a full description of AVCC.
 
 ### MP4
-MP4 files are video containers that combine (mux) video and audio components. H26Forge can output MP4s with the top level `--mp4` flag. 
+MP4 files are video containers that combine (mux) video and audio components. H26Forge can output MP4s with the top level `--mp4` flag.
 
 In some settings a [fragmented MP4 file](https://www.pcmag.com/encyclopedia/term/fragmented-mp4) may be required, so H26Forge has the `--mp4-frag` flag. This means that instead of the encoded bitstream existing as one big chunk in the MP4, each NALU will be separate, also containing its own AVCC. This is sometimes required for playing videos on the web.
 
@@ -115,7 +115,7 @@ With the `--rtp-replay` top level flag, H26Forge can output an [rtpdump](https:/
 
 
 ### JSON
-H26Forge can output a serde-produced JSON serialization of the generated/parsed [H264DecodedStream](../src/common/data_structures.rs#L13) with the top level `--json` flag. This is helpful for seeing what the syntax elements values are. The JSON can be transformed into an encoded bitstream with `./h26forge synth vid.json`. 
+H26Forge can output a serde-produced JSON serialization of the generated/parsed [H264DecodedStream](../src/common/data_structures.rs#L13) with the top level `--json` flag. This is helpful for seeing what the syntax elements values are. The JSON can be transformed into an encoded bitstream with `./h26forge synth vid.json`.
 
 **WARNING** The output JSON can get quite large (~GB range).
 

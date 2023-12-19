@@ -10,7 +10,6 @@ use crate::encoder::safestart::get_rtp_safe_video;
 use std::fs::File;
 use std::io::prelude::*;
 
-
 pub const FRAGMENT_SIZE: usize = 1400;
 
 /// Save encoded stream to RTP dump
@@ -102,6 +101,30 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safest
     };
 }
 
+pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUheader, silent_mode : bool) -> Vec<Vec<u8>> {
+    let mut res = Vec::new();
+
+    // if packetization-mode == 0, then we return the NALU as is
+    // if packetization-mode == 1, we can use NALU, STAP-A, and FU-A
+    // if packetization-mode == 2, we can use STAP-B, MTAP16, MTAP24, FU-A, and FU-B
+
+    // fragment if too large
+    if nalu.len() > FRAGMENT_SIZE {
+        if !silent_mode {
+            println!(
+                "Fragmenting {} type {}",
+                nalu.len(),
+                nh.nal_unit_type
+            );
+        }
+        // TODO: determine packetization-mode to determine whether to allow FU-B
+        res.extend(encapsulate_fu_a(&nalu, nh));
+    } else {
+        res.push(nalu);
+    }
+
+    res
+}
 
 /// Encode a Single-Time Aggregation Unit without DON (STAP-A)
 ///
@@ -239,7 +262,7 @@ pub fn encode_mtap24(_p : Mtap24) {
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///   | FU indicator  |   FU header   |
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-pub fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
+fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     // 28 is FU-A
@@ -293,7 +316,7 @@ pub fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
 ///
 /// NOTE: uses the same DON for each FU atm
 #[allow(dead_code)]
-pub fn encapsulate_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<u8>> {
+fn encapsulate_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     // 29 is FU-B

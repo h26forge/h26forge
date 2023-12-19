@@ -16,8 +16,7 @@ use crate::encoder::parameter_sets::encode_pps;
 use crate::encoder::parameter_sets::encode_sps;
 use crate::encoder::parameter_sets::encode_sps_extension;
 use crate::encoder::parameter_sets::encode_subset_sps;
-use crate::encoder::rtp::encapsulate_fu_a;
-use crate::encoder::rtp::FRAGMENT_SIZE;
+use crate::encoder::rtp::encapsulate_rtp_nalu;
 use crate::encoder::rtp::save_rtp_file;
 use crate::encoder::safestart::prepend_safe_video;
 use crate::encoder::safestart::SAFESTART_VIDEO_HEIGHT;
@@ -203,7 +202,7 @@ pub fn encode_bitstream(
         let mut cur_avcc_nal: Vec<u8> = Vec::new();
         let mut cur_rtp_nal: Vec<u8> = Vec::new();
 
-        // The mode 
+        // The mode
         let mut avcc_mode = AvccMode::AvccNalu;
 
         debug!(target: "encode","");
@@ -896,7 +895,7 @@ pub fn encode_bitstream(
                 }
             }
             24..=29 => {
-                // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184   
+                // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
                 if !silent_mode {
                     let nalu_type = ds.nalu_headers[i].nal_unit_type;
                     if nalu_type == 24 {
@@ -907,18 +906,17 @@ pub fn encode_bitstream(
                         println!("\t encode_bitstream - NALU {} - {} - RTP STAP-B - Copying Bytes", i, nalu_type);
                     } else if nalu_type == 26 {
                         //MTAP16    Multi-time aggregation packet      5.7.2
-                        println!("\t encode_bitstream - NALU {} - {} - RTP MTAP16 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                        println!("\t encode_bitstream - NALU {} - {} - RTP MTAP16 - Copying Bytes", i, nalu_type);
                     } else if nalu_type == 27 {
                         //MTAP24    Multi-time aggregation packet      5.7.2
-                        println!("\t encode_bitstream - NALU {} - {} - RTP MTAP24 - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                        println!("\t encode_bitstream - NALU {} - {} - RTP MTAP24 - Copying Bytes", i, nalu_type);
                     } else if nalu_type == 28 {
                         //FU-A      Fragmentation unit                 5.8
-                        println!("\t encode_bitstream - NALU {} - {} - RTP FU-A - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                        println!("\t encode_bitstream - NALU {} - {} - RTP FU-A - Copying Bytes", i, nalu_type);
                     } else if nalu_type == 29 {
                         //FU-B      Fragmentation unit                 5.8
-                        println!("\t encode_bitstream - NALU {} - {} - RTP FU-B - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                        println!("\t encode_bitstream - NALU {} - {} - RTP FU-B - Copying Bytes", i, nalu_type);
                     }
-                    
                 }
                 // Ignore for now
                 cur_annex_b_nal.extend(insert_emulation_three_byte(
@@ -935,14 +933,14 @@ pub fn encode_bitstream(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-            }          
+            }
             30..=31 => {
                 // The following types are from SVC RTP https://datatracker.ietf.org/doc/html/rfc6190
                 if !silent_mode {
                     let nalu_type = ds.nalu_headers[i].nal_unit_type;
                     if nalu_type == 30 {
                         // PACSI NAL unit                     4.9
-                        println!("\t encode_bitstream - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                        println!("\t encode_bitstream - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, nalu_type);
                     } else if nalu_type == 31 {
                         // This reads a subtype
                         // Type  SubType   NAME
@@ -950,7 +948,7 @@ pub fn encode_bitstream(
                         // 31     1       Empty NAL unit                     4.10
                         // 31     2       NI-MTAP                            4.7.1
                         // 31     3-31    reserved                           4.2.1
-                        println!("\t encode_bitstream - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
+                        println!("\t encode_bitstream - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, nalu_type);
                     }
                 }
                 // Ignore for now
@@ -986,20 +984,7 @@ pub fn encode_bitstream(
         }
 
         if rtp_out {
-            // fragment if too large
-            if cur_rtp_nal.len() > FRAGMENT_SIZE {
-                if !silent_mode {
-                    println!(
-                        "Fragmenting {} type {}",
-                        cur_rtp_nal.len(),
-                        ds.nalu_headers[i].nal_unit_type
-                    );
-                }
-                // TODO: determine packetization-mode to determine whether to allow FU-B
-                rtp_video.extend(encapsulate_fu_a(&cur_rtp_nal, &ds.nalu_headers[i]));
-            } else {
-                rtp_video.push(cur_rtp_nal);
-            }
+            rtp_video.extend(encapsulate_rtp_nalu(cur_rtp_nal, &ds.nalu_headers[i], silent_mode));
         }
         if avcc_out {
             match avcc_mode {

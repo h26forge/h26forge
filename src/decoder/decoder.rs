@@ -73,6 +73,8 @@ pub fn decode_bitstream(
         let header = decode_nalu_header(n.longstartcode, &mut nalu_data);
         nalu_headers.push(header.clone());
 
+        // Check RTP NALU types which may contain aggregation or fragmentation types
+
         match header.nal_unit_type {
             0 => {
                 println!("\t decode_bitstream - NALU {} - {} - Unknown nal_unit_type of 0 - not affecting decoding process", i,  header.nal_unit_type)
