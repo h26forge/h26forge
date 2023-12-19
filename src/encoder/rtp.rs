@@ -3,7 +3,6 @@ use crate::common::data_structures::StapA;
 use crate::common::data_structures::StapB;
 use crate::common::data_structures::Mtap16;
 use crate::common::data_structures::Mtap24;
-use crate::common::data_structures::FuB;
 use crate::encoder::binarization_functions::generate_fixed_length_value;
 use std::fs::File;
 use std::io::prelude::*;
@@ -181,7 +180,7 @@ pub const SAFESTART_RTP_10: [u8; 173] = [
 pub const FRAGMENT_SIZE: usize = 1400;
 
 /// Save encoded stream to RTP dump
-pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, is_safestart: bool) {
+pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safestart: bool) {
     println!("   Writing RTP output: {}", rtp_filename);
 
     // Stage 1: NAL to packet (single packet mode for now)
@@ -191,7 +190,7 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, is_safestart:
     let mut seq_num: u16 = 0x1234;
     let mut timestamp: u32 = 0x11223344;
     let ssrc: u32 = 0x77777777;
-    if is_safestart {
+    if enable_safestart {
         rtp_nal_mod.push(SAFESTART_RTP_0.to_vec());
         rtp_nal_mod.push(SAFESTART_RTP_1.to_vec());
         rtp_nal_mod.push(SAFESTART_RTP_2.to_vec());
@@ -450,6 +449,8 @@ pub fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
         res.push(fua_bytes.clone());
     }
 
+    // TODO: allow empty FUs
+
     return res;
 }
 
@@ -466,13 +467,47 @@ pub fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
 ///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///   |                               :...OPTIONAL RTP padding        |
 ///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// NOTE: uses the same DON for each FU atm
 #[allow(dead_code)]
-pub fn encode_fu_b(_p : FuB) {
-    // Encode FU header
-    //  1 bit: Start bit indicating the start of an FU
-    //  1 bit: End bit indicating the end of an FU
-    //  1 bit: Reserved, please set to 0
-    //  5 bit: NALU Payload type
-    // Encode 16-bit long DON
-    // The rest is the payload
+pub fn encapsulate_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<u8>> {
+    let mut res = Vec::new();
+
+    // 29 is FU-B
+    let fu_indicator: u8 = 29 | nh.forbidden_zero_bit << 7 | (nh.nal_ref_idc << 5);
+    let encoded_don = generate_fixed_length_value(don as u32, 16);
+    let fub_chunks = nal.chunks(FRAGMENT_SIZE);
+    let last_idx = fub_chunks.len() - 1;
+    for (i, chunk) in fub_chunks.enumerate() {
+        let mut fub_bytes: Vec<u8> = Vec::new();
+        fub_bytes.push(fu_indicator);
+
+        // Encode FU header
+        // +---------------+
+        // |0|1|2|3|4|5|6|7|
+        // +-+-+-+-+-+-+-+-+
+        // |S|E|R|  Type   |
+        // +---------------+
+        //  S: Start bit indicating the start of an FU
+        //  E: End bit indicating the end of an FU
+        //  R: Reserved, please set to 0
+        //  Type: NALU Payload type
+        let mut fu_header = nh.nal_unit_type;
+        if i == 0 {
+            fu_header |= 0x80; // S = 1
+        }
+        if i == last_idx {
+            fu_header |= 0x40; // E = 1
+        }
+        fub_bytes.push(fu_header);
+        // Encode DON
+        fub_bytes.extend(encoded_don.clone());
+        // Add the rest of the payload
+        fub_bytes.extend(chunk);
+        res.push(fub_bytes.clone());
+    }
+
+    // TODO: allow empty FUs
+
+    return res;
 }
