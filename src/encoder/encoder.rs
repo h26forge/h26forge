@@ -6,6 +6,8 @@ use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::VideoParameters;
+use crate::encoder::avcc::AvccMode;
+use crate::encoder::avcc::save_avcc_file;
 use crate::encoder::nalu::encode_access_unit_delimiter;
 use crate::encoder::nalu::encode_nalu_header;
 use crate::encoder::nalu::encode_prefix_nal_unit_svc;
@@ -19,7 +21,6 @@ use crate::encoder::rtp::save_rtp_file;
 use crate::encoder::sei::encode_sei_message;
 use crate::encoder::slice::encode_slice;
 use crate::encoder::slice::encode_slice_layer_extension_rbsp;
-use hex;
 use log::debug;
 use minimp4::Mp4Muxer; // COMMENT OUT IF WANT TO USE WITH AFL++ Binding
 use std::fs::File;
@@ -80,134 +81,6 @@ pub fn insert_emulation_three_byte(stream: &[u8]) -> Vec<u8> {
     //println!("[X] Added {} emulation prevention bytes", epb_count);
 
     res
-}
-
-/// Creates the AVCC header which contains version bits, and all SPSes & PPSes
-/// Reference: https://stackoverflow.com/a/24890903/8169613
-fn encode_avcc_extradata(avcc_encoding: &AVCCFormat) -> Vec<u8> {
-    /*
-        bits
-        8   version ( always 0x01 )
-        8   avc profile ( sps[0][1] )
-        8   avc compatibility ( sps[0][2] )
-        8   avc level ( sps[0][3] )
-        6   reserved ( all bits on )
-        2   NALULengthSizeMinusOne (this is how many bytes to use for the length element of a NALU)
-        3   reserved ( all bits on )
-        5   number of SPS NALUs (usually 1)
-
-        repeated once per SPS:
-        16         SPS size
-        variable   SPS NALU data
-
-        8   number of PPS NALUs (usually 1)
-
-        repeated once per PPS:
-        16       PPS size
-        variable PPS NALU data
-    */
-
-    let mut avcc_extradata: Vec<u8> = vec![1, avcc_encoding.initial_sps.profile_idc]; // version and avc profile
-
-    // collect the constraint_set flags
-    let compatibility = ((match avcc_encoding.initial_sps.constraint_set0_flag {
-        true => 1,
-        false => 0,
-    }) << 7)
-        | ((match avcc_encoding.initial_sps.constraint_set1_flag {
-            true => 1,
-            false => 0,
-        }) << 6)
-        | ((match avcc_encoding.initial_sps.constraint_set2_flag {
-            true => 1,
-            false => 0,
-        }) << 5)
-        | ((match avcc_encoding.initial_sps.constraint_set3_flag {
-            true => 1,
-            false => 0,
-        }) << 4)
-        | ((match avcc_encoding.initial_sps.constraint_set4_flag {
-            true => 1,
-            false => 0,
-        }) << 3)
-        | ((match avcc_encoding.initial_sps.constraint_set5_flag {
-            true => 1,
-            false => 0,
-        }) << 2);
-    avcc_extradata.push(compatibility); // compatibility
-    avcc_extradata.push(avcc_encoding.initial_sps.level_idc); // avc level
-
-    avcc_extradata.push(0xff); // 6 bits are on; the last two bits are how many length bytes there are before each NALU (in our case, we'll use 4)
-
-    // number of SPSes
-    if avcc_encoding.sps_list.len() > 31 {
-        println!(
-            "[WARNING] AVCC can only support at most 5 bits worth of SPSes, there may be an error"
-        );
-    }
-    avcc_extradata.push(0xe0 | (0x1F & (avcc_encoding.sps_list.len() as u8))); // the top 3 reserved bits + 5 bits of length
-
-    // for each SPS, 16 bits of SPS size and the amount of bytes
-    for s in &avcc_encoding.sps_list {
-        if s.len() > 0xffff {
-            println!("[WARNING] AVCC can only support 65,536 bytes of SPS; There will be an issue parsing")
-        }
-
-        let first_byte = (s.len() & 0xff00) >> 8;
-        let second_byte = s.len() & 0xff;
-
-        avcc_extradata.push(first_byte as u8);
-        avcc_extradata.push(second_byte as u8);
-
-        avcc_extradata.extend(s);
-    }
-
-    // number of PPSes
-    if avcc_encoding.pps_list.len() > 255 {
-        println!(
-            "[WARNING] AVCC can only support at most 8 bits worth of PPSes, there may be an error"
-        );
-    }
-    avcc_extradata.push(avcc_encoding.pps_list.len() as u8);
-
-    // for each PPS, 16 bits of PPS size and then the bytes
-    for p in &avcc_encoding.pps_list {
-        if p.len() > 0xffff {
-            println!("[WARNING] AVCC can only support 65,536 bytes of PPS; There will be an issue parsing")
-        }
-
-        let first_byte = (p.len() & 0xff00) >> 8;
-        let second_byte = p.len() & 0xff;
-
-        avcc_extradata.push(first_byte as u8);
-        avcc_extradata.push(second_byte as u8);
-
-        avcc_extradata.extend(p);
-    }
-
-    avcc_extradata
-}
-
-/// Encoded Slice data into AVCC format, which is prepended by its length, rather than a start code
-fn encode_avcc_data(slice_list: Vec<Vec<u8>>) -> Vec<u8> {
-    let mut encoded: Vec<u8> = Vec::new();
-
-    for sl in slice_list {
-        // we use the default of 4 bytes to indicate NALU length
-        let first_byte = (sl.len() & 0xff000000) >> 24;
-        let second_byte = (sl.len() & 0x00ff0000) >> 16;
-        let third_byte = (sl.len() & 0x0000ff00) >> 8;
-        let fourth_byte = sl.len() & 0x000000ff;
-
-        encoded.push(first_byte as u8);
-        encoded.push(second_byte as u8);
-        encoded.push(third_byte as u8);
-        encoded.push(fourth_byte as u8);
-
-        encoded.extend(sl);
-    }
-
-    encoded
 }
 
 /*
@@ -631,10 +504,10 @@ const SAFESTART_VIDEO: [u8; 6272] = [
 ];
 
 
-/// Prepends the already encoded SAFESTART_VIDEO to the encoded_str
-fn prepend_safe_video(encoded_str: &[u8]) -> Vec<u8> {
+/// Prepends the already encoded SAFESTART_VIDEO to the encoded_vid
+fn prepend_safe_video(encoded_vid: &[u8]) -> Vec<u8> {
     let mut new_vid = SAFESTART_VIDEO.to_vec();
-    new_vid.extend(encoded_str);
+    new_vid.extend(encoded_vid);
 
     new_vid
 }
@@ -646,7 +519,7 @@ pub fn save_mp4_file(
     height: i32,
     is_mp4_fragment: bool,
     is_hevc: bool,
-    encoded_str: &Vec<u8>,
+    encoded_vid: &Vec<u8>,
 ) {
     println!("   Writing MP4 output: {}", mp4_filename);
 
@@ -655,13 +528,13 @@ pub fn save_mp4_file(
     let enable_fragmentation = is_mp4_fragment;
     let is_hevc = is_hevc;
     mp4muxer.init_video(width, height, is_hevc, enable_fragmentation);
-    mp4muxer.write_video(encoded_str);
+    mp4muxer.write_video(encoded_vid);
     mp4muxer.close();
 }
 
 /// Save the encoded stream as .264, AVCC, MP4 or RTP
 pub fn save_encoded_stream(
-    encoded_str: Vec<u8>,
+    encoded_vid: Vec<u8>,
     avcc_encoding: AVCCFormat,
     filename: &str,
     width: i32,
@@ -671,7 +544,7 @@ pub fn save_encoded_stream(
     is_hevc: bool,
     avcc_out: bool,
     enable_safestart: bool,
-    rtp_nal: Vec<Vec<u8>>,
+    rtp_vid: Vec<Vec<u8>>,
 ) {
     println!("   Writing to {}", filename);
     let mut f = match File::create(filename) {
@@ -679,7 +552,7 @@ pub fn save_encoded_stream(
         Ok(file) => file,
     };
 
-    match f.write_all(encoded_str.as_slice()) {
+    match f.write_all(encoded_vid.as_slice()) {
         Err(_) => panic!("couldn't write to file {}", filename),
         Ok(()) => (),
     };
@@ -689,7 +562,7 @@ pub fn save_encoded_stream(
         let mut safestart_filename: String = filename.to_owned();
         safestart_filename.push_str(".safestart.264");
 
-        let safestart_encoded_str = prepend_safe_video(&encoded_str);
+        let safestart_encoded_str = prepend_safe_video(&encoded_vid);
 
         println!("   Writing to {}", safestart_filename);
         let mut f = match File::create(&safestart_filename) {
@@ -718,63 +591,7 @@ pub fn save_encoded_stream(
     }
 
     if avcc_out {
-        let avcc_extradata = encode_avcc_extradata(&avcc_encoding);
-        let avcc_data = encode_avcc_data(avcc_encoding.nalus);
-
-        let mut avcc_extradata_filename: String = filename.to_owned();
-        avcc_extradata_filename.push_str(".avcc.js");
-
-        let mut avcc_data_filename: String = filename.to_owned();
-        avcc_data_filename.push_str(".avcc.264");
-
-        println!(
-            "   Writing AVCC file output: \n\t Extradata: {}\n\t AVCC Data: {}",
-            avcc_extradata_filename, avcc_data_filename
-        );
-        println!("   NOTE: AVCC data may not be playable (e.g. SPS or PPS IDs non-incrementing)");
-
-        let hex_avcc_extradata =
-            avcc_extradata
-                .iter()
-                .enumerate()
-                .fold(String::new(), |mut acc, (i, _)| {
-                    if i < (avcc_extradata.len() - 1) {
-                        acc.push_str(&format!("0x{}, ", hex::encode(vec![avcc_extradata[i]])))
-                    } else {
-                        acc.push_str(&format!("0x{}", hex::encode(vec![avcc_extradata[i]])))
-                    }
-
-                    if i % 16 == 0 && i != 0 {
-                        acc.push_str("\n\t\t")
-                    }
-                    acc
-                });
-
-        // var allows us to overwrite if dynamically loading in the browser
-        let complete_string = format!(
-            "var avcC = new Uint8Array(\n\t[\n\t\t{}\n]);",
-            hex_avcc_extradata
-        );
-
-        let mut avcc_f_ed = match File::create(&avcc_extradata_filename) {
-            Err(_) => panic!("couldn't open {}", avcc_extradata_filename),
-            Ok(file) => file,
-        };
-
-        match avcc_f_ed.write_all(complete_string.as_bytes()) {
-            Err(_) => panic!("couldn't write to file {}", avcc_extradata_filename),
-            Ok(()) => (),
-        };
-
-        let mut avcc_f_d = match File::create(&avcc_data_filename) {
-            Err(_) => panic!("couldn't open {}", avcc_data_filename),
-            Ok(file) => file,
-        };
-
-        match avcc_f_d.write_all(avcc_data.as_slice()) {
-            Err(_) => panic!("couldn't write to file {}", avcc_data_filename),
-            Ok(()) => (),
-        };
+        save_avcc_file(avcc_encoding, filename);
     }
 
     if mp4_out {
@@ -786,16 +603,16 @@ pub fn save_encoded_stream(
             height,
             is_mp4_fragment,
             is_hevc,
-            &encoded_str,
+            &encoded_vid,
         );
     }
 
     // save RTP dump
-    if rtp_nal.len() > 0 {
+    if rtp_vid.len() > 0 {
         println!("Writing RTP dump");
         let mut rtp_filename: String = filename.to_owned();
         rtp_filename.push_str(".rtpdump");
-        save_rtp_file(rtp_filename, &rtp_nal, enable_safestart);
+        save_rtp_file(rtp_filename, &rtp_vid, enable_safestart);
     }
 }
 
@@ -821,7 +638,7 @@ pub fn encode_bitstream(
     // AVCC encoding elements
     let mut avcc_encoding = AVCCFormat::new();
     // RTP NAL units
-    let mut rtp_nal: Vec<Vec<u8>> = Vec::new();
+    let mut rtp_vid: Vec<Vec<u8>> = Vec::new();
 
     if avcc_out {
         avcc_encoding.initial_sps = ds.spses[0].clone();
@@ -830,39 +647,45 @@ pub fn encode_bitstream(
     debug!(target: "encode","Encoding {} NALUs", ds.nalu_elements.len());
 
     for i in 0..ds.nalu_elements.len() {
-        let mut encoded_str: Vec<u8> = Vec::new();
-        let mut curr_nal: Vec<u8> = Vec::new();
+        let mut cur_annex_b_nal: Vec<u8> = Vec::new();
+        let mut cur_avcc_nal: Vec<u8> = Vec::new();
+        let mut cur_rtp_nal: Vec<u8> = Vec::new();
+
+        // SPSes and PPSes are added to their own list, and not skipped from the NALU list
+        let mut avcc_mode = AvccMode::AvccNalu;
 
         debug!(target: "encode","");
         debug!(target: "encode","Annex B NALU w/ {} startcode, len {}, forbidden_bit {}, nal_reference_idc {}, nal_unit_type {}",
             { if ds.nalu_elements[i].longstartcode {"long" } else {"short"} }, ds.nalu_elements[i].content.len(), ds.nalu_headers[i].forbidden_zero_bit, ds.nalu_headers[i].nal_ref_idc, ds.nalu_headers[i].nal_unit_type);
 
         if ds.nalu_elements[i].longstartcode {
-            encoded_str.push(0);
-            encoded_str.push(0);
-            encoded_str.push(0);
-            encoded_str.push(1);
+            cur_annex_b_nal.extend(vec![0, 0, 0, 1]);
         } else {
-            encoded_str.push(0);
-            encoded_str.push(0);
-            encoded_str.push(1);
-        }
-
-        if rtp_out {
-            curr_nal.extend(encode_nalu_header(&ds.nalu_headers[i]));
+            cur_annex_b_nal.extend(vec![0, 0, 1]);
         }
 
         let encoded_header = encode_nalu_header(&ds.nalu_headers[i]);
-        encoded_str.extend(encoded_header.iter());
+        cur_annex_b_nal.extend(encoded_header.iter());
 
+        if rtp_out {
+            // RTP vid doesn't require start codes
+            cur_rtp_nal.extend(encoded_header.iter());
+        }
+        if avcc_out {
+            cur_avcc_nal.extend(encoded_header.iter());
+        }
         match ds.nalu_headers[i].nal_unit_type {
             0 => {
                 if !silent_mode {
                     println!("\t encode_bitstream - NALU {} - Unknown nal_unit_type of 0 - not affecting encoding process", i);
                 }
-                encoded_str.extend(&ds.nalu_elements[i].content[1..]);
+                cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
+
                 if rtp_out {
-                    curr_nal.extend(&ds.nalu_elements[i].content[1..]);
+                    cur_rtp_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
             }
             1 => {
@@ -934,22 +757,15 @@ pub fn encode_bitstream(
                     silent_mode,
                 ));
 
-                if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&res);
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
-                }
-
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res);
+                    cur_rtp_nal.extend(res.iter());
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
                 }
                 slice_idx += 1;
-
-                // We know that the following works:
-                //encoded_str.extend(&ds.nalu_elements[i].content[1..]);
             }
             2 => {
                 if !silent_mode {
@@ -959,17 +775,13 @@ pub fn encode_bitstream(
                     );
                 }
                 // TODO: Coded slice data partition A encoding. For now, just append nalu elements
-                encoded_str.extend(&ds.nalu_elements[i].content[1..]);
+                cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
 
                 if rtp_out {
-                    curr_nal.extend(&ds.nalu_elements[i].content[1..]);
+                    cur_rtp_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&ds.nalu_elements[i].content[1..]);
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
+                    cur_avcc_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
             }
             3 => {
@@ -980,17 +792,13 @@ pub fn encode_bitstream(
                     );
                 }
                 // TODO: Coded slice data partition B encoding. For now, just append nalu elements
-                encoded_str.extend(&ds.nalu_elements[i].content[1..]);
+                cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
 
                 if rtp_out {
-                    curr_nal.extend(&ds.nalu_elements[i].content[1..]);
+                    cur_rtp_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&ds.nalu_elements[i].content[1..]);
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
+                    cur_avcc_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
             }
             4 => {
@@ -1001,17 +809,13 @@ pub fn encode_bitstream(
                     );
                 }
                 // TODO: Coded slice data partition C encoding. For now, just append nalu elements
-                encoded_str.extend(&ds.nalu_elements[i].content[1..]);
+                cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
 
                 if rtp_out {
-                    curr_nal.extend(&ds.nalu_elements[i].content[1..]);
+                    cur_rtp_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&ds.nalu_elements[i].content[1..]);
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
+                    cur_avcc_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
                 }
             }
             5 => {
@@ -1082,17 +886,13 @@ pub fn encode_bitstream(
                     silent_mode,
                 ));
 
-                if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&res);
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
-                }
-
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res);
+                    cur_rtp_nal.extend(res.iter());
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
                 }
 
                 slice_idx += 1;
@@ -1106,36 +906,31 @@ pub fn encode_bitstream(
 
                 if res.len() == 0 {
                     debug!(target: "encode","[WARNING] SEI Encoded Payload is empty - copying over NALU bytes");
-                    encoded_str.extend(insert_emulation_three_byte(
+                    cur_annex_b_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
 
                     if rtp_out {
-                        curr_nal.extend(insert_emulation_three_byte(
+                        cur_rtp_nal.extend(insert_emulation_three_byte(
+                            &ds.nalu_elements[i].content[1..],
+                        ));
+                    }
+                    if avcc_out {
+                        cur_avcc_nal.extend(insert_emulation_three_byte(
                             &ds.nalu_elements[i].content[1..],
                         ));
                     }
                 } else {
-                    encoded_str.extend(insert_emulation_three_byte(&res));
+                    cur_annex_b_nal.extend(insert_emulation_three_byte(&res));
 
                     if rtp_out {
-                        curr_nal.extend(insert_emulation_three_byte(&res));
+                        cur_rtp_nal.extend(insert_emulation_three_byte(&res));
+                    }
+                    if avcc_out {
+                        cur_avcc_nal.extend(insert_emulation_three_byte(&res));
                     }
                 }
 
-                if avcc_out {
-                    let mut cur_encoded_sei = encoded_header.clone();
-                    if res.len() == 0 {
-                        debug!(target: "encode","[WARNING] SEI Encoded Payload is empty - copying over NALU bytes");
-                        cur_encoded_sei.extend(insert_emulation_three_byte(
-                            &ds.nalu_elements[i].content[1..],
-                        ));
-                    } else {
-                        cur_encoded_sei.extend(insert_emulation_three_byte(&res));
-                    }
-
-                    avcc_encoding.nalus.push(cur_encoded_sei);
-                }
                 sei_idx += 1;
             }
             7 => {
@@ -1146,17 +941,15 @@ pub fn encode_bitstream(
                     );
                 }
                 let res = insert_emulation_three_byte(&encode_sps(&ds.spses[sps_idx], false));
-                if avcc_out {
-                    let mut cur_encoded_sps = encoded_header.clone();
-                    cur_encoded_sps.extend(&res);
 
-                    avcc_encoding.sps_list.push(cur_encoded_sps);
-                }
-
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res);
+                    cur_rtp_nal.extend(res.iter());
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
+                    avcc_mode = AvccMode::AvccSps;
                 }
 
                 sps_idx += 1;
@@ -1199,16 +992,13 @@ pub fn encode_bitstream(
                                 cur_sps,
                             ));
 
-                            if avcc_out {
-                                let mut cur_encoded_pps = encoded_header.clone();
-                                cur_encoded_pps.extend(&res);
-
-                                avcc_encoding.pps_list.push(cur_encoded_pps);
-                            }
-
-                            encoded_str.extend(res.clone());
+                            cur_annex_b_nal.extend(res.iter());
                             if rtp_out {
-                                curr_nal.extend(res);
+                                cur_rtp_nal.extend(res.iter());
+                            }
+                            if avcc_out {
+                                cur_avcc_nal.extend(res.iter());
+                                avcc_mode = AvccMode::AvccPps;
                             }
                             pps_idx += 1;
                         }
@@ -1233,16 +1023,13 @@ pub fn encode_bitstream(
                 let res =
                     insert_emulation_three_byte(&encode_access_unit_delimiter(&ds.auds[aud_idx]));
 
-                if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&res);
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
-                }
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res);
+                    cur_rtp_nal.extend(res.iter());
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
                 }
 
                 aud_idx += 1;
@@ -1254,22 +1041,19 @@ pub fn encode_bitstream(
                 // According to 7.3.2.5 there is nothing to parse
                 // According to 7.4.2.5 this signals that the next NALU shall be an IDR
                 if ds.nalu_elements[i].content.len() > 1 {
-                    encoded_str.extend(insert_emulation_three_byte(
+                    cur_annex_b_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
 
                     if rtp_out {
-                        curr_nal.extend(insert_emulation_three_byte(
+                        cur_rtp_nal.extend(insert_emulation_three_byte(
                             &ds.nalu_elements[i].content[1..],
                         ));
                     }
-
                     if avcc_out {
-                        let mut cur_encoded_slice = encoded_header.clone();
-                        cur_encoded_slice.extend(insert_emulation_three_byte(
+                        cur_avcc_nal.extend(insert_emulation_three_byte(
                             &ds.nalu_elements[i].content[1..],
                         ));
-                        avcc_encoding.nalus.push(cur_encoded_slice);
                     }
                 }
             }
@@ -1280,22 +1064,19 @@ pub fn encode_bitstream(
                 // According to 7.3.2.6 there is nothing to parse
                 // According to 7.4.2.6 this signals that there is nothing else to decode, so we could just `break;`
                 if ds.nalu_elements[i].content.len() > 1 {
-                    encoded_str.extend(insert_emulation_three_byte(
+                    cur_annex_b_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
 
                     if rtp_out {
-                        curr_nal.extend(insert_emulation_three_byte(
+                        cur_rtp_nal.extend(insert_emulation_three_byte(
                             &ds.nalu_elements[i].content[1..],
                         ));
                     }
-
                     if avcc_out {
-                        let mut cur_encoded_slice = encoded_header.clone();
-                        cur_encoded_slice.extend(insert_emulation_three_byte(
+                        cur_avcc_nal.extend(insert_emulation_three_byte(
                             &ds.nalu_elements[i].content[1..],
                         ));
-                        avcc_encoding.nalus.push(cur_encoded_slice);
                     }
                 }
             }
@@ -1307,23 +1088,19 @@ pub fn encode_bitstream(
                 // that should be all 0xff bytes
                 // TODO: implement 7.3.2.7
                 //filler_data_rbsp();
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             13 => {
@@ -1336,17 +1113,16 @@ pub fn encode_bitstream(
                 let res = insert_emulation_three_byte(&encode_sps_extension(
                     &ds.sps_extensions[sps_extension_idx],
                 ));
-                if avcc_out {
-                    let mut cur_encoded_sps = encoded_header.clone();
-                    cur_encoded_sps.extend(&res);
+                
 
-                    avcc_encoding.sps_list.push(cur_encoded_sps);
-                }
-
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res);
+                    cur_rtp_nal.extend(res.iter());
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
+                    avcc_mode = AvccMode::AvccSps;
                 }
 
                 sps_extension_idx += 1;
@@ -1362,21 +1138,17 @@ pub fn encode_bitstream(
                         &ds.prefix_nalus[prefix_nalu_idx],
                     ));
 
-                    if avcc_out {
-                        let mut cur_encoded_slice = encoded_header.clone();
-                        cur_encoded_slice.extend(&res);
-
-                        avcc_encoding.nalus.push(cur_encoded_slice);
-                    }
-                    encoded_str.extend(res.clone());
+                    cur_annex_b_nal.extend(res.iter());
 
                     if rtp_out {
-                        curr_nal.extend(res);
+                        cur_rtp_nal.extend(res.iter());
+                    }
+                    if avcc_out {
+                        cur_avcc_nal.extend(res.iter());
                     }
 
                     prefix_nalu_idx += 1;
                 }
-                //encoded_str.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
             }
             15 => {
                 if !silent_mode {
@@ -1388,20 +1160,17 @@ pub fn encode_bitstream(
                 let res = insert_emulation_three_byte(&encode_subset_sps(
                     &ds.subset_spses[subset_sps_idx],
                 ));
-                if avcc_out {
-                    let mut cur_encoded_sps = encoded_header.clone();
-                    cur_encoded_sps.extend(&res);
-
-                    avcc_encoding.sps_list.push(cur_encoded_sps);
-                }
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res);
+                    cur_rtp_nal.extend(res.iter());
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
+                    avcc_mode = AvccMode::AvccSps;
                 }
 
                 subset_sps_idx += 1;
-                //encoded_str.extend(insert_emulation_three_byte(ds.nalu_elements[i].content[1..]));
             }
             16 => {
                 if !silent_mode {
@@ -1411,23 +1180,19 @@ pub fn encode_bitstream(
                     );
                 }
                 // TODO: depth_parameter_set_rbsp();
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             17..=18 => {
@@ -1435,23 +1200,19 @@ pub fn encode_bitstream(
                     println!("\t encode_bitstream - NALU {} - RESERVED nal_unit_type of {} - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             19 => {
@@ -1459,23 +1220,19 @@ pub fn encode_bitstream(
                     println!("\t encode_bitstream - NALU {} - Coded slice of an auxiliary coded picture without partitioning", i);
                 }
                 // TODO: slice_layer_without_partitioning_rbsp(); // but non-VCL
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             20 => {
@@ -1536,21 +1293,17 @@ pub fn encode_bitstream(
                     &vp,
                     silent_mode,
                 ));
-                if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(&res);
 
-                    avcc_encoding.nalus.push(cur_encoded_slice);
-                }
-
-                encoded_str.extend(res.clone());
+                cur_annex_b_nal.extend(res.iter());
 
                 if rtp_out {
-                    curr_nal.extend(res)
+                    cur_rtp_nal.extend(res.iter())
+                }
+                if avcc_out {
+                    cur_avcc_nal.extend(res.iter());
                 }
 
                 slice_idx += 1;
-                //encoded_str.extend(insert_emulation_three_byte(ds.nalu_elements[i].content[1..]));
             }
             21 => {
                 if !silent_mode {
@@ -1558,46 +1311,38 @@ pub fn encode_bitstream(
                 }
                 // specified in Annex J
                 // slice_layer_extension_rbsp();
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             22..=23 => {
                 if !silent_mode {
                     println!("\t encode_bitstream - NALU {} - RESERVED nal_unit_type of {} - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
@@ -1608,23 +1353,19 @@ pub fn encode_bitstream(
                 }
                 //encode_stap_a();
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             25 => {
@@ -1634,23 +1375,19 @@ pub fn encode_bitstream(
                 }
                 //encode_stap_b();
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             26 => {
@@ -1660,23 +1397,19 @@ pub fn encode_bitstream(
                 }
                 //encode_mtap16();
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             27 => {
@@ -1686,23 +1419,19 @@ pub fn encode_bitstream(
                 }
                 //encode_mtap24();
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             28 => {
@@ -1712,23 +1441,19 @@ pub fn encode_bitstream(
                 }
                 //encode_fu_a();
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             29 => {
@@ -1738,23 +1463,19 @@ pub fn encode_bitstream(
                 }
                 //encode_fu_b();
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             // The following types are from SVC RTP https://datatracker.ietf.org/doc/html/rfc6190
@@ -1764,23 +1485,19 @@ pub fn encode_bitstream(
                     println!("\t encode_bitstream - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
                 // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             31 => {
@@ -1793,24 +1510,20 @@ pub fn encode_bitstream(
                 if !silent_mode {
                     println!("\t encode_bitstream - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, ds.nalu_headers[i].nal_unit_type);
                 }
-                // Ignore for now
-                encoded_str.extend(insert_emulation_three_byte(
+                // TODO: no special encoding atm -- just copy the NALUs
+                cur_annex_b_nal.extend(insert_emulation_three_byte(
                     &ds.nalu_elements[i].content[1..],
                 ));
 
                 if rtp_out {
-                    curr_nal.extend(insert_emulation_three_byte(
+                    cur_rtp_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
                 }
-
                 if avcc_out {
-                    let mut cur_encoded_slice = encoded_header.clone();
-                    cur_encoded_slice.extend(insert_emulation_three_byte(
+                    cur_avcc_nal.extend(insert_emulation_three_byte(
                         &ds.nalu_elements[i].content[1..],
                     ));
-
-                    avcc_encoding.nalus.push(cur_encoded_slice);
                 }
             }
             _ => panic!(
@@ -1827,27 +1540,34 @@ pub fn encode_bitstream(
             println!("Cutting above NALU {}", cut_nalu);
             continue;
         } else {
-            // TODO: Cut avcc encodings as well
-            encoded_video.extend(encoded_str)
+            encoded_video.extend(cur_annex_b_nal)
+        }
+
+        if avcc_out {
+            match avcc_mode {
+                AvccMode::AvccNalu => avcc_encoding.nalus.push(cur_avcc_nal),
+                AvccMode::AvccPps => avcc_encoding.pps_list.push(cur_avcc_nal),
+                AvccMode::AvccSps => avcc_encoding.sps_list.push(cur_avcc_nal),
+            }
         }
 
         if rtp_out {
             // fragment if too large
-            if curr_nal.len() > FRAGMENT_SIZE {
+            if cur_rtp_nal.len() > FRAGMENT_SIZE {
                 if !silent_mode {
                     println!(
                         "Fragmenting {} type {}",
-                        curr_nal.len(),
+                        cur_rtp_nal.len(),
                         ds.nalu_headers[i].nal_unit_type
                     );
                 }
                 // TODO: determine packetization-mode to determine whether to allow FU-B
-                rtp_nal.extend(encapsulate_fu_a(&curr_nal, &ds.nalu_headers[i]));
+                rtp_vid.extend(encapsulate_fu_a(&cur_rtp_nal, &ds.nalu_headers[i]));
             } else {
-                rtp_nal.push(curr_nal);
+                rtp_vid.push(cur_rtp_nal);
             }
         }
     }
 
-    (encoded_video, avcc_encoding, rtp_nal)
+    (encoded_video, avcc_encoding, rtp_vid)
 }

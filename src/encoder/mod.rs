@@ -1,5 +1,5 @@
 //! H.264 video encoding.
-
+pub mod avcc;
 pub mod binarization_functions;
 pub mod cabac;
 pub mod cavlc;

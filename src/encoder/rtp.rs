@@ -181,7 +181,7 @@ pub const FRAGMENT_SIZE: usize = 1400;
 
 /// Save encoded stream to RTP dump
 pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safestart: bool) {
-    println!("   Writing RTP output: {}", rtp_filename);
+    println!("   Writing RTP output: {}", &rtp_filename);
 
     // Stage 1: NAL to packet (single packet mode for now)
 
@@ -236,7 +236,7 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safest
         seq_num += 1;
         packets[i].extend(timestamp.to_be_bytes());
         packets[i].extend(ssrc.to_be_bytes());
-        packets[i].extend(rtp_nal_mod[i].clone());
+        packets[i].extend(rtp_nal_mod[i].iter());
     }
 
     let mut out_bytes: Vec<u8> = Vec::new();
@@ -264,20 +264,19 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safest
         out_bytes.extend(blen.to_be_bytes());
         out_bytes.extend(plen.to_be_bytes());
         out_bytes.extend(ts.to_be_bytes());
-        out_bytes.extend(packets[i].clone());
+        out_bytes.extend(packets[i].iter());
     }
 
-    let mut f = match File::create(rtp_filename.clone()) {
-        Err(_) => panic!("couldn't open {}", rtp_filename.clone()),
+    let mut f = match File::create(&rtp_filename) {
+        Err(_) => panic!("couldn't open {}", &rtp_filename),
         Ok(file) => file,
     };
 
     match f.write_all(out_bytes.as_slice()) {
-        Err(_) => panic!("couldn't write to file {}", rtp_filename.clone()),
+        Err(_) => panic!("couldn't write to file {}", &rtp_filename),
         Ok(()) => (),
     };
 }
-
 
 
 /// Encode a Single-Time Aggregation Unit without DON (STAP-A)
@@ -446,7 +445,7 @@ pub fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
         }
         fua_bytes.push(fu_header);
         fua_bytes.extend(chunk);
-        res.push(fua_bytes.clone());
+        res.push(fua_bytes);
     }
 
     // TODO: allow empty FUs
@@ -501,10 +500,10 @@ pub fn encapsulate_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<
         }
         fub_bytes.push(fu_header);
         // Encode DON
-        fub_bytes.extend(encoded_don.clone());
+        fub_bytes.extend(encoded_don.iter());
         // Add the rest of the payload
         fub_bytes.extend(chunk);
-        res.push(fub_bytes.clone());
+        res.push(fub_bytes);
     }
 
     // TODO: allow empty FUs
