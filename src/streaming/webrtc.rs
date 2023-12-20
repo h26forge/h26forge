@@ -13,6 +13,7 @@ use std::time::Duration;
 use std::net::TcpStream;
 
 use crate::encoder::encoder::encode_bitstream;
+use crate::encoder::rtp::get_packed_rtp;
 use crate::encoder::safestart::get_rtp_safe_video;
 use crate::vidgen::film::FilmState;
 use crate::vidgen::generate_configurations::RandomizeConfig;
@@ -381,38 +382,8 @@ pub async fn packetize_and_send(
 
     let mut seq_num: u16 = seq_param;
     let mut timestamp: u32 = timestamp_param;
-    let ssrc: u32 = 0x77777777;
     for pack in rtp {
-        let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
-        let nal_type = pack[0] & 0x1f;
-        let mut output_pack = Vec::new();
-        output_pack.push(header_byte);
-        let mut payload_type = 102;
-        if nal_type == 5 {
-            payload_type = payload_type + 0x80; // add marker
-        }
-        if nal_type == 1 {
-            payload_type = payload_type + 0x80; // add marker
-            timestamp += 3000;
-        }
-        if nal_type == 28 {
-            let inner_nal_type = pack[1] & 0x1f;
-            if inner_nal_type == 5 {
-                payload_type = payload_type + 0x80; // add marker
-            }
-            if inner_nal_type == 1 {
-                payload_type = payload_type + 0x80; // add marker
-                if (pack[1] & 0x80) != 0 {
-                    timestamp += 3000;
-                }
-            }
-        }
-        output_pack.push(payload_type);
-        output_pack.extend(seq_num.to_be_bytes());
-        seq_num += 1;
-        output_pack.extend(timestamp.to_be_bytes());
-        output_pack.extend(ssrc.to_be_bytes());
-        output_pack.extend(pack.clone());
+        let output_pack = get_packed_rtp(&pack, &mut seq_num, &mut timestamp);
 
         let _ = vid_tx.send(output_pack).await;
         if packet_delay != 0 {

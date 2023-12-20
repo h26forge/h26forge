@@ -10,7 +10,57 @@ use crate::encoder::safestart::get_rtp_safe_video;
 use std::fs::File;
 use std::io::prelude::*;
 
-pub const FRAGMENT_SIZE: usize = 1400;
+const FRAGMENT_SIZE: usize = 1400;
+
+fn get_rtp_payload_type_and_timestamp(rtp_nal : &Vec<u8>, timestamp : &mut u32) -> u8 {
+    let nal_type = rtp_nal[0] & 0x1f;
+    let mut payload_type = 104; // common H.264
+
+    match nal_type {
+        1 => {
+            // Non-IDR Slice
+            payload_type = payload_type + 0x80; // add marker
+            *timestamp += 3000;
+        }
+        5 => {
+            // IDR Slice
+            payload_type = payload_type + 0x80; // add marker
+        }
+        28 => {
+            // FU-A
+            let inner_nal_type = rtp_nal[1] & 0x1f;
+            if inner_nal_type == 5 {
+                payload_type = payload_type + 0x80; // add marker
+            }
+            if inner_nal_type == 1 {
+                payload_type = payload_type + 0x80; // add marker
+                if (rtp_nal[1] & 0x80) != 0 {
+                    *timestamp += 3000;
+                }
+            }
+        }
+        _ => ()
+    }
+
+    payload_type
+}
+
+pub fn get_packed_rtp(rtp_nal : &Vec<u8>, seq_num : &mut u16, mut timestamp : &mut u32) -> Vec<u8> {
+    let ssrc: u32 = 0x77777777;
+    let mut packed = Vec::new();
+    let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
+
+    let payload_type = get_rtp_payload_type_and_timestamp(rtp_nal, &mut timestamp);
+    packed.push(header_byte);
+    packed.push(payload_type);
+    packed.extend(seq_num.to_be_bytes());
+    *seq_num += 1;
+    packed.extend(timestamp.to_be_bytes());
+    packed.extend(ssrc.to_be_bytes());
+    packed.extend(rtp_nal.iter());
+
+    packed
+}
 
 /// Save encoded stream to RTP dump
 pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safestart: bool) {
@@ -22,44 +72,13 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safest
     let mut rtp_nal_mod: Vec<Vec<u8>> = Vec::new();
     let mut seq_num: u16 = 0x1234;
     let mut timestamp: u32 = 0x11223344;
-    let ssrc: u32 = 0x77777777;
     if enable_safestart {
         rtp_nal_mod.extend(get_rtp_safe_video());
     }
 
     rtp_nal_mod.extend(rtp_nal.clone());
-    for i in 0..rtp_nal_mod.len() {
-        let header_byte = 0x80; // version 2, no padding, no extensions, no CSRC, marker = false;
-        let nal_type = rtp_nal_mod[i][0] & 0x1f;
-
-        packets.push(Vec::new());
-        packets[i].push(header_byte);
-        let mut payload_type = 104; // common H.264
-        if nal_type == 5 {
-            payload_type = payload_type + 0x80; // add marker
-        }
-        if nal_type == 1 {
-            payload_type = payload_type + 0x80; // add marker
-            timestamp += 3000;
-        }
-        if nal_type == 28 {
-            let inner_nal_type = rtp_nal_mod[i][1] & 0x1f;
-            if inner_nal_type == 5 {
-                payload_type = payload_type + 0x80; // add marker
-            }
-            if inner_nal_type == 1 {
-                payload_type = payload_type + 0x80; // add marker
-                if (rtp_nal_mod[i][1] & 0x80) != 0 {
-                    timestamp += 3000;
-                }
-            }
-        }
-        packets[i].push(payload_type);
-        packets[i].extend(seq_num.to_be_bytes());
-        seq_num += 1;
-        packets[i].extend(timestamp.to_be_bytes());
-        packets[i].extend(ssrc.to_be_bytes());
-        packets[i].extend(rtp_nal_mod[i].iter());
+    for nal in rtp_nal_mod {
+        packets.push(get_packed_rtp(&nal, &mut seq_num, &mut timestamp));
     }
 
     let mut out_bytes: Vec<u8> = Vec::new();
