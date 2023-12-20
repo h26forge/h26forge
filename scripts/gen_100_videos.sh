@@ -1,7 +1,7 @@
 cur_date=$(date +%s)
 mkdir -p "tmp/"
 output_dir="tmp/rand_100_vids_$cur_date"
-tool_args="--mp4 --mp4-rand-size --safestart"
+tool_args="--mp4 --mp4-rand-size --safestart --rtp-replay"
 generation_args="--small --ignore-edge-intra-pred --ignore-ipcm --config config/default.json"
 RUST_BACKTRACE=1
 

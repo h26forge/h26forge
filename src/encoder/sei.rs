@@ -12,6 +12,7 @@ use crate::common::data_structures::UUID_APPLE1;
 use crate::common::data_structures::UUID_APPLE2;
 use crate::common::helper::bitstream_to_bytestream;
 use crate::common::helper::encoder_formatted_print;
+use crate::common::helper::get_sps;
 use crate::encoder::binarization_functions::generate_unsigned_binary;
 use crate::encoder::expgolomb::exp_golomb_encode_one;
 use log::debug;
@@ -361,22 +362,7 @@ fn encode_buffering_period(bp: &SEIBufferingPeriod, spses: &[SeqParameterSet]) -
         63,
     );
 
-    let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
-    for i in (0..spses.len()).rev() {
-        if spses[i].seq_parameter_set_id == bp.seq_parameter_set_id {
-            cur_sps_wrapper = Some(&spses[i]);
-            break;
-        }
-    }
-
-    let cur_sps: &SeqParameterSet;
-    match cur_sps_wrapper {
-        Some(x) => cur_sps = x,
-        _ => panic!(
-            "encode_buffering_period - SPS with id {} not found",
-            bp.seq_parameter_set_id
-        ),
-    }
+    let cur_sps: &SeqParameterSet = get_sps(spses, bp.seq_parameter_set_id, spses.len()).0;
 
     if cur_sps.vui_parameters_present_flag {
         if cur_sps.vui_parameters.nal_hrd_parameters_present_flag {

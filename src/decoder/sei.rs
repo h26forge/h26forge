@@ -12,6 +12,7 @@ use crate::common::data_structures::UUID_APPLE1;
 use crate::common::data_structures::UUID_APPLE2;
 use crate::common::helper::decoder_formatted_print;
 use crate::common::helper::ByteStream;
+use crate::common::helper::get_sps;
 use crate::decoder::expgolomb::exp_golomb_decode_one_wrapper;
 use log::debug;
 use std::collections::VecDeque;
@@ -355,23 +356,7 @@ fn decode_buffering_period(
         63,
     );
 
-    let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
-
-    for i in (0..spses.len()).rev() {
-        if spses[i].seq_parameter_set_id == res.seq_parameter_set_id {
-            cur_sps_wrapper = Some(&spses[i]);
-            break;
-        }
-    }
-
-    let cur_sps: &SeqParameterSet;
-    match cur_sps_wrapper {
-        Some(x) => cur_sps = x,
-        _ => panic!(
-            "decode_buffering_period - SPS with id {} not found",
-            res.seq_parameter_set_id
-        ),
-    }
+    let cur_sps: &SeqParameterSet = get_sps(spses, res.seq_parameter_set_id, spses.len()).0;
 
     // The variable NalHrdBpPresentFlag is derived as follows:
     //  - If any of the following is true, the value of NalHrdBpPresentFlag shall be set equal to 1:

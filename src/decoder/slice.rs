@@ -11,6 +11,8 @@ use crate::common::data_structures::SliceHeader;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::VideoParameters;
 use crate::common::helper::decoder_formatted_print;
+use crate::common::helper::get_pps;
+use crate::common::helper::get_sps;
 use crate::common::helper::is_slice_type;
 use crate::common::helper::ByteStream;
 use crate::decoder::cabac::cabac_decode;
@@ -481,8 +483,6 @@ fn decode_slice_header(
     ppses: &Vec<PicParameterSet>,
 ) -> (SliceHeader, usize, usize, VideoParameters) {
     let mut sh = SliceHeader::new();
-    let mut pps_idx = 0; // search in reverse
-    let mut sps_idx = 0; // search in reverse
 
     // first_mb_in_slice
     sh.first_mb_in_slice = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
@@ -495,43 +495,9 @@ fn decode_slice_header(
     // pic_parameter_set_id
     sh.pic_parameter_set_id = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
     decoder_formatted_print("SH: pic_parameter_set_id", sh.pic_parameter_set_id, 63);
-    let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
-    // retrieve the corresponding PPS
-    for i in (0..ppses.len()).rev() {
-        if ppses[i].pic_parameter_set_id == sh.pic_parameter_set_id {
-            cur_pps_wrapper = Some(&ppses[i]);
-            pps_idx = i;
-            break;
-        }
-    }
 
-    let p: &PicParameterSet;
-    match cur_pps_wrapper {
-        Some(x) => p = x,
-        _ => panic!(
-            "decode_slice_header - PPS with id {} not found",
-            sh.pic_parameter_set_id
-        ),
-    }
-
-    let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
-
-    for i in (0..spses.len()).rev() {
-        if spses[i].seq_parameter_set_id == p.seq_parameter_set_id {
-            cur_sps_wrapper = Some(&spses[i]);
-            sps_idx = i;
-            break;
-        }
-    }
-
-    let s: &SeqParameterSet;
-    match cur_sps_wrapper {
-        Some(x) => s = x,
-        _ => panic!(
-            "decode_slice_header - SPS with id {} not found",
-            p.seq_parameter_set_id
-        ),
-    }
+    let (p, pps_idx) = get_pps(&ppses, sh.pic_parameter_set_id, ppses.len());
+    let (s, sps_idx) = get_sps(&spses, p.seq_parameter_set_id, spses.len());
 
     let mut vp = VideoParameters::new(nh, p, s);
 
@@ -1240,7 +1206,7 @@ pub fn decode_slice_layer_without_partitioning_rbsp(
     only_headers: bool,
     decode_strict_fmo: bool,
 ) -> Slice {
-    let res = decode_slice_header(nalu_data, nh, spses, ppses);
+    let res: (SliceHeader, usize, usize, VideoParameters) = decode_slice_header(nalu_data, nh, spses, ppses);
     let mut sh = res.0;
     let p = &ppses[res.1];
     let s = &spses[res.2];

@@ -2,6 +2,7 @@
 
 use crate::common::data_structures::H264DecodedStream;
 use crate::common::data_structures::PicParameterSet;
+use crate::common::helper::get_pps;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -12,24 +13,7 @@ use std::str;
 fn update_slice_dependent_vars(ds: &mut H264DecodedStream) {
     println!("\t Updating slice dependent variables");
     for i in 0..ds.slices.len() {
-        // get Slice PPS
-        let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
-        // retrieve the corresponding PPS
-        for j in (0..ds.ppses.len()).rev() {
-            if ds.ppses[j].pic_parameter_set_id == ds.slices[i].sh.pic_parameter_set_id {
-                cur_pps_wrapper = Some(&ds.ppses[j]);
-                break;
-            }
-        }
-
-        let p: &PicParameterSet;
-        match cur_pps_wrapper {
-            Some(x) => p = x,
-            _ => panic!(
-                "decode_slice_header - PPS with id {} not found",
-                ds.slices[i].sh.pic_parameter_set_id
-            ),
-        }
+        let p: &PicParameterSet = get_pps(&ds.ppses, ds.slices[i].sh.pic_parameter_set_id, ds.ppses.len()).0;
 
         // equation 7-30
         ds.slices[i].sh.slice_qp_y = 26 + ds.slices[i].sh.slice_qp_delta + p.pic_init_qp_minus26;

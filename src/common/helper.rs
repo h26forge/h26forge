@@ -4,6 +4,8 @@ use log::debug;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
+use super::data_structures::{PicParameterSet, SubsetSPS, SeqParameterSet};
+
 /// Maintains the encoded bytestream and the byte offset
 #[derive(Debug, Clone)]
 pub struct ByteStream {
@@ -215,6 +217,77 @@ pub fn bitstream_to_bytestream<BS: AsRef<[u8]>>(bitstream: BS, padding_bit: u8) 
     }
 
     res
+}
+
+/// Returns a pointer to an PPS with the desired pic_parameter_set_id. Panics if not found
+pub fn get_pps(pps_array : &[PicParameterSet], pps_id : u32, max_pps_idx : usize) -> (&PicParameterSet, usize) {
+    let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
+    let mut pps_idx = 0;
+    // retrieve the corresponding PPS
+    // we search in reverse to get the most recent; ID collision is possible with random video generation
+    // we use pps_idx to ensure only already encoded PPS's are used
+    for i in (0..max_pps_idx).rev() {
+        if pps_array[i].pic_parameter_set_id == pps_id {
+            cur_pps_wrapper = Some(&pps_array[i]);
+            pps_idx = i;
+            break;
+        }
+    }
+
+    let cur_pps: &PicParameterSet;
+    match cur_pps_wrapper {
+        Some(x) => cur_pps = x,
+        _ => panic!("get_pps - Associated SPS not found for PPS - associated_sps_idx : {}", pps_id),
+    }
+    (cur_pps, pps_idx)
+}
+
+/// Returns a pointer to an SPS with the desired seq_parameter_set_id. Panics if not found
+pub fn get_sps(sps_array: &[SeqParameterSet], sps_id : u32, max_sps_idx : usize) -> (&SeqParameterSet, usize) {
+    let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
+    let mut sps_idx = 0;
+
+    // we search in reverse to get the most recent; ID collision is possible with random video generation
+    // we use sps_idx to ensure only already encoded SPS's are used
+
+    for i in (0..max_sps_idx).rev() {
+        if sps_array[i].seq_parameter_set_id == sps_id {
+            cur_sps_wrapper = Some(&sps_array[i]);
+            sps_idx = i;
+            break;
+        }
+    }
+
+    let cur_sps: &SeqParameterSet;
+    match cur_sps_wrapper {
+        Some(x) => {
+            cur_sps = x;
+        },
+        None => panic!("get_sps - Associated SPS not found for PPS - associated_sps_idx : {}", sps_id),
+    }
+    (cur_sps, sps_idx)
+}
+
+/// Returns a pointer to an SPS from a SubsetSPS with the desired seq_parameter_set_id. Panics if not found
+pub fn get_subset_sps(subset_sps_array: &[SubsetSPS], subset_sps_id : u32, max_subset_sps_idx : usize) -> (&SubsetSPS, usize) {
+    let mut cur_subset_sps_wrapper: Option<&SubsetSPS> = None;
+    let mut subset_sps_idx = 0;
+    for i in (0..max_subset_sps_idx).rev() {
+        if subset_sps_array[i].sps.seq_parameter_set_id == subset_sps_id {
+            cur_subset_sps_wrapper = Some(&subset_sps_array[i]);
+            subset_sps_idx = i;
+            break;
+        }
+    }
+
+    let cur_subset_sps: &SubsetSPS;
+    match cur_subset_sps_wrapper {
+        Some(x) => {
+            cur_subset_sps = x;
+        },
+        None => panic!("get_subset_sps - Associated SubsetSPS not found for PPS - subset_sps_id : {}", subset_sps_id),
+    }
+    (cur_subset_sps, subset_sps_idx)
 }
 
 #[cfg(test)]

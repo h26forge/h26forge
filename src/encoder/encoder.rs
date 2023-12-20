@@ -6,6 +6,9 @@ use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::VideoParameters;
+use crate::common::helper::get_pps;
+use crate::common::helper::get_sps;
+use crate::common::helper::get_subset_sps;
 use crate::encoder::avcc::AvccMode;
 use crate::encoder::avcc::save_avcc_file;
 use crate::encoder::mp4::save_mp4_file;
@@ -247,53 +250,12 @@ pub fn encode_bitstream(
                     );
                 }
 
-                let associated_pps_id = ds.slices[slice_idx].sh.pic_parameter_set_id;
-
-                let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
-                // retrieve the corresponding PPS
-                // we search in reverse to get the most recent; ID collision is possible with random video generation
-                // we use pps_idx to ensure only already encoded PPS's are used
-                for i in (0..pps_idx).rev() {
-                    if ds.ppses[i].pic_parameter_set_id == associated_pps_id {
-                        cur_pps_wrapper = Some(&ds.ppses[i]);
-                        break;
-                    }
-                }
-
-                let cur_pps: &PicParameterSet;
-                match cur_pps_wrapper {
-                    Some(x) => cur_pps = x,
-                    _ => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_pps_id),
-                }
-
-                let associated_sps_id = cur_pps.seq_parameter_set_id;
-                let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
-
-                // we search in reverse to get the most recent; ID collision is possible with random video generation
-                // we use sps_idx to ensure only already encoded SPS's are used
-                if cur_pps.is_subset_pps {
-                    // try subset sps
-                    for i in (0..subset_sps_idx).rev() {
-                        if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
-                            cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
-                            break;
-                        }
-                    }
-                } else {
-                    for i in (0..sps_idx).rev() {
-                        if ds.spses[i].seq_parameter_set_id == associated_sps_id {
-                            cur_sps_wrapper = Some(&ds.spses[i]);
-                            break;
-                        }
-                    }
-                }
-
+                let cur_pps: &PicParameterSet = get_pps(&ds.ppses, ds.slices[slice_idx].sh.pic_parameter_set_id, pps_idx).0;
                 let cur_sps: &SeqParameterSet;
-                match cur_sps_wrapper {
-                    Some(x) => {
-                        cur_sps = x;
-                    },
-                    None => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
+                if cur_pps.is_subset_pps {
+                    cur_sps = &get_subset_sps(&ds.subset_spses, cur_pps.seq_parameter_set_id, subset_sps_idx).0.sps;
+                } else {
+                    cur_sps = get_sps(&ds.spses, cur_pps.seq_parameter_set_id, sps_idx).0;
                 }
                 let mut vp = VideoParameters::new(&ds.nalu_headers[i], cur_pps, cur_sps);
                 // for neighbor macroblock processing
@@ -318,48 +280,27 @@ pub fn encode_bitstream(
                 }
                 slice_idx += 1;
             }
-            2 => {
+            2..=4 => {
                 if !silent_mode {
-                    println!(
-                        "\t encode_bitstream - NALU {} - Coded slice data partition A",
-                        i
-                    );
+                    let nalu_type = ds.nalu_headers[i].nal_unit_type;
+                    if nalu_type == 2 {
+                        println!(
+                            "\t encode_bitstream - NALU {} - Coded slice data partition A",
+                            i
+                        );
+                    } else if nalu_type == 3 {
+                        println!(
+                            "\t encode_bitstream - NALU {} - Coded slice data partition B",
+                            i
+                        );
+                    } else if nalu_type == 4 {
+                        println!(
+                            "\t encode_bitstream - NALU {} - Coded slice data partition C",
+                            i
+                        );
+                    }
                 }
-                // TODO: Coded slice data partition A encoding. For now, just append nalu elements
-                cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
-
-                if rtp_out {
-                    cur_rtp_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
-                }
-                if avcc_out {
-                    cur_avcc_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
-                }
-            }
-            3 => {
-                if !silent_mode {
-                    println!(
-                        "\t encode_bitstream - NALU {} - Coded slice data partition B",
-                        i
-                    );
-                }
-                // TODO: Coded slice data partition B encoding. For now, just append nalu elements
-                cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
-
-                if rtp_out {
-                    cur_rtp_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
-                }
-                if avcc_out {
-                    cur_avcc_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
-                }
-            }
-            4 => {
-                if !silent_mode {
-                    println!(
-                        "\t encode_bitstream - NALU {} - Coded slice data partition C",
-                        i
-                    );
-                }
-                // TODO: Coded slice data partition C encoding. For now, just append nalu elements
+                // TODO: Coded slice data partition encoding. For now, just append nalu elements
                 cur_annex_b_nal.extend(insert_emulation_three_byte(&ds.nalu_elements[i].content[1..]));
 
                 if rtp_out {
@@ -377,53 +318,12 @@ pub fn encode_bitstream(
                     );
                 }
 
-                let associated_pps_id = ds.slices[slice_idx].sh.pic_parameter_set_id;
-
-                let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
-                // retrieve the corresponding PPS
-                // we search in reverse to get the most recent; ID collision is possible with random video generation
-                // we use pps_idx to ensure only already encoded PPS's are used
-                for i in (0..pps_idx).rev() {
-                    if ds.ppses[i].pic_parameter_set_id == associated_pps_id {
-                        cur_pps_wrapper = Some(&ds.ppses[i]);
-                        break;
-                    }
-                }
-
-                let cur_pps: &PicParameterSet;
-                match cur_pps_wrapper {
-                    Some(x) => cur_pps = x,
-                    _ => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_pps_id),
-                }
-
-                let associated_sps_id = cur_pps.seq_parameter_set_id;
-                let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
-
-                // we search in reverse to get the most recent; ID collision is possible with random video generation
-                // we use sps_idx to ensure only already encoded SPS's are used
-                if cur_pps.is_subset_pps {
-                    // try subset sps
-                    for i in (0..subset_sps_idx).rev() {
-                        if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
-                            cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
-                            break;
-                        }
-                    }
-                } else {
-                    for i in (0..sps_idx).rev() {
-                        if ds.spses[i].seq_parameter_set_id == associated_sps_id {
-                            cur_sps_wrapper = Some(&ds.spses[i]);
-                            break;
-                        }
-                    }
-                }
-
+                let cur_pps: &PicParameterSet = get_pps(&ds.ppses, ds.slices[slice_idx].sh.pic_parameter_set_id, pps_idx).0;
                 let cur_sps: &SeqParameterSet;
-                match cur_sps_wrapper {
-                    Some(x) => {
-                        cur_sps = x;
-                    },
-                    None => panic!("encode_bitstream - Associated SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
+                if cur_pps.is_subset_pps {
+                    cur_sps = &get_subset_sps(&ds.subset_spses, cur_pps.seq_parameter_set_id, subset_sps_idx).0.sps;
+                } else {
+                    cur_sps = get_sps(&ds.spses, cur_pps.seq_parameter_set_id, sps_idx).0;
                 }
                 let mut vp = VideoParameters::new(&ds.nalu_headers[i], cur_pps, cur_sps);
                 vp.mbaff_frame_flag = ds.slices[slice_idx].sh.mbaff_frame_flag;
@@ -513,54 +413,29 @@ pub fn encode_bitstream(
                     );
                 }
 
-                let mut cur_sps_wrapper: Option<&SeqParameterSet> = None;
                 if pps_idx < ds.ppses.len() {
-                    let associated_sps_id = ds.ppses[pps_idx].seq_parameter_set_id;
-                    if ds.ppses[pps_idx].is_subset_pps {
-                        // try subset sps
-                        for i in (0..subset_sps_idx).rev() {
-                            if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
-                                cur_sps_wrapper = Some(&ds.subset_spses[i].sps);
-                                break;
-                            }
-                        }
-                    } else {
-                        // we search in reverse to get the most recent; ID collision is possible with random video generation
-                        for i in (0..sps_idx).rev() {
-                            if ds.spses[i].seq_parameter_set_id == associated_sps_id {
-                                cur_sps_wrapper = Some(&ds.spses[i]);
-                                break;
-                            }
-                        }
-                    }
-
                     let cur_sps: &SeqParameterSet;
-                    match cur_sps_wrapper {
-                        Some(x) => {
-                            cur_sps = x;
-                            let res = insert_emulation_three_byte(&encode_pps(
-                                &ds.ppses[pps_idx],
-                                cur_sps,
-                            ));
 
-                            cur_annex_b_nal.extend(res.iter());
-                            if rtp_out {
-                                cur_rtp_nal.extend(res.iter());
-                            }
-                            if avcc_out {
-                                cur_avcc_nal.extend(res.iter());
-                                avcc_mode = AvccMode::AvccPps;
-                            }
-                            pps_idx += 1;
-                        }
-                        _ => {
-                            // TODO: We could consider not panicking and continuing with a default SPS (e.g., LRU)
-                            panic!(
-                                "encode_bitstream - SPS or SubsetSPS with id {} not found",
-                                associated_sps_id
-                            )
-                        }
+                    if ds.ppses[pps_idx].is_subset_pps {
+                        cur_sps = &get_subset_sps(&ds.subset_spses, ds.ppses[pps_idx].seq_parameter_set_id, subset_sps_idx).0.sps;
+                    } else {
+                        cur_sps = get_sps(&ds.spses, ds.ppses[pps_idx].seq_parameter_set_id, sps_idx).0;
                     }
+
+                    let res = insert_emulation_three_byte(&encode_pps(
+                        &ds.ppses[pps_idx],
+                        cur_sps,
+                    ));
+
+                    cur_annex_b_nal.extend(res.iter());
+                    if rtp_out {
+                        cur_rtp_nal.extend(res.iter());
+                    }
+                    if avcc_out {
+                        cur_avcc_nal.extend(res.iter());
+                        avcc_mode = AvccMode::AvccPps;
+                    }
+                    pps_idx += 1;
                 }
             }
             9 => {
@@ -791,45 +666,8 @@ pub fn encode_bitstream(
                         i
                     );
                 }
-                let associated_pps_id = ds.slices[slice_idx].sh.pic_parameter_set_id;
-
-                let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
-                // retrieve the corresponding PPS
-                // we search in reverse to get the most recent; ID collision is possible with random video generation
-                for i in (0..pps_idx).rev() {
-                    if ds.ppses[i].pic_parameter_set_id == associated_pps_id
-                        && ds.ppses[i].is_subset_pps
-                    {
-                        cur_pps_wrapper = Some(&ds.ppses[i]);
-                        break;
-                    }
-                }
-
-                let cur_pps: &PicParameterSet;
-                match cur_pps_wrapper {
-                    Some(x) => cur_pps = x,
-                    _ =>  panic!("encode_bitstream - Associated PPS not found for coded slice extension - associated_pps_idx : {}", associated_pps_id),
-                }
-
-                let associated_sps_id = cur_pps.seq_parameter_set_id;
-                let mut cur_subset_sps_wrapper: Option<&SubsetSPS> = None;
-
-                // we search in reverse to get the most recent; ID collision is possible with random video generation
-                // we use sps_idx to ensure only already encoded SPS's are used
-                for i in (0..subset_sps_idx).rev() {
-                    if ds.subset_spses[i].sps.seq_parameter_set_id == associated_sps_id {
-                        cur_subset_sps_wrapper = Some(&ds.subset_spses[i]);
-                        break;
-                    }
-                }
-
-                let cur_subset_sps: &SubsetSPS;
-                match cur_subset_sps_wrapper {
-                    Some(x) => {
-                        cur_subset_sps = x;
-                    },
-                    None => panic!("encode_bitstream - Associated Subset SPS not found for PPS - associated_sps_idx : {}", associated_sps_id),
-                }
+                let cur_pps: &PicParameterSet = get_pps(&ds.ppses, ds.slices[slice_idx].sh.pic_parameter_set_id, pps_idx).0;
+                let cur_subset_sps: &SubsetSPS = get_subset_sps(&ds.subset_spses, cur_pps.seq_parameter_set_id, subset_sps_idx).0;
                 let mut vp =
                     VideoParameters::new(&ds.nalu_headers[i], cur_pps, &cur_subset_sps.sps);
                 vp.mbaff_frame_flag = ds.slices[slice_idx].sh.mbaff_frame_flag;
@@ -979,9 +817,8 @@ pub fn encode_bitstream(
             debug!(target: "encode","Cutting NALU {}", cut_nalu);
             println!("Cutting above NALU {}", cut_nalu);
             continue;
-        } else {
-            annex_b_video.extend(cur_annex_b_nal)
         }
+        annex_b_video.extend(cur_annex_b_nal);
 
         if rtp_out {
             rtp_video.extend(encapsulate_rtp_nalu(cur_rtp_nal, &ds.nalu_headers[i], silent_mode));
