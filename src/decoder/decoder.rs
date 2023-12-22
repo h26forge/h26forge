@@ -9,6 +9,7 @@ use crate::common::data_structures::SEINalu;
 use crate::common::data_structures::SPSExtension;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::Slice;
+use crate::common::data_structures::StapA;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::helper::ByteStream;
 use crate::decoder::nalu::decode_access_unit_delimiter;
@@ -64,6 +65,8 @@ pub fn decode_bitstream(
     let mut seis: Vec<SEINalu> = Vec::new();
     let mut slices: Vec<Slice> = Vec::new();
     let mut auds: Vec<AccessUnitDelim> = Vec::new();
+    // RTP NALUs
+    let stap_as: Vec<StapA> = Vec::new();
 
     println!("\tFound {:?} NALUs", nalu_elements.len());
 
@@ -321,10 +324,9 @@ pub fn decode_bitstream(
                 // TODO: Annex J
                 //depth_parameter_set_rbsp();
             }
-            17..=18 => println!(
-                "\t decode_bitstream - NALU {} - {} - RESERVED nal_unit_type ignoring",
-                i, header.nal_unit_type
-            ),
+            17..=18 => {
+                println!("\t decode_bitstream - NALU {} - {} - RESERVED nal_unit_type ignoring", i, header.nal_unit_type);
+            }
             19 => {
                 println!("\t decode_bitstream - NALU {} - {} - Coded slice of an auxiliary coded picture without partitioning", i,  header.nal_unit_type);
                 // slice_layer_without_partitioning_rbsp(); // but non-VCL
@@ -458,5 +460,6 @@ pub fn decode_bitstream(
         slices,
         seis,
         auds,
+        stap_as,
     }
 }

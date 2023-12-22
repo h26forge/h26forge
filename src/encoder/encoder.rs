@@ -3,12 +3,15 @@
 use crate::common::data_structures::AVCCFormat;
 use crate::common::data_structures::H264DecodedStream;
 use crate::common::data_structures::PicParameterSet;
+use crate::common::data_structures::RTPAggregationState;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::VideoParameters;
+use crate::common::data_structures::RTPOptions;
 use crate::common::helper::get_pps;
 use crate::common::helper::get_sps;
 use crate::common::helper::get_subset_sps;
+use crate::common::helper::is_rtp_nalu;
 use crate::encoder::avcc::AvccMode;
 use crate::encoder::avcc::save_avcc_file;
 use crate::encoder::mp4::save_mp4_file;
@@ -184,6 +187,8 @@ pub fn encode_bitstream(
     let mut avcc_video = AVCCFormat::new();
     let mut rtp_video: Vec<Vec<u8>> = Vec::new();
 
+    let mut rtp_options = RTPOptions::new();
+
     // NALU type indices
     let mut sps_idx = 0;
     let mut subset_sps_idx = 0;
@@ -193,6 +198,7 @@ pub fn encode_bitstream(
     let mut slice_idx = 0;
     let mut sei_idx = 0;
     let mut aud_idx = 0;
+    let mut stap_a_idx = 0;
 
     if avcc_out {
         avcc_video.initial_sps = ds.spses[0].clone();
@@ -200,29 +206,37 @@ pub fn encode_bitstream(
 
     debug!(target: "encode","Encoding {} NALUs", ds.nalu_elements.len());
 
+    // Aggregation units may require carrying over NALUs
+    let mut cur_rtp_aggr_nal: Vec<u8> = Vec::new();
+
     for i in 0..ds.nalu_elements.len() {
         let mut cur_annex_b_nal: Vec<u8> = Vec::new();
         let mut cur_avcc_nal: Vec<u8> = Vec::new();
         let mut cur_rtp_nal: Vec<u8> = Vec::new();
 
-        // The mode
         let mut avcc_mode = AvccMode::AvccNalu;
 
         debug!(target: "encode","");
         debug!(target: "encode","Annex B NALU w/ {} startcode, len {}, forbidden_bit {}, nal_reference_idc {}, nal_unit_type {}",
-            { if ds.nalu_elements[i].longstartcode {"long" } else {"short"} }, ds.nalu_elements[i].content.len(), ds.nalu_headers[i].forbidden_zero_bit, ds.nalu_headers[i].nal_ref_idc, ds.nalu_headers[i].nal_unit_type);
-
-        if ds.nalu_elements[i].longstartcode {
-            cur_annex_b_nal.extend(vec![0, 0, 0, 1]);
-        } else {
-            cur_annex_b_nal.extend(vec![0, 0, 1]);
-        }
+            { if ds.nalu_elements[i].longstartcode {"long" } else {"short"} },
+            ds.nalu_elements[i].content.len(),
+            ds.nalu_headers[i].forbidden_zero_bit,
+            ds.nalu_headers[i].nal_ref_idc,
+            ds.nalu_headers[i].nal_unit_type);
 
         let encoded_header = encode_nalu_header(&ds.nalu_headers[i]);
-        cur_annex_b_nal.extend(encoded_header.iter());
+
+        if !is_rtp_nalu(ds.nalu_headers[i].nal_unit_type) {
+            if ds.nalu_elements[i].longstartcode {
+                cur_annex_b_nal.extend(vec![0, 0, 0, 1]);
+            } else {
+                cur_annex_b_nal.extend(vec![0, 0, 1]);
+            }
+
+            cur_annex_b_nal.extend(encoded_header.iter());
+        }
 
         if rtp_out {
-            // RTP vid doesn't require start codes
             cur_rtp_nal.extend(encoded_header.iter());
         }
         if avcc_out {
@@ -732,14 +746,21 @@ pub fn encode_bitstream(
                     ));
                 }
             }
-            24..=29 => {
+            24 => {
+                // STAP-A    Single-time aggregation packet    5.7.1
+                if !silent_mode {
+                    println!("\t encode_bitstream - NALU {} - {} - RTP STAP-A - Aggregating next {} NALU(s)", i, ds.nalu_headers[i].nal_unit_type, ds.stap_as[stap_a_idx].count);
+                }
+
+                rtp_options.aggregation_state = RTPAggregationState::New;
+                rtp_options.aggregation_countdown = ds.stap_as[stap_a_idx].count;
+                stap_a_idx += 1;
+            }
+            25..=29 => {
                 // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
                 if !silent_mode {
                     let nalu_type = ds.nalu_headers[i].nal_unit_type;
-                    if nalu_type == 24 {
-                        // STAP-A    Single-time aggregation packet    5.7.1
-                        println!("\t encode_bitstream - NALU {} - {} - RTP STAP-A - Copying Bytes", i, nalu_type);
-                    } else if nalu_type == 25 {
+                    if nalu_type == 25 {
                         // STAP-B    Single-time aggregation packet    5.7.1
                         println!("\t encode_bitstream - NALU {} - {} - RTP STAP-B - Copying Bytes", i, nalu_type);
                     } else if nalu_type == 26 {
@@ -821,7 +842,32 @@ pub fn encode_bitstream(
         annex_b_video.extend(cur_annex_b_nal);
 
         if rtp_out {
-            rtp_video.extend(encapsulate_rtp_nalu(cur_rtp_nal, &ds.nalu_headers[i], silent_mode));
+            match rtp_options.aggregation_state {
+                RTPAggregationState::New => {
+                    cur_rtp_aggr_nal.extend(cur_rtp_nal); // just contains the header
+                    // Next time append
+                    rtp_options.aggregation_state = RTPAggregationState::Append;
+                }
+                RTPAggregationState::Append => {
+                    println!("Appending to aggregation unit");
+                    if rtp_options.aggregation_countdown > 0 {
+                        rtp_options.aggregation_countdown -= 1;
+                    }
+                    let encapsulated = encapsulate_rtp_nalu(cur_rtp_nal, &ds.nalu_headers[i], silent_mode, &rtp_options);
+                    cur_rtp_aggr_nal.extend(encapsulated[0].iter());
+
+                    // If the count is 0, then we're done; else append the next NALU
+                    if rtp_options.aggregation_countdown == 0 {
+                        rtp_options.aggregation_state = RTPAggregationState::None;
+                        rtp_video.push(cur_rtp_aggr_nal);
+                        // Reset the aggregate NALU
+                        cur_rtp_aggr_nal = Vec::new();
+                    }
+                }
+                RTPAggregationState::None => {
+                    rtp_video.extend(encapsulate_rtp_nalu(cur_rtp_nal, &ds.nalu_headers[i], silent_mode, &rtp_options));
+                }
+            }
         }
         if avcc_out {
             match avcc_mode {
@@ -833,4 +879,91 @@ pub fn encode_bitstream(
     }
 
     (annex_b_video, avcc_video, rtp_video)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::common::data_structures::{NALU, StapA, NALUheader};
+
+    use super::*;
+
+    #[test]
+    fn test_encode_one_rtp_nalu() {
+        // (input, result)
+        let mut ds = H264DecodedStream::new();
+
+        let stap_a_nalu = NALU::new();
+        let mut stap_a = StapA::new();
+        stap_a.count = 1;
+
+        let mut stapa_hdr = NALUheader::new();
+        stapa_hdr.nal_unit_type = 24;
+        stapa_hdr.nal_ref_idc = 3;
+
+        let sps_nalu = NALU::new();
+        let sps = SeqParameterSet::new();
+
+        let mut sps_hdr = NALUheader::new();
+        sps_hdr.nal_unit_type = 7;
+        sps_hdr.nal_ref_idc = 3;
+
+        ds.nalu_elements.push(stap_a_nalu);
+        ds.nalu_elements.push(sps_nalu);
+        ds.nalu_headers.push(stapa_hdr);
+        ds.nalu_headers.push(sps_hdr);
+        ds.stap_as.push(stap_a);
+        ds.spses.push(sps);
+
+        // STAP A header, SPS encoded Size as u16, SPS NALU
+        let rtp_expected_output = vec![vec![0x78, 0, 7, 0x67, 0, 0, 3, 0, 251, 4]];
+        let annex_b_expected_output = vec![0, 0, 0, 1, 0x67, 0, 0, 3, 0, 251, 4];
+
+        let (annex_b, _, rtp_vid) = encode_bitstream(&mut ds, -1, false, false, true);
+
+        assert_eq!(rtp_vid, rtp_expected_output);
+        assert_eq!(annex_b, annex_b_expected_output);
+    }
+
+    #[test]
+    fn test_encode_two_rtp_nalu() {
+        // (input, result)
+        let mut ds = H264DecodedStream::new();
+
+        let stap_a_nalu = NALU::new();
+        let mut stap_a = StapA::new();
+        stap_a.count = 2;
+
+        let mut stapa_hdr = NALUheader::new();
+        stapa_hdr.nal_unit_type = 24;
+        stapa_hdr.nal_ref_idc = 3;
+
+        let sps_nalu = NALU::new();
+        let sps = SeqParameterSet::new();
+
+        let mut sps_hdr = NALUheader::new();
+        sps_hdr.nal_unit_type = 7;
+        sps_hdr.nal_ref_idc = 3;
+
+        ds.nalu_elements.push(stap_a_nalu);
+        ds.nalu_elements.push(sps_nalu.clone());
+        ds.nalu_elements.push(sps_nalu);
+
+        ds.nalu_headers.push(stapa_hdr);
+        ds.nalu_headers.push(sps_hdr.clone());
+        ds.nalu_headers.push(sps_hdr);
+
+        ds.stap_as.push(stap_a);
+        ds.spses.push(sps.clone());
+        ds.spses.push(sps);
+
+        // STAP A header, SPS encoded Size as u16, SPS NALU
+        let rtp_expected_output = vec![vec![0x78, 0, 7, 0x67, 0, 0, 3, 0, 251, 4, 0, 7, 0x67, 0, 0, 3, 0, 251, 4]];
+        let annex_b_expected_output = vec![0, 0, 0, 1, 0x67, 0, 0, 3, 0, 251, 4, 0, 0, 0, 1, 0x67, 0, 0, 3, 0, 251, 4];
+
+        let (annex_b, _, rtp_vid) = encode_bitstream(&mut ds, -1, false, false, true);
+
+        assert_eq!(rtp_vid, rtp_expected_output);
+        assert_eq!(annex_b, annex_b_expected_output);
+    }
 }

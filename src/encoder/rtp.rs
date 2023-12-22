@@ -1,7 +1,8 @@
 //! RTP encoding and saving.
 
 use crate::common::data_structures::NALUheader;
-use crate::common::data_structures::StapA;
+use crate::common::data_structures::RTPAggregationState;
+use crate::common::data_structures::RTPOptions;
 use crate::common::data_structures::StapB;
 use crate::common::data_structures::Mtap16;
 use crate::common::data_structures::Mtap24;
@@ -120,84 +121,56 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safest
     };
 }
 
-pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUheader, silent_mode : bool) -> Vec<Vec<u8>> {
+pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUheader, silent_mode : bool, rtp_options: &RTPOptions) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
-    // if packetization-mode == 0, then we return the NALU as is
-    // if packetization-mode == 1, we can use NALU, STAP-A, and FU-A
-    // if packetization-mode == 2, we can use STAP-B, MTAP16, MTAP24, FU-A, and FU-B
+    if rtp_options.packetization_mode == 0 { // Single NALU mode
+        res.push(nalu);
+    } else if rtp_options.packetization_mode == 1 { // Non-Interleaved Mode, using NALU, STAP-A, and FU-A
+        match rtp_options.aggregation_state {
+            RTPAggregationState::None => { // No aggregation NALUs
+                // fragment if too large
+                if nalu.len() > FRAGMENT_SIZE {
+                    if !silent_mode {
+                        println!(
+                            "Fragmenting {} type {}",
+                            nalu.len(),
+                            nh.nal_unit_type
+                        );
+                    }
+                    res.extend(encode_fu_a(&nalu, nh));
+                } else {
+                    res.push(nalu);
+                }
+            },
+            RTPAggregationState::Append => {
+                // Append to a STAP-A header
+                if !silent_mode {
+                    println!(
+                        "Appending to STAP-A NALU with {}",
+                        nh.nal_unit_type
+                    );
+                }
+                let mut stap_a_bytes: Vec<u8> = Vec::new();
 
-    // fragment if too large
-    if nalu.len() > FRAGMENT_SIZE {
-        if !silent_mode {
-            println!(
-                "Fragmenting {} type {}",
-                nalu.len(),
-                nh.nal_unit_type
-            );
+                let nal_size = (nalu.len() as u16).to_be_bytes();
+                stap_a_bytes.extend(nal_size.iter());
+                stap_a_bytes.extend(nalu.iter());
+
+                res.push(stap_a_bytes);
+            },
+            _ => panic!("encapsulate_rtp_nalu - bad RTPAggregationState") // Shouldn't get here
         }
-        // TODO: determine packetization-mode to determine whether to allow FU-B
-        res.extend(encapsulate_fu_a(&nalu, nh));
-    } else {
+    } else { // packetization_mode == 2, Interleaved Mode, can use STAP-B, MTAP16, MTAP24, FU-A, and FU-B
         res.push(nalu);
     }
 
     res
 }
 
-/// Encode a Single-Time Aggregation Unit without DON (STAP-A)
-///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |STAP-A NAL HDR |         NALU 1 Size           | NALU 1 HDR    |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                         NALU 1 Data                           |
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 Size                   | NALU 2 HDR    |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                         NALU 2 Data                           |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///
-///   Figure 7.  An example of an RTP packet including an STAP-A
-///              containing two single-time aggregation units
-#[allow(dead_code)]
-pub fn encode_stap_a(p : StapA) -> Vec<u8> {
-    let mut res = Vec::new();
-    for i in 0..p.nalus.len() {
-        res.extend(generate_fixed_length_value(p.nalu_sizes[i] as u32, 16));
-        res.extend(p.nalus[i].content.iter());
-    }
 
-    return res;
-}
 
 /// Encode a Single-Time Aggregation Unit with DON (STAP-B)
-///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |STAP-B NAL HDR | DON                           | NALU 1 Size   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   | NALU 1 Size   | NALU 1 HDR    | NALU 1 Data                   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 Size                   | NALU 2 HDR    |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                       NALU 2 Data                             |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #[allow(dead_code)]
 pub fn encode_stap_b(_p : StapB) {
     // Encode a Decoding Order Number (DON) 16 bits long
@@ -209,28 +182,6 @@ pub fn encode_stap_b(_p : StapB) {
 
 
 /// Encode a Multi-Time Aggregation Packet (MTAP) with 16-bit timestamp offset (TS)
-///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |MTAP16 NAL HDR |  decoding order number base   | NALU 1 Size   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offset        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 1 HDR   |  NALU 1 DATA                                  |
-///   +-+-+-+-+-+-+-+-+                                               +
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 SIZE                   |  NALU 2 DOND  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |       NALU 2 TS offset        |  NALU 2 HDR   |  NALU 2 DATA  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #[allow(dead_code)]
 pub fn encode_mtap16(_p : Mtap16) {
     // While more_data() {
@@ -242,46 +193,26 @@ pub fn encode_mtap16(_p : Mtap16) {
 }
 
 /// Encode a Multi-Time Aggregation Packet (MTAP) with 24-bit timestamp offset (TS)
-///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |MTAP24 NAL HDR |  decoding order number base   | NALU 1 Size   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offs          |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |NALU 1 TS offs |  NALU 1 HDR   |  NALU 1 DATA                  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 SIZE                   |  NALU 2 DOND  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |       NALU 2 TS offset                        |  NALU 2 HDR   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 2 DATA                                                  |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #[allow(dead_code)]
-pub fn encode_mtap24(_p : Mtap24) {
+pub fn encode_mtap24(_p : Mtap24, nh: & NALUheader) -> Vec<u8> {
+    let mut res = Vec::new();
+    // 27 is MTAP24
+    let mtap24_hdr: u8 = 27 | nh.forbidden_zero_bit << 7 | (nh.nal_ref_idc << 5);
+
+    res.push(mtap24_hdr);
+
     // While more_data() {
     //   Encode a NALU Size that is 16 bits
     //   Encode a Decoding Order Number Difference (DOND) that is 8-bits
     //   Encode a 24-bit Timestamp Offset
     //   Encode a NALU of nalu size
     // }
+
+    res
 }
 
-/// Encapsulate a Fragmentation Unit (FU) without a DON (FU-A)
-///   0                   1
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   | FU indicator  |   FU header   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
+/// Encode a Fragmentation Unit (FU) without a DON (FU-A)
+fn encode_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     // 28 is FU-A
@@ -319,23 +250,11 @@ fn encapsulate_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
     return res;
 }
 
-/// Encodes a Fragmentation Unit (FU) with a DON (FU-B)
-///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   | FU indicator  |   FU header   |               DON             |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
-///   |                                                               |
-///   |                         FU payload                            |
-///   |                                                               |
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// Encode a Fragmentation Unit (FU) with a DON (FU-B)
 ///
 /// NOTE: uses the same DON for each FU atm
 #[allow(dead_code)]
-fn encapsulate_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<u8>> {
+fn encode_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     // 29 is FU-B

@@ -189,6 +189,11 @@ pub fn is_slice_type(slice_type_num: u8, slice_letter: &str) -> bool {
     }
 }
 
+/// Returns whether the NALU type is an RTP NALU (type 24 <= x <= 31)
+pub fn is_rtp_nalu(nal_unit_type: u8) -> bool {
+    nal_unit_type >= 24 && nal_unit_type <= 31
+}
+
 /// Convert a bitstream to a bytestream and pad the bitstream with a chosen value
 pub fn bitstream_to_bytestream<BS: AsRef<[u8]>>(bitstream: BS, padding_bit: u8) -> Vec<u8> {
     let bitstream = bitstream.as_ref();

@@ -1617,11 +1617,17 @@ impl Default for RandomAccessUnitDelim {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub struct RandomRTPOptions {
+    pub num_aggregation_nalus: RandomU32Range,
+}
+
 /// Overall random video properties
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct RandomizeVideo {
     pub num_nalus: RandomU32Range,
     pub enable_extensions: RandomBoolRange,
+    pub enable_rtp: RandomBoolRange,
     pub mp4_width: RandomU32Range, // Used when randomizing MP4 frame size
     pub mp4_height: RandomU32Range, // Used when randomizing MP4 frame size
 }
@@ -1631,6 +1637,7 @@ impl RandomizeVideo {
         RandomizeVideo {
             num_nalus: RandomU32Range::new(4, 30),
             enable_extensions: RandomBoolRange::new(0, 1, 1),
+            enable_rtp: RandomBoolRange::new(0, 1, 1),
             mp4_width: RandomU32Range::new(0, 10000),
             mp4_height: RandomU32Range::new(0, 10000),
         }

@@ -21,6 +21,7 @@ pub struct H264DecodedStream {
     pub slices: Vec<Slice>,
     pub seis: Vec<SEINalu>,
     pub auds: Vec<AccessUnitDelim>,
+    pub stap_as: Vec<StapA>,
 }
 
 impl H264DecodedStream {
@@ -36,6 +37,7 @@ impl H264DecodedStream {
             slices: Vec::new(),
             seis: Vec::new(),
             auds: Vec::new(),
+            stap_as: Vec::new(),
         }
     }
 
@@ -51,6 +53,7 @@ impl H264DecodedStream {
             slices: self.slices.clone(),
             seis: self.seis.clone(),
             auds: self.auds.clone(),
+            stap_as: self.stap_as.clone(),
         }
     }
 }
@@ -5968,41 +5971,40 @@ impl Default for FuHeader {
 
 /// NALU Type 24 - STAP-A Single-time aggregation packet
 ///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |STAP-A NAL HDR |         NALU 1 Size           | NALU 1 HDR    |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                         NALU 1 Data                           |
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 Size                   | NALU 2 HDR    |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                         NALU 2 Data                           |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// `  0                   1                   2                   3`
+/// `  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                          RTP Header                           |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |STAP-A NAL HDR |         NALU 1 Size           | NALU 1 HDR    |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                         NALU 1 Data                           |`
+/// `  :                                                               :`
+/// `  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |               | NALU 2 Size                   | NALU 2 HDR    |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                         NALU 2 Data                           |`
+/// `  :                                                               :`
+/// `  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                               :...OPTIONAL RTP padding        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
 ///   Figure 7.  An example of an RTP packet including an STAP-A
 ///              containing two single-time aggregation units
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StapA {
-    pub nalu_sizes: Vec<u16>, // 16 bits
-    pub nalus: Vec<NALU>, // includes the header
+    pub count : u32, // number of NALUs to include in aggregation
 }
 
 impl StapA {
     pub fn new() -> StapA {
         StapA {
-            nalu_sizes: Vec::new(),
-            nalus: Vec::new(),
+            count: 1, // NALU type
         }
     }
+
     #[allow(dead_code)]
     pub fn encoder_pretty_print(&self) {
-        encoder_formatted_print("STAP-A: number of NALUs contained", self.nalu_sizes.len(), 63);
+        encoder_formatted_print("STAP-A: number of NALUs contained", self.count, 63);
     }
 }
 
@@ -6014,44 +6016,42 @@ impl Default for StapA {
 
 /// NALU Type 25 - Single-Time Aggregation Unit with DON (STAP-B)
 ///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |STAP-B NAL HDR | DON                           | NALU 1 Size   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   | NALU 1 Size   | NALU 1 HDR    | NALU 1 Data                   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 Size                   | NALU 2 HDR    |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                       NALU 2 Data                             |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// `  0                   1                   2                   3`
+/// `  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                          RTP Header                           |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |STAP-B NAL HDR | DON                           | NALU 1 Size   |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  | NALU 1 Size   | NALU 1 HDR    | NALU 1 Data                   |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +`
+/// `  :                                                               :`
+/// `  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |               | NALU 2 Size                   | NALU 2 HDR    |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                       NALU 2 Data                             |`
+/// `  :                                                               :`
+/// `  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                               :...OPTIONAL RTP padding        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
 ///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StapB {
     pub decoding_order_number: u16, // DON
-    pub nalu_sizes: Vec<u16>, // 16 bits
-    pub nalus: Vec<NALU>, // includes the header
+    pub count: u32, // number of NALUs to include in aggregation
 }
 
 impl StapB {
     pub fn new() -> StapB {
         StapB {
             decoding_order_number: 0,
-            nalu_sizes: Vec::new(),
-            nalus: Vec::new(),
+            count: 1,
         }
     }
     #[allow(dead_code)]
     pub fn encoder_pretty_print(&self) {
         encoder_formatted_print("STAP-B: decoding_order_number (DON)", self.decoding_order_number, 63);
-        encoder_formatted_print("STAP-B: number of NALUs contained", self.nalu_sizes.len(), 63);
+        encoder_formatted_print("STAP-B: number of NALUs contained", self.count, 63);
     }
 }
 
@@ -6063,27 +6063,27 @@ impl Default for StapB {
 
 /// NALU Type 26 - Multi-Time Aggregation Packet (MTAP) with 16-bit timestamp offset (TS)
 ///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |MTAP16 NAL HDR |  decoding order number base   | NALU 1 Size   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offset        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 1 HDR   |  NALU 1 DATA                                  |
-///   +-+-+-+-+-+-+-+-+                                               +
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 SIZE                   |  NALU 2 DOND  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |       NALU 2 TS offset        |  NALU 2 HDR   |  NALU 2 DATA  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// `  0                   1                   2                   3`
+/// `  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                          RTP Header                           |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |MTAP16 NAL HDR |  decoding order number base   | NALU 1 Size   |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offset        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |  NALU 1 HDR   |  NALU 1 DATA                                  |`
+/// `  +-+-+-+-+-+-+-+-+                                               +`
+/// `  :                                                               :`
+/// `  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |               | NALU 2 SIZE                   |  NALU 2 DOND  |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |       NALU 2 TS offset        |  NALU 2 HDR   |  NALU 2 DATA  |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |`
+/// `  :                                                               :`
+/// `  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                               :...OPTIONAL RTP padding        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mtap16 {
     pub decoding_order_number_base: u16, // 16 bits
@@ -6118,28 +6118,28 @@ impl Default for Mtap16 {
 
 /// NALU Type 27 - Multi-Time Aggregation Packet (MTAP) with 24-bit timestamp offset (TS)
 ///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                          RTP Header                           |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |MTAP24 NAL HDR |  decoding order number base   | NALU 1 Size   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offs          |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |NALU 1 TS offs |  NALU 1 HDR   |  NALU 1 DATA                  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
-///   :                                                               :
-///   +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |               | NALU 2 SIZE                   |  NALU 2 DOND  |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |       NALU 2 TS offset                        |  NALU 2 HDR   |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |  NALU 2 DATA                                                  |
-///   :                                                               :
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// `  0                   1                   2                   3`
+/// `  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                          RTP Header                           |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |MTAP24 NAL HDR |  decoding order number base   | NALU 1 Size   |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |  NALU 1 Size  |  NALU 1 DOND  |       NALU 1 TS offs          |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |NALU 1 TS offs |  NALU 1 HDR   |  NALU 1 DATA                  |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +`
+/// `  :                                                               :`
+/// `  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |               | NALU 2 SIZE                   |  NALU 2 DOND  |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |       NALU 2 TS offset                        |  NALU 2 HDR   |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |  NALU 2 DATA                                                  |`
+/// `  :                                                               :`
+/// `  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                               :...OPTIONAL RTP padding        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mtap24 {
     pub decoding_order_number_base: u16, // 16 bits
@@ -6175,17 +6175,17 @@ impl Default for Mtap24 {
 
 /// NALU Type 28 - Fragmentation Unit (FU) without a DON (FU-A)
 ///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   | FU indicator  |   FU header   |                               |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
-///   |                                                               |
-///   |                         FU payload                            |
-///   |                                                               |
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// `  0                   1                   2                   3`
+/// `  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  | FU indicator  |   FU header   |                               |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |`
+/// `  |                                                               |`
+/// `  |                         FU payload                            |`
+/// `  |                                                               |`
+/// `  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                               :...OPTIONAL RTP padding        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
 ///
 /// NOTE: the FU indicator is just a NALU header
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -6218,17 +6218,17 @@ impl Default for FuA {
 
 /// NALU Type 29 - Fragmentation Unit (FU) with a DON (FU-B)
 ///
-///   0                   1                   2                   3
-///   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   | FU indicator  |   FU header   |               DON             |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
-///   |                                                               |
-///   |                         FU payload                            |
-///   |                                                               |
-///   |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///   |                               :...OPTIONAL RTP padding        |
-///   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// `  0                   1                   2                   3`
+/// `  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  | FU indicator  |   FU header   |               DON             |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|`
+/// `  |                                                               |`
+/// `  |                         FU payload                            |`
+/// `  |                                                               |`
+/// `  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
+/// `  |                               :...OPTIONAL RTP padding        |`
+/// `  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FuB {
     // FU Header
@@ -6256,5 +6256,28 @@ impl FuB {
 impl Default for FuB {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[derive(PartialEq)]
+pub enum RTPAggregationState {
+    None,
+    New,
+    Append,
+}
+
+pub struct RTPOptions {
+    pub packetization_mode : u8,    // 0, 1, 2
+    pub aggregation_state : RTPAggregationState,
+    pub aggregation_countdown : u32,    // Number of NALUs left to aggregate
+}
+
+impl RTPOptions {
+    pub fn new() -> RTPOptions {
+        RTPOptions {
+            packetization_mode: 1, // default to Non-Interleaved
+            aggregation_state: RTPAggregationState::None,
+            aggregation_countdown: 0,
+        }
     }
 }
