@@ -857,6 +857,37 @@ impl Default for RandomSubsetSPSRange {
     }
 }
 
+
+/// SPS Extension syntax elements
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RandomSPSExtensionRange {
+    pub aux_format_idc: RandomU32Range,
+    pub bit_depth_aux_minus8: RandomU32Range,
+    pub alpha_incr_flag: RandomBoolRange,
+    pub alpha_opaque_value: RandomU32Range,
+    pub alpha_transparent_value: RandomU32Range,
+    pub additional_extension_flag: RandomBoolRange,
+}
+
+impl RandomSPSExtensionRange {
+    pub fn new() -> RandomSPSExtensionRange {
+        RandomSPSExtensionRange {
+            aux_format_idc: RandomU32Range::new(0, 10), // expected range: [0, 3]
+            bit_depth_aux_minus8: RandomU32Range::new(0, 10), // [0, 4]
+            alpha_incr_flag: RandomBoolRange::new(0, 0, 1),
+            alpha_opaque_value: RandomU32Range::new(0, 1000), // max is 2^{bit_depth_aux_minus8 + 9}
+            alpha_transparent_value: RandomU32Range::new(0, 1000), // max is 2^{bit_depth_aux_minus8 + 9}
+            additional_extension_flag: RandomBoolRange::new(0, 0, 1),
+        }
+    }
+}
+
+impl Default for RandomSPSExtensionRange {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// SPS SVC Extension syntax elements
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct RandomSPSSVCExtensionRange {}
@@ -1658,6 +1689,7 @@ pub struct RandomizeConfig {
     pub random_access_unit_delim_range: RandomAccessUnitDelim,
     pub random_sps_range: RandomSPSRange,
     pub random_subset_sps_range: RandomSubsetSPSRange,
+    pub random_sps_extension_range: RandomSPSExtensionRange,
     pub random_prefix_nalu_range: RandomPrefixNALU,
     pub random_pps_range: RandomPPSRange,
     pub random_sei_range: RandomSEIRange,
@@ -1674,6 +1706,7 @@ impl RandomizeConfig {
             random_prefix_nalu_range: RandomPrefixNALU::new(),
             random_sps_range: RandomSPSRange::new(),
             random_subset_sps_range: RandomSubsetSPSRange::new(),
+            random_sps_extension_range: RandomSPSExtensionRange::new(),
             random_pps_range: RandomPPSRange::new(),
             random_sei_range: RandomSEIRange::new(),
             random_slice_header_range: RandomSliceHeaderRange::new(),

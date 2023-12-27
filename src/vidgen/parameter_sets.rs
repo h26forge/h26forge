@@ -14,6 +14,8 @@ use crate::vidgen::generate_configurations::RandomVUIMVCParametersRange;
 use crate::vidgen::generate_configurations::RandomVUIRange;
 use std::cmp;
 
+use super::generate_configurations::RandomSPSExtensionRange;
+
 /// Randomly chooses a level and returns the associated max framesize and max decoded picture buffer
 /// Levels also dictate how quickly something should be decoded.
 fn random_level_idc(
@@ -751,6 +753,28 @@ pub fn random_subset_sps(
             .push(rconfig.additional_extension2_flag.sample(film));
     }
 }
+
+/// Generate a random SPS Extension
+pub fn random_sps_extension(
+    sps_ext_idx: usize,
+    sps_idx: usize,
+    rconfig: &RandomSPSExtensionRange,
+    ds: &mut H264DecodedStream,
+    film: &mut FilmState,
+) {
+    ds.sps_extensions[sps_ext_idx].seq_parameter_set_id = ds.spses[sps_idx].seq_parameter_set_id;
+    ds.sps_extensions[sps_ext_idx].aux_format_idc = rconfig.aux_format_idc.sample(film);
+
+    if ds.sps_extensions[sps_ext_idx].aux_format_idc != 0 {
+        ds.sps_extensions[sps_ext_idx].bit_depth_aux_minus8 = rconfig.bit_depth_aux_minus8.sample(film);
+        ds.sps_extensions[sps_ext_idx].alpha_incr_flag = rconfig.alpha_incr_flag.sample(film);
+        ds.sps_extensions[sps_ext_idx].alpha_opaque_value = rconfig.alpha_opaque_value.sample(film);
+        ds.sps_extensions[sps_ext_idx].alpha_transparent_value = rconfig.alpha_transparent_value.sample(film);
+    }
+
+    ds.sps_extensions[sps_ext_idx].additional_extension_flag = rconfig.additional_extension_flag.sample(film);
+}
+
 
 /// Generate a random SPS MVC Extension
 fn random_sps_mvc_extension(

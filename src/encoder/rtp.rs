@@ -27,6 +27,15 @@ fn get_rtp_payload_type_and_timestamp(rtp_nal : &Vec<u8>, timestamp : &mut u32) 
             // IDR Slice
             payload_type = payload_type + 0x80; // add marker
         }
+        24 => {
+            // STAP-A
+            // From the RFC:
+            //  For aggregation packets (STAP and MTAP), the marker bit in the RTP
+            //  header MUST be set to the value that the marker bit of the last
+            //  NAL unit of the aggregation packet would have been if it were
+            //  transported in its own RTP packet.
+            // TODO
+        }
         28 => {
             // FU-A
             let inner_nal_type = rtp_nal[1] & 0x1f;
@@ -151,13 +160,7 @@ pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUheader, silent_mode : bool,
                         nh.nal_unit_type
                     );
                 }
-                let mut stap_a_bytes: Vec<u8> = Vec::new();
-
-                let nal_size = (nalu.len() as u16).to_be_bytes();
-                stap_a_bytes.extend(nal_size.iter());
-                stap_a_bytes.extend(nalu.iter());
-
-                res.push(stap_a_bytes);
+                res.push(append_stap_a(&nalu));
             },
             _ => panic!("encapsulate_rtp_nalu - bad RTPAggregationState") // Shouldn't get here
         }
@@ -168,7 +171,55 @@ pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUheader, silent_mode : bool,
     res
 }
 
+// Packetization Mode = 1 (Non-Interleaved Mode)
 
+/// Encode a Single-Time Aggregation Unit (STAP-A)
+pub fn append_stap_a(nalu : &Vec<u8>) -> Vec<u8> {
+    let mut stap_a_bytes: Vec<u8> = Vec::new();
+    let nal_size = (nalu.len() as u16).to_be_bytes();
+    stap_a_bytes.extend(nal_size.iter());
+    stap_a_bytes.extend(nalu.iter());
+
+    stap_a_bytes
+}
+
+/// Encode a Fragmentation Unit (FU) without a DON (FU-A)
+fn encode_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
+    let mut res = Vec::new();
+
+    // 28 is FU-A
+    let fu_indicator: u8 = 28 | nh.forbidden_zero_bit << 7 | (nh.nal_ref_idc << 5);
+    let fua_chunks = nal.chunks(FRAGMENT_SIZE);
+    let last_idx = fua_chunks.len() - 1;
+    for (i, chunk) in fua_chunks.enumerate() {
+        let mut fua_bytes: Vec<u8> = Vec::new();
+        fua_bytes.push(fu_indicator);
+
+        // Encode FU header
+        // +---------------+
+        // |0|1|2|3|4|5|6|7|
+        // +-+-+-+-+-+-+-+-+
+        // |S|E|R|  Type   |
+        // +---------------+
+        //  S: Start bit indicating the start of an FU
+        //  E: End bit indicating the end of an FU
+        //  R: Reserved, please set to 0
+        //  Type: NALU Payload type
+        let mut fu_header = nh.nal_unit_type;
+        if i == 0 {
+            fu_header |= 0x80; // S = 1
+        }
+        if i == last_idx {
+            fu_header |= 0x40; // E = 1
+        }
+        fua_bytes.push(fu_header);
+        fua_bytes.extend(chunk);
+        res.push(fua_bytes);
+    }
+    res
+}
+
+// Packetization Mode 2 (Interleaved Mode)
 
 /// Encode a Single-Time Aggregation Unit with DON (STAP-B)
 #[allow(dead_code)]
@@ -209,45 +260,6 @@ pub fn encode_mtap24(_p : Mtap24, nh: & NALUheader) -> Vec<u8> {
     // }
 
     res
-}
-
-/// Encode a Fragmentation Unit (FU) without a DON (FU-A)
-fn encode_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
-    let mut res = Vec::new();
-
-    // 28 is FU-A
-    let fu_indicator: u8 = 28 | nh.forbidden_zero_bit << 7 | (nh.nal_ref_idc << 5);
-    let fua_chunks = nal.chunks(FRAGMENT_SIZE);
-    let last_idx = fua_chunks.len() - 1;
-    for (i, chunk) in fua_chunks.enumerate() {
-        let mut fua_bytes: Vec<u8> = Vec::new();
-        fua_bytes.push(fu_indicator);
-
-        // Encode FU header
-        // +---------------+
-        // |0|1|2|3|4|5|6|7|
-        // +-+-+-+-+-+-+-+-+
-        // |S|E|R|  Type   |
-        // +---------------+
-        //  S: Start bit indicating the start of an FU
-        //  E: End bit indicating the end of an FU
-        //  R: Reserved, please set to 0
-        //  Type: NALU Payload type
-        let mut fu_header = nh.nal_unit_type;
-        if i == 0 {
-            fu_header |= 0x80; // S = 1
-        }
-        if i == last_idx {
-            fu_header |= 0x40; // E = 1
-        }
-        fua_bytes.push(fu_header);
-        fua_bytes.extend(chunk);
-        res.push(fua_bytes);
-    }
-
-    // TODO: allow empty FUs
-
-    return res;
 }
 
 /// Encode a Fragmentation Unit (FU) with a DON (FU-B)

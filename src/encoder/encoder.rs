@@ -844,7 +844,7 @@ pub fn encode_bitstream(
         if rtp_out {
             match rtp_options.aggregation_state {
                 RTPAggregationState::New => {
-                    cur_rtp_aggr_nal.extend(cur_rtp_nal); // just contains the header
+                    cur_rtp_aggr_nal.extend(cur_rtp_nal); // just contains the STAP-A header
                     // Next time append
                     rtp_options.aggregation_state = RTPAggregationState::Append;
                 }

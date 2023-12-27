@@ -1,12 +1,16 @@
+use crate::common::data_structures::H264DecodedStream;
 
+use super::film::FilmState;
 
 
 /// Random a Single-Time Aggregation Unit without DON (STAP-A)
-pub fn random_stap_a() {
-    // while more_data() {
-    //   Random a NAL size that is 16 bits
-    //   The embedded NALU has its own header
-    // }
+pub fn random_stap_a(stap_a_idx: usize,
+    ds: &mut H264DecodedStream,
+    _film: &mut FilmState)
+    {
+    // TODO: incorporate random count
+
+    ds.stap_as[stap_a_idx].count = 1;
 }
 
 /// Random a Single-Time Aggregation Unit with DON (STAP-B)

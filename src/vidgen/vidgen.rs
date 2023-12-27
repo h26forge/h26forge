@@ -7,8 +7,10 @@ use crate::common::data_structures::NALUheader;
 use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::PrefixNALU;
 use crate::common::data_structures::SEINalu;
+use crate::common::data_structures::SPSExtension;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::Slice;
+use crate::common::data_structures::StapA;
 use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::NALU;
 use crate::vidgen::film::FilmState;
@@ -28,6 +30,8 @@ use crate::vidgen::rtp::random_mtap24;
 use crate::vidgen::sei::random_sei;
 use crate::vidgen::slice::random_slice;
 use crate::vidgen::slice::random_slice_layer_extension;
+
+use super::parameter_sets::random_sps_extension;
 
 /// Generate a random video
 pub fn random_video(
@@ -53,6 +57,8 @@ pub fn random_video(
     let mut sei_idx = 0;
     let mut slice_idx = 0;
     let mut aud_idx = 0;
+    let mut stap_a_idx = 0;
+    let mut sps_extension_idx = 0;
 
     let mut generated_nalu_type_str = String::new();
 
@@ -235,7 +241,6 @@ pub fn random_video(
             }
             12 => {
                 // Filler data RBSP - should be all 0xff
-
                 let filler_data_length = rconfig
                     .random_nalu_range
                     .filler_data_nalu_length
@@ -252,6 +257,20 @@ pub fn random_video(
                     .extend(film.read_film_bytes(filler_data_length)); // the rest is random bytes of random length
 
                 generated_nalu_type_str += "FillerData(12);";
+            }
+            13 => {
+                // SPS Extension
+                if !silent_mode {
+                    println!(
+                        "\t random_video - NALU {} - Generating SPS Extension",
+                        nalu_idx
+                    );
+                }
+                ds.sps_extensions.push(SPSExtension::new());
+                random_sps_extension(sps_extension_idx, sps_idx, &rconfig.random_sps_extension_range, &mut ds, film);
+
+                generated_nalu_type_str += "SPSExt(13);";
+                sps_extension_idx += 1;
             }
             14 => {
                 // Prefix NALU
@@ -343,15 +362,17 @@ pub fn random_video(
                 generated_nalu_type_str += "CodedSliceExt(20);";
                 slice_idx += 1;
             }
-                        // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
+            // The following types are from https://www.ietf.org/rfc/rfc3984.txt and updated in https://datatracker.ietf.org/doc/html/rfc6184
             24 => {
                 // STAP-A    Single-time aggregation packet     5.7.1
                 if !silent_mode {
                     println!("\t random_video - NALU {} - RTP STAP-A", nalu_idx);
                 }
-                random_stap_a();
 
+                ds.stap_as.push(StapA::new());
+                random_stap_a(stap_a_idx, &mut ds, film);
                 generated_nalu_type_str += "STAP-A(24);";
+                stap_a_idx += 1;
             }
             25 => {
                 // STAP-B    Single-time aggregation packet     5.7.1
