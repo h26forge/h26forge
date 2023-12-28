@@ -9,6 +9,11 @@
       "max": 1,
       "threshold": 1
     },
+    "enable_rtp": {
+      "min": 0,
+      "max": 1,
+      "threshold": 1
+    },
     "mp4_width": {
       "min": 0,
       "max": 10000
@@ -359,7 +364,7 @@
     },
     "log2_max_pic_order_cnt_lsb_minus4": {
       "min": 0,
-      "max": 11
+      "max": 12
     },
     "delta_pic_order_always_zero_flag": {
       "min": 0,
@@ -367,20 +372,20 @@
       "threshold": 1
     },
     "offset_for_non_ref_pic": {
-      "min": -1073741824,
-      "max": 1073741823
+      "min": -2147483648,
+      "max": 2147483647
     },
     "offset_for_top_to_bottom_field": {
-      "min": -1073741824,
-      "max": 1073741823
+      "min": -2147483648,
+      "max": 2147483647
     },
     "num_ref_frames_in_pic_order_cnt_cycle": {
       "min": 0,
       "max": 255
     },
     "offset_for_ref_frame": {
-      "min": -1073741824,
-      "max": 1073741823
+      "min": -2147483648,
+      "max": 2147483647
     },
     "max_num_ref_frames": {
       "min": 0,
@@ -566,28 +571,28 @@
       },
       "max_bytes_per_pic_denom": {
         "min": 0,
-        "max": 16
+        "max": 1024
       },
       "max_bits_per_mb_denom": {
         "min": 0,
-        "max": 16
+        "max": 1024
       },
       "log2_max_mv_length_horizontal": {
         "min": 0,
-        "max": 15
+        "max": 1024
       },
       "log2_max_mv_length_vertical": {
         "min": 0,
-        "max": 15
+        "max": 1024
       },
       "max_num_reorder_frames": {
         "min": 0,
-        "max": 16
+        "max": 1024
       },
       "max_dec_frame_buffering": {
         "min": 0,
-        "max": 255,
-        "use_dependency": true
+        "max": 1024,
+        "use_dependency": false
       },
       "random_hdr_range": {
         "cpb_cnt_minus1": {
@@ -772,7 +777,7 @@
       },
       "log2_max_pic_order_cnt_lsb_minus4": {
         "min": 0,
-        "max": 11
+        "max": 12
       },
       "delta_pic_order_always_zero_flag": {
         "min": 0,
@@ -780,20 +785,20 @@
         "threshold": 1
       },
       "offset_for_non_ref_pic": {
-        "min": -1073741824,
-        "max": 1073741823
+        "min": -2147483648,
+        "max": 2147483647
       },
       "offset_for_top_to_bottom_field": {
-        "min": -1073741824,
-        "max": 1073741823
+        "min": -2147483648,
+        "max": 2147483647
       },
       "num_ref_frames_in_pic_order_cnt_cycle": {
         "min": 0,
         "max": 255
       },
       "offset_for_ref_frame": {
-        "min": -1073741824,
-        "max": 1073741823
+        "min": -2147483648,
+        "max": 2147483647
       },
       "max_num_ref_frames": {
         "min": 0,
@@ -979,28 +984,28 @@
         },
         "max_bytes_per_pic_denom": {
           "min": 0,
-          "max": 16
+          "max": 1024
         },
         "max_bits_per_mb_denom": {
           "min": 0,
-          "max": 16
+          "max": 1024
         },
         "log2_max_mv_length_horizontal": {
           "min": 0,
-          "max": 15
+          "max": 1024
         },
         "log2_max_mv_length_vertical": {
           "min": 0,
-          "max": 15
+          "max": 1024
         },
         "max_num_reorder_frames": {
           "min": 0,
-          "max": 16
+          "max": 1024
         },
         "max_dec_frame_buffering": {
           "min": 0,
-          "max": 255,
-          "use_dependency": true
+          "max": 1024,
+          "use_dependency": false
         },
         "random_hdr_range": {
           "cpb_cnt_minus1": {
@@ -1176,7 +1181,7 @@
     "random_mvc_vui_range": {
       "vui_mvc_num_ops_minus1": {
         "min": 0,
-        "max": 1000
+        "max": 1500
       },
       "vui_mvc_temporal_id": {
         "min": 0,
@@ -1327,6 +1332,34 @@
       "threshold": 1
     }
   },
+  "random_sps_extension_range": {
+    "aux_format_idc": {
+      "min": 0,
+      "max": 10
+    },
+    "bit_depth_aux_minus8": {
+      "min": 0,
+      "max": 10
+    },
+    "alpha_incr_flag": {
+      "min": 0,
+      "max": 0,
+      "threshold": 1
+    },
+    "alpha_opaque_value": {
+      "min": 0,
+      "max": 1000
+    },
+    "alpha_transparent_value": {
+      "min": 0,
+      "max": 1000
+    },
+    "additional_extension_flag": {
+      "min": 0,
+      "max": 0,
+      "threshold": 1
+    }
+  },
   "random_prefix_nalu_range": {
     "store_ref_base_pic_flag": {
       "min": 0,
@@ -1372,7 +1405,7 @@
   "random_pps_range": {
     "pic_parameter_set_id": {
       "min": 0,
-      "max": 255
+      "max": 512
     },
     "entropy_coding_mode_flag": {
       "min": 0,
@@ -1386,11 +1419,11 @@
     },
     "num_slice_groups_minus1": {
       "min": 0,
-      "max": 7
+      "max": 0
     },
     "slice_group_map_type": {
       "min": 0,
-      "max": 5
+      "max": 6
     },
     "run_length_minus1": {
       "min": 0,
@@ -1423,11 +1456,11 @@
     },
     "num_ref_idx_l0_default_active_minus1": {
       "min": 0,
-      "max": 32
+      "max": 1024
     },
     "num_ref_idx_l1_default_active_minus1": {
       "min": 0,
-      "max": 32
+      "max": 1024
     },
     "weighted_pred_flag": {
       "min": 0,
@@ -1439,16 +1472,16 @@
       "max": 3
     },
     "pic_init_qp_minus26": {
-      "min": -26,
-      "max": 25
+      "min": -512,
+      "max": 512
     },
     "pic_init_qs_minus26": {
-      "min": -26,
-      "max": 25
+      "min": -512,
+      "max": 512
     },
     "chroma_qp_index_offset": {
-      "min": -13,
-      "max": 14
+      "min": -512,
+      "max": 512
     },
     "deblocking_filter_control_present_flag": {
       "min": 0,
@@ -1495,11 +1528,23 @@
     },
     "bias_ignore_slice_groups": {
       "min": 0,
-      "max": 10,
+      "max": 1,
       "threshold": 1
     }
   },
   "random_sei_range": {
+    "num_seis": {
+      "min": 1,
+      "max": 1
+    },
+    "payload_type": {
+      "values": [
+        0,
+        1,
+        5,
+        6
+      ]
+    },
     "random_buffering_period_range": {
       "seq_parameter_set_id": {
         "min": 0,
@@ -1747,18 +1792,6 @@
         "min": 0,
         "max": 4294967295
       }
-    },
-    "num_seis": {
-      "min": 1,
-      "max": 1
-    },
-    "payload_type": {
-      "values": [
-        0,
-        1,
-        5,
-        6
-      ]
     }
   },
   "random_slice_header_range": {
@@ -1809,12 +1842,12 @@
       "max": 63
     },
     "delta_pic_order_cnt_bottom": {
-      "min": -1073741824,
-      "max": 1073741823
+      "min": -2147483648,
+      "max": 2147483647
     },
     "delta_pic_order_cnt": {
-      "min": -1073741824,
-      "max": 1073741823
+      "min": -2147483648,
+      "max": 2147483647
     },
     "redundant_pic_cnt": {
       "min": 0,
@@ -1991,7 +2024,7 @@
     },
     "cabac_init_idc": {
       "min": 0,
-      "max": 2
+      "max": 24
     },
     "slice_qp_delta": {
       "min": -26,
@@ -2025,7 +2058,7 @@
     },
     "bias_i_slice": {
       "min": 0,
-      "max": 20,
+      "max": 1,
       "threshold": 1
     },
     "bias_non_rand_frame_num": {
