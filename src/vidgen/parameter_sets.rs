@@ -720,7 +720,6 @@ pub fn random_subset_sps(
         };
         random_sps_svc_extension(chroma_array_type, subset_sps_idx, rconfig.random_sps_svc_range, ds, film); // specified in Annex G
         ds.subset_spses[subset_sps_idx].svc_vui_parameters_present_flag = rconfig.svc_vui_parameters_present_flag.sample(film);
-        
         if ds.subset_spses[subset_sps_idx].svc_vui_parameters_present_flag {
             random_vui_svc_parameters(subset_sps_idx, rconfig.random_svc_vui_range, ds, film); // specified in Annex G
         }
@@ -807,7 +806,6 @@ fn random_sps_svc_extension(
         ds.subset_spses[subset_sps_idx].sps_svc.seq_scaled_ref_layer_bottom_offset = rconfig.seq_scaled_ref_layer_bottom_offset.sample(film);
     }
     ds.subset_spses[subset_sps_idx].sps_svc.seq_tcoeff_level_prediction_flag = rconfig.seq_tcoeff_level_prediction_flag.sample(film);
-    
     if ds.subset_spses[subset_sps_idx].sps_svc.seq_tcoeff_level_prediction_flag {
         ds.subset_spses[subset_sps_idx].sps_svc.adaptive_tcoeff_level_prediction_flag = rconfig.adaptive_tcoeff_level_prediction_flag.sample(film);
     }

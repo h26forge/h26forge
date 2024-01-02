@@ -40,18 +40,16 @@ fn in_crop_window(curr_mb_addr : usize, sh: &SliceHeader, vp : &VideoParameters)
         mb_y1 = mb_y0 + 1;
     }
 
-    
     let scal_mb_h = 16 * (1 + match sh.field_pic_flag {true => 1, _ => 0});
 
-    if !vp.no_inter_layer_pred_flag 
+    if !vp.no_inter_layer_pred_flag
         && mb_x >= ((sh.scaled_ref_layer_left_offset + 15) / 16)
         && mb_x < ((sh.scaled_ref_layer_left_offset + sh.scaled_ref_layer_pic_width_in_samples_luma) / 16)
-        && mb_y0 >= (sh.scaled_ref_layer_top_offset + scal_mb_h - 1)/ scal_mb_h 
+        && mb_y0 >= (sh.scaled_ref_layer_top_offset + scal_mb_h - 1)/ scal_mb_h
         && mb_y1 < (sh.scaled_ref_layer_top_offset + sh.scaled_ref_layer_pic_height_in_samples_luma) / scal_mb_h
     {
         return true;
     }
-    
 
     return false;
 }
@@ -493,9 +491,7 @@ pub fn decode_macroblock_layer_in_scalable_extension(
         } else {
             exp_golomb_decode_one_wrapper(bs, false, 0)
         };
-    
         sd.macroblock_vec[curr_mb_idx].mb_type = decode_mb_type(res, sh);
-    
         decoder_formatted_print("mb_type", &res, 63);
         decoder_formatted_print("mb_type(fancy)", sd.macroblock_vec[curr_mb_idx].mb_type, 63);
     }
@@ -575,7 +571,6 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                 && sd.macroblock_vec[curr_mb_idx].num_mb_part() == 4
             {
                 decode_sub_mb_pred_in_scalable_extension(curr_mb_idx, bs, cabac_state, sh, sd, vp, p);
-    
                 for mb_part_idx in 0..4 {
                     if sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
                     {
@@ -604,19 +599,16 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                     } else {
                         bs.read_bits(1) as i32
                     };
-    
                     sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = res == 1;
-    
                     decoder_formatted_print("transform_size_8x8_flag", &res, 63);
                 }
                 decode_mb_pred_in_scalable_extension(curr_mb_idx, bs, cabac_state, sh, sd, vp, p);
             }
             // equation 7-36
             sd.macroblock_vec[curr_mb_idx].set_cbp_chroma_and_luma();
-            
-            if sh.adaptive_residual_prediction_flag && !is_slice_type(sh.slice_type, "EI") && 
-                in_crop_window(sd.macroblock_vec[curr_mb_idx].mb_addr, sh, vp) && 
-                (sd.macroblock_vec[curr_mb_idx].base_mode_flag || (cur_mppm != MbPartPredMode::Intra16x16 && cur_mppm != MbPartPredMode::Intra8x8 && cur_mppm != MbPartPredMode::Intra4x4)) 
+            if sh.adaptive_residual_prediction_flag && !is_slice_type(sh.slice_type, "EI") &&
+                in_crop_window(sd.macroblock_vec[curr_mb_idx].mb_addr, sh, vp) &&
+                (sd.macroblock_vec[curr_mb_idx].base_mode_flag || (cur_mppm != MbPartPredMode::Intra16x16 && cur_mppm != MbPartPredMode::Intra8x8 && cur_mppm != MbPartPredMode::Intra4x4))
             {
                 let res = if p.entropy_coding_mode_flag {
                     cabac_decode("residual_prediction_flag", bs, cabac_state, curr_mb_idx,sh,sd, vp, 0, Vec::new())
@@ -648,24 +640,20 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                         };
                         mapped_exp_golomb_decode(vp.chroma_array_type, intra_mode, bs)
                     };
-        
                     sd.macroblock_vec[curr_mb_idx].coded_block_pattern = res as u32;
-        
                     decoder_formatted_print(
                         "coded_block_pattern",
                         &sd.macroblock_vec[curr_mb_idx].coded_block_pattern,
                         63,
                     );
-        
                     // equation 7-36 (we do this again because coded_block_pattern is in the bitstream)
                     sd.macroblock_vec[curr_mb_idx].coded_block_pattern_luma =
                         sd.macroblock_vec[curr_mb_idx].coded_block_pattern % 16;
                     sd.macroblock_vec[curr_mb_idx].coded_block_pattern_chroma =
                         sd.macroblock_vec[curr_mb_idx].coded_block_pattern / 16;
-        
                     if sd.macroblock_vec[curr_mb_idx].coded_block_pattern_luma > 0
-                        && p.transform_8x8_mode_flag 
-                        && ( sd.macroblock_vec[curr_mb_idx].base_mode_flag || 
+                        && p.transform_8x8_mode_flag
+                        && ( sd.macroblock_vec[curr_mb_idx].base_mode_flag ||
                             (sd.macroblock_vec[curr_mb_idx].mb_type != MbType::INxN
                              && sd.macroblock_vec[curr_mb_idx].no_sub_mb_part_size_less_than_8x8_flag
                              && (sd.macroblock_vec[curr_mb_idx].mb_type != MbType::BDirect16x16
@@ -682,13 +670,10 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                                 vp,
                                 0,
                                 Vec::new(),
-                            )
-                        } else {
+                            )                        } else {
                             bs.read_bits(1) as i32
                         };
-        
                         sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = 1 == res;
-        
                         decoder_formatted_print("transform_size_8x8_flag (inside condition)", &res, 63);
                     }
                 }
@@ -697,7 +682,6 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                     || cur_mppm == MbPartPredMode::Intra16x16
                 {
                     let res: i32;
-        
                     if p.entropy_coding_mode_flag {
                         res = cabac_decode(
                             "mb_qp_delta",
@@ -719,15 +703,12 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                         res = exp_golomb_decode_one_wrapper(bs, true, 0);
                         sd.macroblock_vec[curr_mb_idx].mb_qp_delta = res;
                     }
-        
                     // implement transformation of Table 9-3
-        
                     decoder_formatted_print(
                         "mb_qp_delta",
                         &sd.macroblock_vec[curr_mb_idx].mb_qp_delta,
                         63,
                     );
-        
                     sd.macroblock_vec[curr_mb_idx].qp_y = (sh.qp_y_prev
                         + sd.macroblock_vec[curr_mb_idx].mb_qp_delta
                         + 52
@@ -737,13 +718,11 @@ pub fn decode_macroblock_layer_in_scalable_extension(
                     sh.qp_y_prev = sd.macroblock_vec[curr_mb_idx].qp_y;
                     sd.macroblock_vec[curr_mb_idx].qp_y_prime =
                         sd.macroblock_vec[curr_mb_idx].qp_y + vp.qp_bd_offset_y;
-        
                     if s.sps.qpprime_y_zero_transform_bypass_flag
                         && sd.macroblock_vec[curr_mb_idx].qp_y_prime == 0
                     {
                         sd.macroblock_vec[curr_mb_idx].transform_bypass_mode_flag = true;
                     }
-        
                     decode_residual(sh.scan_idx_start as usize, sh.scan_idx_end as usize, bs, cabac_state, curr_mb_idx, sh, sd, vp, p);
                 }
             }
@@ -1694,7 +1673,7 @@ fn decode_sub_mb_pred_in_scalable_extension(
             && sd.macroblock_vec[curr_mb_idx].mb_type != MbType::P8x8ref0
             && sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
             && sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx)
-                != MbPartPredMode::PredL1 
+                != MbPartPredMode::PredL1
             && !sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l0[mb_part_idx]
         {
             let additional_inputs = vec![mb_part_idx];

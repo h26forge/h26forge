@@ -1262,12 +1262,11 @@ pub fn decode_slice_layer_extension_rbsp(
         sh = res.sh;
         sd = res.sd;
     }
-    
     SliceExtension{ sh, sd }
 }
 
 /// Follows section G.7.3.3.4
-fn decode_slice_header_in_scalable_extension(    
+fn decode_slice_header_in_scalable_extension(
     bs: &mut ByteStream,
     nh: &NALUHeader,
     spses: &Vec<SubsetSPS>,
@@ -1414,7 +1413,6 @@ fn decode_slice_header_in_scalable_extension(
                     63,
                 );
             }
-            
             if nh.svc_extension.no_inter_layer_pred_flag || !sh.base_pred_weight_table_flag {
                 pred_weight_table(&mut sh, bs, vp.chroma_array_type);
             }
@@ -1602,7 +1600,7 @@ fn decode_slice_header_in_scalable_extension(
                     "SH(SVC): default_base_mode_flag",
                     sh.default_base_mode_flag,
                     63,
-                );   
+                );
             }
             if !sh.default_base_mode_flag {
                 sh.adaptive_motion_prediction_flag = 1 == bs.read_bits(1);
