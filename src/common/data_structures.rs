@@ -12,7 +12,7 @@ use std::cmp;
 #[derive(Serialize, Deserialize)]
 pub struct H264DecodedStream {
     pub nalu_elements: Vec<NALU>,
-    pub nalu_headers: Vec<NALUheader>,
+    pub nalu_headers: Vec<NALUHeader>,
     pub spses: Vec<SeqParameterSet>,
     pub subset_spses: Vec<SubsetSPS>,
     pub sps_extensions: Vec<SPSExtension>,
@@ -166,7 +166,7 @@ impl Default for NALUHeaderMVCExtension {
 
 /// NALU Header
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NALUheader {
+pub struct NALUHeader {
     pub forbidden_zero_bit: u8,
     pub nal_ref_idc: u8,
     pub nal_unit_type: u8,
@@ -177,9 +177,9 @@ pub struct NALUheader {
     pub mvc_extension: NALUHeaderMVCExtension,
 }
 
-impl NALUheader {
-    pub fn new() -> NALUheader {
-        NALUheader {
+impl NALUHeader {
+    pub fn new() -> NALUHeader {
+        NALUHeader {
             forbidden_zero_bit: 0,
             nal_ref_idc: 0,
             nal_unit_type: 0,
@@ -192,7 +192,7 @@ impl NALUheader {
     }
 }
 
-impl Default for NALUheader {
+impl Default for NALUHeader {
     fn default() -> Self {
         Self::new()
     }
@@ -384,10 +384,14 @@ pub struct VideoParameters {
     pub nal_unit_type: u8,
     pub pps_constrained_intra_pred_flag: bool,
     pub entropy_coding_mode_flag: bool,
+
+    // Used in Annex G
+    pub no_inter_layer_pred_flag: bool,
+    pub min_no_inter_layer_pred_flag : bool,
 }
 
 impl VideoParameters {
-    pub fn new(nh: &NALUheader, p: &PicParameterSet, s: &SeqParameterSet) -> VideoParameters {
+    pub fn new(nh: &NALUHeader, p: &PicParameterSet, s: &SeqParameterSet) -> VideoParameters {
         let sub_width_c: u32;
         let sub_height_c: u32;
         let mb_width_c: u32;
@@ -546,13 +550,14 @@ impl VideoParameters {
         // equation 7-23
         //slice_group_change_rate = p.slice_group_change_rate_minus1 + 1;
 
-        // the rest of values are calculated in the slice header
-
         // misc useful values
         let nal_unit_type: u8 = nh.nal_unit_type;
         let pps_constrained_intra_pred_flag: bool = p.constrained_intra_pred_flag;
         let entropy_coding_mode_flag: bool = p.entropy_coding_mode_flag;
 
+        // Annex G
+        let min_no_inter_layer_pred_flag = nh.svc_extension.no_inter_layer_pred_flag; // This may be different in the future
+        let no_inter_layer_pred_flag = nh.svc_extension.no_inter_layer_pred_flag;
         VideoParameters {
             sub_width_c: sub_width_c,
             sub_height_c: sub_height_c,
@@ -572,6 +577,8 @@ impl VideoParameters {
             nal_unit_type: nal_unit_type,
             pps_constrained_intra_pred_flag: pps_constrained_intra_pred_flag,
             entropy_coding_mode_flag: entropy_coding_mode_flag,
+            min_no_inter_layer_pred_flag: min_no_inter_layer_pred_flag,
+            no_inter_layer_pred_flag: no_inter_layer_pred_flag,
         }
     }
 }
@@ -882,6 +889,12 @@ pub struct MacroBlock {
     pub num_c8x8: usize,
     pub chroma_dc_level: Vec<Vec<i32>>,
     pub chroma_ac_level: Vec<Vec<Vec<i32>>>,
+
+    // Annex G parameters
+    pub base_mode_flag: bool,
+    pub residual_prediction_flag: bool,
+    pub motion_prediction_flag_l0: [bool; 4],
+    pub motion_prediction_flag_l1: [bool; 4],
 }
 
 impl MacroBlock {
@@ -955,6 +968,11 @@ impl MacroBlock {
             num_c8x8: 0,
             chroma_dc_level: Vec::new(),
             chroma_ac_level: Vec::new(),
+
+            base_mode_flag: false,
+            residual_prediction_flag: false,
+            motion_prediction_flag_l0: [false ; 4],
+            motion_prediction_flag_l1: [false ; 4],
         }
     }
 
@@ -1537,6 +1555,19 @@ pub struct SliceHeader {
     pub scan_idx_start: u8, //u(4)
     pub scan_idx_end: u8, //u(4)
 
+    // Annex G calculated values
+    pub scaled_left_offset: i32,
+    pub scaled_right_offset: i32,
+    pub scaled_top_offset: i32,
+    pub scaled_bottom_offset: i32,
+    // These are based off of the current layer
+    pub calculated_scaled_ref_layer_left_offset: i32,
+    pub calculated_scaled_ref_layer_right_offset: i32,
+    pub calculated_scaled_ref_layer_top_offset: i32,
+    pub calculated_scaled_ref_layer_bottom_offset: i32,
+    pub scaled_ref_layer_pic_width_in_samples_luma: i32,
+    pub scaled_ref_layer_pic_height_in_samples_luma: i32,
+
 
     // Annex H addendum
     pub abs_diff_view_idx_minus1_l0: Vec<u32>,
@@ -1638,6 +1669,16 @@ impl SliceHeader {
             tcoeff_level_prediction_flag: false,
             scan_idx_start: 0, //u(4)
             scan_idx_end: 0, //u(4)
+            scaled_left_offset: 0,
+            scaled_right_offset: 0,
+            scaled_top_offset: 0,
+            scaled_bottom_offset: 0,
+            calculated_scaled_ref_layer_left_offset: 0,
+            calculated_scaled_ref_layer_right_offset: 0,
+            calculated_scaled_ref_layer_top_offset: 0,
+            calculated_scaled_ref_layer_bottom_offset: 0,
+            scaled_ref_layer_pic_width_in_samples_luma: 0,
+            scaled_ref_layer_pic_height_in_samples_luma: 0,
             abs_diff_view_idx_minus1_l0: Vec::new(),
             abs_diff_view_idx_minus1_l1: Vec::new(),
         }
@@ -1933,6 +1974,16 @@ impl SliceHeader {
             tcoeff_level_prediction_flag: self.tcoeff_level_prediction_flag,
             scan_idx_start: self.scan_idx_start,
             scan_idx_end: self.scan_idx_end,
+            scaled_left_offset: self.scaled_left_offset,
+            scaled_right_offset: self.scaled_right_offset,
+            scaled_top_offset: self.scaled_top_offset,
+            scaled_bottom_offset: self.scaled_bottom_offset,
+            calculated_scaled_ref_layer_left_offset: self.calculated_scaled_ref_layer_left_offset,
+            calculated_scaled_ref_layer_right_offset: self.calculated_scaled_ref_layer_right_offset,
+            calculated_scaled_ref_layer_top_offset: self.calculated_scaled_ref_layer_top_offset,
+            calculated_scaled_ref_layer_bottom_offset: self.calculated_scaled_ref_layer_bottom_offset,
+            scaled_ref_layer_pic_width_in_samples_luma: self.scaled_ref_layer_pic_width_in_samples_luma,
+            scaled_ref_layer_pic_height_in_samples_luma: self.scaled_ref_layer_pic_height_in_samples_luma,
             abs_diff_view_idx_minus1_l0: self.abs_diff_view_idx_minus1_l0.clone(),
             abs_diff_view_idx_minus1_l1: self.abs_diff_view_idx_minus1_l1.clone(),
         }

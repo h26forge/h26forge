@@ -12,9 +12,10 @@ use crate::vidgen::generate_configurations::RandomSPSRange;
 use crate::vidgen::generate_configurations::RandomSubsetSPSRange;
 use crate::vidgen::generate_configurations::RandomVUIMVCParametersRange;
 use crate::vidgen::generate_configurations::RandomVUIRange;
+use crate::vidgen::generate_configurations::RandomSPSExtensionRange;
+use crate::vidgen::generate_configurations::RandomSPSSVCExtensionRange;
+use crate::vidgen::generate_configurations::RandomVUISVCParametersRange;
 use std::cmp;
-
-use super::generate_configurations::RandomSPSExtensionRange;
 
 /// Randomly chooses a level and returns the associated max framesize and max decoded picture buffer
 /// Levels also dictate how quickly something should be decoded.
@@ -299,7 +300,7 @@ fn random_vui(sps: &mut SeqParameterSet, rconfig: RandomVUIRange, film: &mut Fil
 
     if sps.vui_parameters.nal_hrd_parameters_present_flag {
         sps.vui_parameters.nal_hrd_parameters =
-            random_hrd_parameters(rconfig.random_hdr_range, film);
+            random_hrd_parameters(rconfig.random_hrd_range, film);
     }
 
     sps.vui_parameters.vcl_hrd_parameters_present_flag =
@@ -307,7 +308,7 @@ fn random_vui(sps: &mut SeqParameterSet, rconfig: RandomVUIRange, film: &mut Fil
 
     if sps.vui_parameters.vcl_hrd_parameters_present_flag {
         sps.vui_parameters.vcl_hrd_parameters =
-            random_hrd_parameters(rconfig.random_hdr_range, film);
+            random_hrd_parameters(rconfig.random_hrd_range, film);
     }
 
     if sps.vui_parameters.nal_hrd_parameters_present_flag
@@ -713,12 +714,16 @@ pub fn random_subset_sps(
     if ds.subset_spses[subset_sps_idx].sps.profile_idc == 83
         || ds.subset_spses[subset_sps_idx].sps.profile_idc == 86
     {
-        //random_sps_svc_extension(&ds.subset_spses[subset_sps_idx].sps_svc); // specified in Annex G
-        //ds.subset_spses[subset_sps_idx].svc_vui_parameters_present_flag = rconfig.svc_vui_parameters_present_flag.sample(film);
-        //
-        //if ds.subset_spses[subset_sps_idx].svc_vui_parameters_present_flag {
-        //    random_vui_svc_parameters(&ds.subset_spses[subset_sps_idx].svc_vui); // specified in Annex G
-        //}
+        let chroma_array_type = match ds.subset_spses[subset_sps_idx].sps.separate_colour_plane_flag {
+            true => ds.subset_spses[subset_sps_idx].sps.chroma_format_idc,
+            false => 0,
+        };
+        random_sps_svc_extension(chroma_array_type, subset_sps_idx, rconfig.random_sps_svc_range, ds, film); // specified in Annex G
+        ds.subset_spses[subset_sps_idx].svc_vui_parameters_present_flag = rconfig.svc_vui_parameters_present_flag.sample(film);
+        
+        if ds.subset_spses[subset_sps_idx].svc_vui_parameters_present_flag {
+            random_vui_svc_parameters(subset_sps_idx, rconfig.random_svc_vui_range, ds, film); // specified in Annex G
+        }
     } else if ds.subset_spses[subset_sps_idx].sps.profile_idc == 118
         || ds.subset_spses[subset_sps_idx].sps.profile_idc == 128
         || ds.subset_spses[subset_sps_idx].sps.profile_idc == 134
@@ -733,8 +738,7 @@ pub fn random_subset_sps(
             random_vui_mvc_parameters(subset_sps_idx, rconfig.random_mvc_vui_range, ds, film);
             // specified in Annex H
         }
-    } else if ds.subset_spses[subset_sps_idx].sps.profile_idc == 138
-        || ds.subset_spses[subset_sps_idx].sps.profile_idc == 135
+    } else if ds.subset_spses[subset_sps_idx].sps.profile_idc == 138 || ds.subset_spses[subset_sps_idx].sps.profile_idc == 135
     {
         //ds.subset_spses[subset_sps_idx].bit_equal_to_one = rconfig.bit_equal_to_one.sample(film);
         //random_sps_mvcd_extension(&ds.subset_spses[subset_sps_idx].sps_mvcd); // specified in Annex I
@@ -775,6 +779,79 @@ pub fn random_sps_extension(
     ds.sps_extensions[sps_ext_idx].additional_extension_flag = rconfig.additional_extension_flag.sample(film);
 }
 
+fn random_sps_svc_extension(
+    chroma_array_type: u8,
+    subset_sps_idx: usize,
+    rconfig: RandomSPSSVCExtensionRange,
+    ds: &mut H264DecodedStream,
+    film: &mut FilmState,
+) {
+    ds.subset_spses[subset_sps_idx].sps_svc.inter_layer_deblocking_filter_control_present_flag = rconfig.inter_layer_deblocking_filter_control_present_flag.sample(film);
+    ds.subset_spses[subset_sps_idx].sps_svc.extended_spatial_scalability_idc = rconfig.extended_spatial_scalability_idc.sample(film) as u8;
+    if chroma_array_type == 1 || chroma_array_type == 2 {
+        ds.subset_spses[subset_sps_idx].sps_svc.chroma_phase_x_plus1_flag = rconfig.chroma_phase_x_plus1_flag.sample(film);
+    }
+
+    if chroma_array_type == 1 {
+        ds.subset_spses[subset_sps_idx].sps_svc.chroma_phase_y_plus1 = rconfig.chroma_phase_y_plus1.sample(film) as u8;
+    }
+
+    if ds.subset_spses[subset_sps_idx].sps_svc.extended_spatial_scalability_idc == 1 {
+        if chroma_array_type > 0 {
+            ds.subset_spses[subset_sps_idx].sps_svc.seq_ref_layer_chroma_phase_x_plus1_flag = rconfig.seq_ref_layer_chroma_phase_x_plus1_flag.sample(film);
+            ds.subset_spses[subset_sps_idx].sps_svc.seq_ref_layer_chroma_phase_y_plus1 = rconfig.seq_ref_layer_chroma_phase_y_plus1.sample(film) as u8;
+        }
+        ds.subset_spses[subset_sps_idx].sps_svc.seq_scaled_ref_layer_left_offset = rconfig.seq_scaled_ref_layer_left_offset.sample(film);
+        ds.subset_spses[subset_sps_idx].sps_svc.seq_scaled_ref_layer_top_offset = rconfig.seq_scaled_ref_layer_top_offset.sample(film);
+        ds.subset_spses[subset_sps_idx].sps_svc.seq_scaled_ref_layer_right_offset = rconfig.seq_scaled_ref_layer_right_offset.sample(film);
+        ds.subset_spses[subset_sps_idx].sps_svc.seq_scaled_ref_layer_bottom_offset = rconfig.seq_scaled_ref_layer_bottom_offset.sample(film);
+    }
+    ds.subset_spses[subset_sps_idx].sps_svc.seq_tcoeff_level_prediction_flag = rconfig.seq_tcoeff_level_prediction_flag.sample(film);
+    
+    if ds.subset_spses[subset_sps_idx].sps_svc.seq_tcoeff_level_prediction_flag {
+        ds.subset_spses[subset_sps_idx].sps_svc.adaptive_tcoeff_level_prediction_flag = rconfig.adaptive_tcoeff_level_prediction_flag.sample(film);
+    }
+    ds.subset_spses[subset_sps_idx].sps_svc.slice_header_restriction_flag = rconfig.slice_header_restriction_flag.sample(film);
+}
+
+fn random_vui_svc_parameters(
+    subset_sps_idx: usize,
+    rconfig: RandomVUISVCParametersRange,
+    ds: &mut H264DecodedStream,
+    film: &mut FilmState,
+) {
+    ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_num_entries_minus1 = rconfig.vui_ext_num_entries_minus1.sample(film);
+
+    for i in 0..=(ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_num_entries_minus1 as usize) {
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_dependency_id.push(rconfig.vui_ext_dependency_id.sample(film) as u8);
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_quality_id.push(rconfig.vui_ext_quality_id.sample(film) as u8);
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_temporal_id.push(rconfig.vui_ext_temporal_id.sample(film) as u8);
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_timing_info_present_flag.push(rconfig.vui_ext_timing_info_present_flag.sample(film));
+
+        if ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_timing_info_present_flag[i] {
+            ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_num_units_in_tick.push(rconfig.vui_ext_num_units_in_tick.sample(film));
+            ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_time_scale.push(rconfig.vui_ext_time_scale.sample(film));
+            ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_fixed_frame_rate_flag.push(rconfig.vui_ext_fixed_frame_rate_flag.sample(film));
+        }
+
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_nal_hrd_parameters_present_flag.push(rconfig.vui_ext_nal_hrd_parameters_present_flag.sample(film));
+        if ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_nal_hrd_parameters_present_flag[i] {
+            ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_nal_hrd_parameters.push(random_hrd_parameters(rconfig.vui_ext_nal_hrd_parameters, film));
+        }
+
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_vcl_hrd_parameters_present_flag.push(rconfig.vui_ext_vcl_hrd_parameters_present_flag.sample(film));
+        if ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_vcl_hrd_parameters_present_flag[i] {
+            ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_vcl_hrd_parameters.push(random_hrd_parameters(rconfig.vui_ext_vcl_hrd_parameters, film));
+        }
+
+        if ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_nal_hrd_parameters_present_flag[i] || ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_vcl_hrd_parameters_present_flag[i]
+        {
+            ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_low_delay_hrd_flag.push(rconfig.vui_ext_low_delay_hrd_flag.sample(film));
+        }
+        ds.subset_spses[subset_sps_idx].svc_vui.vui_ext_pic_struct_present_flag.push(rconfig.vui_ext_pic_struct_present_flag.sample(film));
+    }
+
+}
 
 /// Generate a random SPS MVC Extension
 fn random_sps_mvc_extension(

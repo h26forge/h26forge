@@ -1,7 +1,7 @@
 //! NALU header and extensions syntax element encoding.
 
 use crate::common::data_structures::AccessUnitDelim;
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::PrefixNALU;
 use crate::common::data_structures::RefBasePicMarking;
 use crate::common::helper::bitstream_to_bytestream;
@@ -9,7 +9,7 @@ use crate::encoder::binarization_functions::generate_unsigned_binary;
 use crate::encoder::expgolomb::exp_golomb_encode_one;
 
 /// Encode the NALU header into one byte (or two bytes if an extension)
-pub fn encode_nalu_header(nh: &NALUheader) -> Vec<u8> {
+pub fn encode_nalu_header(nh: &NALUHeader) -> Vec<u8> {
     let mut bytestream_array: Vec<u8> = Vec::new();
 
     bytestream_array.push(nh.forbidden_zero_bit << 7 | nh.nal_ref_idc << 5 | nh.nal_unit_type); // these should all fit one byte
@@ -41,7 +41,7 @@ pub fn encode_nalu_header(nh: &NALUheader) -> Vec<u8> {
     bytestream_array
 }
 
-fn encode_nal_unit_header_svc_extension(nh: &NALUheader) -> Vec<u8> {
+fn encode_nal_unit_header_svc_extension(nh: &NALUHeader) -> Vec<u8> {
     let mut res = Vec::new();
 
     res.push(match nh.svc_extension.idr_flag {
@@ -88,7 +88,7 @@ fn encode_nal_unit_header_svc_extension(nh: &NALUheader) -> Vec<u8> {
     res
 }
 
-fn encode_nal_unit_header_avc3d_extension(nh: &NALUheader) -> Vec<u8> {
+fn encode_nal_unit_header_avc3d_extension(nh: &NALUHeader) -> Vec<u8> {
     let mut res = Vec::new();
 
     res.append(&mut generate_unsigned_binary(
@@ -119,7 +119,7 @@ fn encode_nal_unit_header_avc3d_extension(nh: &NALUheader) -> Vec<u8> {
     res
 }
 
-fn encode_nal_unit_header_mvc_extension(nh: &NALUheader) -> Vec<u8> {
+fn encode_nal_unit_header_mvc_extension(nh: &NALUHeader) -> Vec<u8> {
     let mut res = Vec::new();
 
     res.push(match nh.mvc_extension.non_idr_flag {
@@ -152,7 +152,7 @@ fn encode_nal_unit_header_mvc_extension(nh: &NALUheader) -> Vec<u8> {
 }
 
 /// Described in G.7.3.2.12.1 -- Prefix NAL unit SVC syntax
-pub fn encode_prefix_nal_unit_svc(nh: &NALUheader, pn: &PrefixNALU) -> Vec<u8> {
+pub fn encode_prefix_nal_unit_svc(nh: &NALUHeader, pn: &PrefixNALU) -> Vec<u8> {
     let mut bitstream_array = Vec::new();
 
     if nh.nal_ref_idc != 0 {

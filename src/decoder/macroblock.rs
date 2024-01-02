@@ -8,6 +8,7 @@ use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::SliceData;
 use crate::common::data_structures::SliceHeader;
 use crate::common::data_structures::SubMbType;
+use crate::common::data_structures::SubsetSPS;
 use crate::common::data_structures::TransformBlock;
 use crate::common::data_structures::VideoParameters;
 use crate::common::helper::decoder_formatted_print;
@@ -25,6 +26,36 @@ use crate::decoder::cavlc::truncated_exp_golomb_decode;
 use crate::decoder::expgolomb::exp_golomb_decode_one_wrapper;
 use log::debug;
 use std::cmp;
+
+/// Specified in G.7.4.6
+fn in_crop_window(curr_mb_addr : usize, sh: &SliceHeader, vp : &VideoParameters) -> bool {
+    let mb_x : i32 = (curr_mb_addr as i32 / (1 + match vp.mbaff_frame_flag {true => 1, false => 0})) % vp.pic_width_in_mbs as i32;
+    let mb_y0 : i32;
+    let mb_y1 : i32;
+    if !vp.mbaff_frame_flag {
+        mb_y0 = (curr_mb_addr/ (vp.pic_width_in_mbs as usize)) as i32;
+        mb_y1 = mb_y0;
+    } else {
+        mb_y0 = 2 * ((curr_mb_addr / vp.pic_width_in_mbs as usize) as i32 / 2);
+        mb_y1 = mb_y0 + 1;
+    }
+
+    
+    let scal_mb_h = 16 * (1 + match sh.field_pic_flag {true => 1, _ => 0});
+
+    if !vp.no_inter_layer_pred_flag 
+        && mb_x >= ((sh.scaled_ref_layer_left_offset + 15) / 16)
+        && mb_x < ((sh.scaled_ref_layer_left_offset + sh.scaled_ref_layer_pic_width_in_samples_luma) / 16)
+        && mb_y0 >= (sh.scaled_ref_layer_top_offset + scal_mb_h - 1)/ scal_mb_h 
+        && mb_y1 < (sh.scaled_ref_layer_top_offset + sh.scaled_ref_layer_pic_height_in_samples_luma) / scal_mb_h
+    {
+        return true;
+    }
+    
+
+    return false;
+}
+
 
 /// Turns the decoded mb_type number into the actual
 /// Type. Based off of Tables 7-11 to 7-14
@@ -286,10 +317,7 @@ pub fn decode_macroblock_layer(
                     bs.read_bits(1) as i32
                 };
 
-                sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = match res {
-                    1 => true,
-                    _ => false,
-                };
+                sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = 1 == res;
 
                 decoder_formatted_print("transform_size_8x8_flag", &res, 63);
             }
@@ -356,10 +384,7 @@ pub fn decode_macroblock_layer(
                     bs.read_bits(1) as i32
                 };
 
-                sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = match res {
-                    1 => true,
-                    _ => false,
-                };
+                sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = 1 == res;
 
                 decoder_formatted_print("transform_size_8x8_flag (inside condition)", &res, 63);
             }
@@ -421,6 +446,312 @@ pub fn decode_macroblock_layer(
     }
 }
 
+/// Follows Section G.7.3.6 Macroblock layer in scalable extension syntax
+pub fn decode_macroblock_layer_in_scalable_extension(
+    curr_mb_idx: usize,
+    cabac_state: &mut CABACState,
+    bs: &mut ByteStream,
+    sd: &mut SliceData,
+    sh: &mut SliceHeader,
+    vp: &VideoParameters,
+    s: &SubsetSPS,
+    p: &PicParameterSet,
+) {
+    if !in_crop_window(sd.macroblock_vec[curr_mb_idx].mb_addr, sh, vp) && sh.adaptive_base_mode_flag {
+        let res : u32 = if p.entropy_coding_mode_flag {
+            cabac_decode(
+                "base_mode_flag",
+                bs,
+                cabac_state,
+                curr_mb_idx,
+                sh,
+                sd,
+                vp,
+                0,
+                Vec::new(),
+            ) as u32
+        } else {
+            bs.read_bits(1)
+        };
+        sd.macroblock_vec[curr_mb_idx].base_mode_flag = 1 == res;
+        decoder_formatted_print("base_mode_flag", &res, 63);
+    }
+
+    if !sd.macroblock_vec[curr_mb_idx].base_mode_flag {
+        let res: i32 = if p.entropy_coding_mode_flag {
+            cabac_decode(
+                "mb_type",
+                bs,
+                cabac_state,
+                curr_mb_idx,
+                sh,
+                sd,
+                vp,
+                0,
+                Vec::new(),
+            )
+        } else {
+            exp_golomb_decode_one_wrapper(bs, false, 0)
+        };
+    
+        sd.macroblock_vec[curr_mb_idx].mb_type = decode_mb_type(res, sh);
+    
+        decoder_formatted_print("mb_type", &res, 63);
+        decoder_formatted_print("mb_type(fancy)", sd.macroblock_vec[curr_mb_idx].mb_type, 63);
+    }
+
+    if sd.macroblock_vec[curr_mb_idx].mb_type == MbType::IPCM {
+        // zero align
+        if bs.byte_offset > 0 {
+            bs.byte_offset = 0;
+            bs.bytestream.pop_front();
+        }
+
+        // fast-path: we're just reading bytes
+        if vp.bit_depth_y == 8 {
+            for i in 0..256 {
+                sd.macroblock_vec[curr_mb_idx]
+                    .pcm_sample_luma
+                    .push(bs.bytestream[i] as u32);
+                decoder_formatted_print(
+                    "pcm_byte luma",
+                    sd.macroblock_vec[curr_mb_idx].pcm_sample_luma[i],
+                    63,
+                );
+            }
+            bs.bytestream.drain(0..256);
+        } else {
+            // use the complete bit-length
+            for i in 0..256 {
+                sd.macroblock_vec[curr_mb_idx]
+                    .pcm_sample_luma
+                    .push(bs.read_bits(vp.bit_depth_y));
+                decoder_formatted_print(
+                    "pcm_byte luma",
+                    sd.macroblock_vec[curr_mb_idx].pcm_sample_luma[i],
+                    63,
+                );
+            }
+        }
+
+        if vp.bit_depth_c == 8 {
+            let max_chroma_params = (2 * vp.mb_width_c * vp.mb_height_c) as usize;
+            for i in 0..max_chroma_params {
+                sd.macroblock_vec[curr_mb_idx]
+                    .pcm_sample_chroma
+                    .push(bs.bytestream[i] as u32);
+                decoder_formatted_print(
+                    "pcm_byte chroma",
+                    sd.macroblock_vec[curr_mb_idx].pcm_sample_chroma[i as usize],
+                    63,
+                );
+            }
+            bs.bytestream.drain(0..max_chroma_params);
+        } else {
+            for i in 0..2 * vp.mb_width_c * vp.mb_height_c {
+                sd.macroblock_vec[curr_mb_idx]
+                    .pcm_sample_chroma
+                    .push(bs.read_bits(vp.bit_depth_c));
+                decoder_formatted_print(
+                    "pcm_byte chroma",
+                    sd.macroblock_vec[curr_mb_idx].pcm_sample_chroma[i as usize],
+                    63,
+                );
+            }
+        }
+
+        if p.entropy_coding_mode_flag {
+            // reset the CABAC state after reading the above bytes
+            cabac_state.cod_i_range = 510;
+            cabac_state.cod_i_offset = bs.read_bits(9);
+        }
+    } else {
+        let cur_mppm = sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(0);
+        if !sd.macroblock_vec[curr_mb_idx].base_mode_flag {
+            sd.macroblock_vec[curr_mb_idx].no_sub_mb_part_size_less_than_8x8_flag = true;
+
+            if sd.macroblock_vec[curr_mb_idx].mb_type != MbType::INxN
+                && cur_mppm != MbPartPredMode::Intra16x16
+                && sd.macroblock_vec[curr_mb_idx].num_mb_part() == 4
+            {
+                decode_sub_mb_pred_in_scalable_extension(curr_mb_idx, bs, cabac_state, sh, sd, vp, p);
+    
+                for mb_part_idx in 0..4 {
+                    if sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
+                    {
+                        if sd.macroblock_vec[curr_mb_idx].num_sub_mb_part(mb_part_idx) > 1 {
+                            sd.macroblock_vec[curr_mb_idx].no_sub_mb_part_size_less_than_8x8_flag =
+                                false;
+                        }
+                    } else if !s.sps.direct_8x8_inference_flag {
+                        sd.macroblock_vec[curr_mb_idx].no_sub_mb_part_size_less_than_8x8_flag = false;
+                    }
+                }
+            } else {
+                if p.transform_8x8_mode_flag && sd.macroblock_vec[curr_mb_idx].mb_type == MbType::INxN {
+                    let res: i32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            "transform_size_8x8_flag",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            Vec::new(),
+                        )
+                    } else {
+                        bs.read_bits(1) as i32
+                    };
+    
+                    sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = res == 1;
+    
+                    decoder_formatted_print("transform_size_8x8_flag", &res, 63);
+                }
+                decode_mb_pred_in_scalable_extension(curr_mb_idx, bs, cabac_state, sh, sd, vp, p);
+            }
+            // equation 7-36
+            sd.macroblock_vec[curr_mb_idx].set_cbp_chroma_and_luma();
+            
+            if sh.adaptive_residual_prediction_flag && !is_slice_type(sh.slice_type, "EI") && 
+                in_crop_window(sd.macroblock_vec[curr_mb_idx].mb_addr, sh, vp) && 
+                (sd.macroblock_vec[curr_mb_idx].base_mode_flag || (cur_mppm != MbPartPredMode::Intra16x16 && cur_mppm != MbPartPredMode::Intra8x8 && cur_mppm != MbPartPredMode::Intra4x4)) 
+            {
+                let res = if p.entropy_coding_mode_flag {
+                    cabac_decode("residual_prediction_flag", bs, cabac_state, curr_mb_idx,sh,sd, vp, 0, Vec::new())
+                } else {
+                    bs.read_bits(1) as i32
+                };
+
+                sd.macroblock_vec[curr_mb_idx].residual_prediction_flag = 1 == res;
+            }
+
+            if sh.scan_idx_end >= sh.scan_idx_start {
+                if sd.macroblock_vec[curr_mb_idx].base_mode_flag || cur_mppm != MbPartPredMode::Intra16x16 {
+                    let res: i32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            "coded_block_pattern",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            Vec::new(),
+                        )
+                    } else {
+                        let intra_mode = match sd.macroblock_vec[curr_mb_idx].is_intra() {
+                            true => 0,
+                            _ => 1,
+                        };
+                        mapped_exp_golomb_decode(vp.chroma_array_type, intra_mode, bs)
+                    };
+        
+                    sd.macroblock_vec[curr_mb_idx].coded_block_pattern = res as u32;
+        
+                    decoder_formatted_print(
+                        "coded_block_pattern",
+                        &sd.macroblock_vec[curr_mb_idx].coded_block_pattern,
+                        63,
+                    );
+        
+                    // equation 7-36 (we do this again because coded_block_pattern is in the bitstream)
+                    sd.macroblock_vec[curr_mb_idx].coded_block_pattern_luma =
+                        sd.macroblock_vec[curr_mb_idx].coded_block_pattern % 16;
+                    sd.macroblock_vec[curr_mb_idx].coded_block_pattern_chroma =
+                        sd.macroblock_vec[curr_mb_idx].coded_block_pattern / 16;
+        
+                    if sd.macroblock_vec[curr_mb_idx].coded_block_pattern_luma > 0
+                        && p.transform_8x8_mode_flag 
+                        && ( sd.macroblock_vec[curr_mb_idx].base_mode_flag || 
+                            (sd.macroblock_vec[curr_mb_idx].mb_type != MbType::INxN
+                             && sd.macroblock_vec[curr_mb_idx].no_sub_mb_part_size_less_than_8x8_flag
+                             && (sd.macroblock_vec[curr_mb_idx].mb_type != MbType::BDirect16x16
+                            || s.sps.direct_8x8_inference_flag)))
+                    {
+                        let res: i32 = if p.entropy_coding_mode_flag {
+                            cabac_decode(
+                                "transform_size_8x8_flag",
+                                bs,
+                                cabac_state,
+                                curr_mb_idx,
+                                sh,
+                                sd,
+                                vp,
+                                0,
+                                Vec::new(),
+                            )
+                        } else {
+                            bs.read_bits(1) as i32
+                        };
+        
+                        sd.macroblock_vec[curr_mb_idx].transform_size_8x8_flag = 1 == res;
+        
+                        decoder_formatted_print("transform_size_8x8_flag (inside condition)", &res, 63);
+                    }
+                }
+                if sd.macroblock_vec[curr_mb_idx].coded_block_pattern_luma > 0
+                    || sd.macroblock_vec[curr_mb_idx].coded_block_pattern_chroma > 0
+                    || cur_mppm == MbPartPredMode::Intra16x16
+                {
+                    let res: i32;
+        
+                    if p.entropy_coding_mode_flag {
+                        res = cabac_decode(
+                            "mb_qp_delta",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            Vec::new(),
+                        );
+                        sd.macroblock_vec[curr_mb_idx].mb_qp_delta = ((res + 1) / 2)
+                            * match res % 2 {
+                                0 => -1i32,
+                                _ => 1i32,
+                            };
+                    } else {
+                        res = exp_golomb_decode_one_wrapper(bs, true, 0);
+                        sd.macroblock_vec[curr_mb_idx].mb_qp_delta = res;
+                    }
+        
+                    // implement transformation of Table 9-3
+        
+                    decoder_formatted_print(
+                        "mb_qp_delta",
+                        &sd.macroblock_vec[curr_mb_idx].mb_qp_delta,
+                        63,
+                    );
+        
+                    sd.macroblock_vec[curr_mb_idx].qp_y = (sh.qp_y_prev
+                        + sd.macroblock_vec[curr_mb_idx].mb_qp_delta
+                        + 52
+                        + 2 * vp.qp_bd_offset_y)
+                        % (52 + vp.qp_bd_offset_y)
+                        - vp.qp_bd_offset_y;
+                    sh.qp_y_prev = sd.macroblock_vec[curr_mb_idx].qp_y;
+                    sd.macroblock_vec[curr_mb_idx].qp_y_prime =
+                        sd.macroblock_vec[curr_mb_idx].qp_y + vp.qp_bd_offset_y;
+        
+                    if s.sps.qpprime_y_zero_transform_bypass_flag
+                        && sd.macroblock_vec[curr_mb_idx].qp_y_prime == 0
+                    {
+                        sd.macroblock_vec[curr_mb_idx].transform_bypass_mode_flag = true;
+                    }
+        
+                    decode_residual(sh.scan_idx_start as usize, sh.scan_idx_end as usize, bs, cabac_state, curr_mb_idx, sh, sd, vp, p);
+                }
+            }
+        }
+    }
+
+}
+
 /// Follows Section 7.3.5.1
 fn decode_mb_pred(
     curr_mb_idx: usize,
@@ -456,11 +787,7 @@ fn decode_mb_pred(
                     bs.read_bits(1) as i32
                 };
 
-                sd.macroblock_vec[curr_mb_idx].prev_intra4x4_pred_mode_flag[luma4x4blkidx] =
-                    match res {
-                        1 => true,
-                        _ => false,
-                    };
+                sd.macroblock_vec[curr_mb_idx].prev_intra4x4_pred_mode_flag[luma4x4blkidx] = 1 == res;
 
                 if !sd.macroblock_vec[curr_mb_idx].prev_intra4x4_pred_mode_flag[luma4x4blkidx] {
                     let res: u32 = if p.entropy_coding_mode_flag {
@@ -518,11 +845,7 @@ fn decode_mb_pred(
                     bs.read_bits(1)
                 };
 
-                sd.macroblock_vec[curr_mb_idx].prev_intra8x8_pred_mode_flag[luma8x8blkidx] =
-                    match res {
-                        1 => true,
-                        _ => false,
-                    };
+                sd.macroblock_vec[curr_mb_idx].prev_intra8x8_pred_mode_flag[luma8x8blkidx] = 1 == res;
 
                 if !sd.macroblock_vec[curr_mb_idx].prev_intra8x8_pred_mode_flag[luma8x8blkidx] {
                     let res: u32 = if p.entropy_coding_mode_flag {
@@ -807,6 +1130,613 @@ fn decode_sub_mb_pred(
             && sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
             && sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx)
                 != MbPartPredMode::PredL0
+        {
+            let additional_inputs = vec![mb_part_idx];
+            let res: u32 = if p.entropy_coding_mode_flag {
+                cabac_decode(
+                    "ref_idx_l1",
+                    bs,
+                    cabac_state,
+                    curr_mb_idx,
+                    sh,
+                    sd,
+                    vp,
+                    0,
+                    additional_inputs,
+                ) as u32
+            } else {
+                let max_val: u32 =
+                    if !sh.mbaff_frame_flag || !sd.mb_field_decoding_flag[curr_mb_idx] {
+                        sh.num_ref_idx_l1_active_minus1
+                    } else {
+                        2 * sh.num_ref_idx_l1_active_minus1 + 1
+                    };
+                truncated_exp_golomb_decode(max_val, bs) as u32
+            };
+
+            sd.macroblock_vec[curr_mb_idx].ref_idx_l1[mb_part_idx] = res;
+
+            decoder_formatted_print(
+                "(sub) ref_idx_l1",
+                &sd.macroblock_vec[curr_mb_idx].ref_idx_l1[mb_part_idx],
+                63,
+            );
+        }
+    }
+
+    for mb_part_idx in 0..4 {
+        if sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
+            && sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx)
+                != MbPartPredMode::PredL1
+        {
+            for sub_mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_sub_mb_part(mb_part_idx) {
+                for comp_idx in 0..2 {
+                    let name = format!("mvd_l0_{}", comp_idx);
+                    let additional_inputs = vec![mb_part_idx, sub_mb_part_idx];
+                    let res: i32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            name.as_str(),
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            additional_inputs,
+                        )
+                    } else {
+                        exp_golomb_decode_one_wrapper(bs, true, 0)
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].mvd_l0[mb_part_idx][sub_mb_part_idx][comp_idx] =
+                        res;
+
+                    decoder_formatted_print(
+                        format!("(sub) {}", name.as_str()).as_str(),
+                        &sd.macroblock_vec[curr_mb_idx].mvd_l0[mb_part_idx][sub_mb_part_idx]
+                            [comp_idx],
+                        63,
+                    );
+                }
+            }
+        }
+    }
+
+    for mb_part_idx in 0..4 {
+        if sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
+            && sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx)
+                != MbPartPredMode::PredL0
+        {
+            for sub_mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_sub_mb_part(mb_part_idx) {
+                for comp_idx in 0..2 {
+                    let name = format!("mvd_l1_{}", comp_idx);
+                    let additional_inputs = vec![mb_part_idx, sub_mb_part_idx];
+                    let res: i32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            name.as_str(),
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            additional_inputs,
+                        )
+                    } else {
+                        exp_golomb_decode_one_wrapper(bs, true, 0)
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].mvd_l1[mb_part_idx][sub_mb_part_idx][comp_idx] =
+                        res;
+
+                    decoder_formatted_print(
+                        format!("(sub) {}", name.as_str()).as_str(),
+                        &sd.macroblock_vec[curr_mb_idx].mvd_l1[mb_part_idx][sub_mb_part_idx]
+                            [comp_idx],
+                        63,
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Follows Section G.7.3.6.1 Macroblock prediction in scalable extension syntax
+fn decode_mb_pred_in_scalable_extension(
+    curr_mb_idx: usize,
+    bs: &mut ByteStream,
+    cabac_state: &mut CABACState,
+    sh: &SliceHeader,
+    sd: &mut SliceData,
+    vp: &VideoParameters,
+    p: &PicParameterSet,
+) {
+    let mpp_mode = sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(0);
+
+    if mpp_mode == MbPartPredMode::Intra4x4 || mpp_mode == MbPartPredMode::Intra8x8 || mpp_mode == MbPartPredMode::Intra16x16 {
+        if mpp_mode == MbPartPredMode::Intra4x4 {
+            for luma4x4blkidx in 0..16 {
+                //luma4x4BlkIdx
+                let res: i32 = if p.entropy_coding_mode_flag {
+                    cabac_decode(
+                        "prev_intra4x4_pred_mode_flag",
+                        bs,
+                        cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        sd,
+                        vp,
+                        0,
+                        Vec::new(),
+                    )
+                } else {
+                    bs.read_bits(1) as i32
+                };
+
+                sd.macroblock_vec[curr_mb_idx].prev_intra4x4_pred_mode_flag[luma4x4blkidx] = res == 1;
+
+                if !sd.macroblock_vec[curr_mb_idx].prev_intra4x4_pred_mode_flag[luma4x4blkidx] {
+                    let res: u32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            "rem_intra4x4_pred_mode",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            Vec::new(),
+                        ) as u32
+                    } else {
+                        bs.read_bits(3)
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].rem_intra4x4_pred_mode[luma4x4blkidx] = res;
+
+                    decoder_formatted_print(
+                        "intra4x4_pred_mode - read_ipred_4x4_modes",
+                        &sd.macroblock_vec[curr_mb_idx].rem_intra4x4_pred_mode[luma4x4blkidx],
+                        63,
+                    );
+                } else {
+                    decoder_formatted_print(
+                        "intra4x4_pred_mode - prev_intra4x4_pred_mode_flag",
+                        match &sd.macroblock_vec[curr_mb_idx].prev_intra4x4_pred_mode_flag
+                            [luma4x4blkidx]
+                        {
+                            true => 1,
+                            false => 0,
+                        },
+                        63,
+                    );
+                }
+            }
+        }
+        if mpp_mode == MbPartPredMode::Intra8x8 {
+            for luma8x8blkidx in 0..4 {
+                let res: u32 = if p.entropy_coding_mode_flag {
+                    cabac_decode(
+                        "prev_intra8x8_pred_mode_flag",
+                        bs,
+                        cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        sd,
+                        vp,
+                        0,
+                        Vec::new(),
+                    ) as u32
+                } else {
+                    bs.read_bits(1)
+                };
+
+                sd.macroblock_vec[curr_mb_idx].prev_intra8x8_pred_mode_flag[luma8x8blkidx] = 1 == res;
+
+                if !sd.macroblock_vec[curr_mb_idx].prev_intra8x8_pred_mode_flag[luma8x8blkidx] {
+                    let res: u32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            "rem_intra8x8_pred_mode",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            Vec::new(),
+                        ) as u32
+                    } else {
+                        bs.read_bits(3)
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].rem_intra8x8_pred_mode[luma8x8blkidx] = res;
+                    decoder_formatted_print(
+                        "intra4x4_pred_mode - read_ipred_8x8_modes",
+                        &sd.macroblock_vec[curr_mb_idx].rem_intra8x8_pred_mode[luma8x8blkidx],
+                        63,
+                    );
+                } else {
+                    decoder_formatted_print("prev_intra8x8_pred_mode_flag", &res, 63);
+                }
+            }
+        }
+        if vp.chroma_array_type != 0 {
+            let res: i32 = if p.entropy_coding_mode_flag {
+                cabac_decode(
+                    "intra_chroma_pred_mode",
+                    bs,
+                    cabac_state,
+                    curr_mb_idx,
+                    sh,
+                    sd,
+                    vp,
+                    0,
+                    Vec::new(),
+                )
+            } else {
+                exp_golomb_decode_one_wrapper(bs, false, 0)
+            };
+
+            sd.macroblock_vec[curr_mb_idx].intra_chroma_pred_mode = res as u8;
+            decoder_formatted_print(
+                "intra_chroma_pred_mode",
+                &sd.macroblock_vec[curr_mb_idx].intra_chroma_pred_mode,
+                63,
+            );
+        }
+    } else if mpp_mode != MbPartPredMode::Direct {
+        if in_crop_window(sd.macroblock_vec[curr_mb_idx].mb_addr, sh, vp) && sh.adaptive_motion_prediction_flag {
+            for mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_mb_part() {
+                if sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(mb_part_idx) != MbPartPredMode::PredL1 {
+                    let res = if p.entropy_coding_mode_flag {
+                        let additional_inputs = vec![mb_part_idx];
+                        cabac_decode(
+                            "motion_prediction_flag_l0",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            additional_inputs,
+                        )
+                    } else {
+                        bs.read_bits(1) as i32
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l0[mb_part_idx] = 1 == res;
+                    decoder_formatted_print(
+                        "motion_prediction_flag_l0",
+                        &sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l0[mb_part_idx],
+                        63,
+                    );
+                }
+            }
+
+            for mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_mb_part() {
+                if sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(mb_part_idx) != MbPartPredMode::PredL0 {
+                    let res = if p.entropy_coding_mode_flag {
+                        let additional_inputs = vec![mb_part_idx];
+                        cabac_decode(
+                            "motion_prediction_flag_l1",
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            additional_inputs,
+                        )
+                    } else {
+                        bs.read_bits(1) as i32
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l1[mb_part_idx] = 1 == res;
+                    decoder_formatted_print(
+                        "motion_prediction_flag_l1",
+                        &sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l1[mb_part_idx],
+                        63,
+                    );
+                }
+            }
+        }
+
+        for mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_mb_part() {
+            if (sh.num_ref_idx_l0_active_minus1 > 0
+                || sd.mb_field_decoding_flag[curr_mb_idx] != sh.field_pic_flag)
+                && sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(mb_part_idx) != MbPartPredMode::PredL1
+                && !sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l0[mb_part_idx]
+            {
+                let additional_inputs = vec![mb_part_idx];
+                let res: u32 = if p.entropy_coding_mode_flag {
+                    cabac_decode(
+                        "ref_idx_l0",
+                        bs,
+                        cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        sd,
+                        vp,
+                        0,
+                        additional_inputs,
+                    ) as u32
+                } else {
+                    let max_val: u32 =
+                        if !sh.mbaff_frame_flag || !sd.mb_field_decoding_flag[curr_mb_idx] {
+                            sh.num_ref_idx_l0_active_minus1
+                        } else {
+                            2 * sh.num_ref_idx_l0_active_minus1 + 1
+                        };
+                    truncated_exp_golomb_decode(max_val, bs) as u32
+                };
+
+                sd.macroblock_vec[curr_mb_idx].ref_idx_l0[mb_part_idx] = res;
+                decoder_formatted_print(
+                    "ref_idx_l0",
+                    &sd.macroblock_vec[curr_mb_idx].ref_idx_l0[mb_part_idx],
+                    63,
+                );
+            }
+        }
+        for mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_mb_part() {
+            if (sh.num_ref_idx_l1_active_minus1 > 0
+                || sd.mb_field_decoding_flag[curr_mb_idx] != sh.field_pic_flag)
+                && sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(mb_part_idx) != MbPartPredMode::PredL0
+                && !sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l1[mb_part_idx]
+            {
+                let additional_inputs = vec![mb_part_idx];
+                let res: u32 = if p.entropy_coding_mode_flag {
+                    cabac_decode(
+                        "ref_idx_l1",
+                        bs,
+                        cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        sd,
+                        vp,
+                        0,
+                        additional_inputs,
+                    ) as u32
+                } else {
+                    let max_val: u32 =
+                        if !sh.mbaff_frame_flag || !sd.mb_field_decoding_flag[curr_mb_idx] {
+                            sh.num_ref_idx_l1_active_minus1
+                        } else {
+                            2 * sh.num_ref_idx_l1_active_minus1 + 1
+                        };
+
+                    truncated_exp_golomb_decode(max_val, bs) as u32
+                };
+
+                sd.macroblock_vec[curr_mb_idx].ref_idx_l1[mb_part_idx] = res;
+
+                decoder_formatted_print(
+                    "ref_idx_l1",
+                    &sd.macroblock_vec[curr_mb_idx].ref_idx_l1[mb_part_idx],
+                    63,
+                );
+            }
+        }
+        for mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_mb_part() {
+            if sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(mb_part_idx)
+                != MbPartPredMode::PredL1
+            {
+                for comp_idx in 0..2 {
+                    let name = format!("mvd_l0_{}", comp_idx);
+                    let additional_inputs = vec![mb_part_idx];
+                    let res: i32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            name.as_str(),
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            additional_inputs,
+                        )
+                    } else {
+                        exp_golomb_decode_one_wrapper(bs, true, 0)
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].mvd_l0[mb_part_idx][0][comp_idx] = res;
+
+                    decoder_formatted_print(
+                        name.as_str(),
+                        &sd.macroblock_vec[curr_mb_idx].mvd_l0[mb_part_idx][0][comp_idx],
+                        63,
+                    );
+                }
+            }
+        }
+        for mb_part_idx in 0..sd.macroblock_vec[curr_mb_idx].num_mb_part() {
+            if sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(mb_part_idx)
+                != MbPartPredMode::PredL0
+            {
+                for comp_idx in 0..2 {
+                    let name = format!("mvd_l1_{}", comp_idx);
+                    let additional_inputs = vec![mb_part_idx];
+
+                    let res: i32 = if p.entropy_coding_mode_flag {
+                        cabac_decode(
+                            name.as_str(),
+                            bs,
+                            cabac_state,
+                            curr_mb_idx,
+                            sh,
+                            sd,
+                            vp,
+                            0,
+                            additional_inputs,
+                        )
+                    } else {
+                        exp_golomb_decode_one_wrapper(bs, true, 0)
+                    };
+
+                    sd.macroblock_vec[curr_mb_idx].mvd_l1[mb_part_idx][0][comp_idx] = res;
+
+                    decoder_formatted_print(
+                        name.as_str(),
+                        &sd.macroblock_vec[curr_mb_idx].mvd_l0[mb_part_idx][0][comp_idx],
+                        63,
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Follows Section G.7.3.6.2 Sub-macroblock prediction in scalable extension syntax
+fn decode_sub_mb_pred_in_scalable_extension(
+    curr_mb_idx: usize,
+    bs: &mut ByteStream,
+    cabac_state: &mut CABACState,
+    sh: &SliceHeader,
+    sd: &mut SliceData,
+    vp: &VideoParameters,
+    p: &PicParameterSet,
+) {
+    for mb_part_idx in 0..4 {
+        let res: i32 = if p.entropy_coding_mode_flag {
+            cabac_decode(
+                "sub_mb_type",
+                bs,
+                cabac_state,
+                curr_mb_idx,
+                sh,
+                sd,
+                vp,
+                0,
+                Vec::new(),
+            )
+        } else {
+            exp_golomb_decode_one_wrapper(bs, false, 0)
+        };
+
+        sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] = decode_sub_mb_type(res, sh);
+
+        decoder_formatted_print("sub_mb_type", &res, 63);
+        decoder_formatted_print(
+            "sub_mb_type(fancy)",
+            sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx],
+            63,
+        );
+    }
+
+    if in_crop_window(sd.macroblock_vec[curr_mb_idx].mb_addr, sh, vp) && sh.adaptive_motion_prediction_flag {
+        for mb_part_idx in 0..4 {
+            let sub_mppm = sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx);
+            if sub_mppm != MbPartPredMode::Direct && sub_mppm != MbPartPredMode::PredL1 {
+                let additional_inputs = vec![mb_part_idx];
+                let res = if p.entropy_coding_mode_flag {
+                    1 == cabac_decode(
+                        "motion_prediction_flag_l0",
+                        bs,
+                        cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        sd,
+                        vp,
+                        0,
+                        additional_inputs,
+                    )
+                } else {
+                    1 == bs.read_bits(1)
+                };
+
+                sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l0[mb_part_idx] = res;
+                decoder_formatted_print(
+                    "motion_prediction_flag_l0",
+                    res,
+                    63,
+                );
+            }
+        }
+        for mb_part_idx in 0..4 {
+            let sub_mppm = sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx);
+            if sub_mppm != MbPartPredMode::Direct && sub_mppm != MbPartPredMode::PredL0 {
+                let additional_inputs = vec![mb_part_idx];
+                let res = if p.entropy_coding_mode_flag {
+                    1 == cabac_decode(
+                        "motion_prediction_flag_l1",
+                        bs,
+                        cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        sd,
+                        vp,
+                        0,
+                        additional_inputs,
+                    )
+                } else {
+                    1 == bs.read_bits(1)
+                };
+
+                sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l1[mb_part_idx] = res;
+                decoder_formatted_print(
+                    "motion_prediction_flag_l1",
+                    res,
+                    63,
+                );
+            }
+        }
+    }
+
+    for mb_part_idx in 0..4 {
+        if (sh.num_ref_idx_l0_active_minus1 > 0
+            || sd.mb_field_decoding_flag[curr_mb_idx] != sh.field_pic_flag)
+            && sd.macroblock_vec[curr_mb_idx].mb_type != MbType::P8x8ref0
+            && sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
+            && sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx)
+                != MbPartPredMode::PredL1 
+            && !sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l0[mb_part_idx]
+        {
+            let additional_inputs = vec![mb_part_idx];
+            let res: u32 = if p.entropy_coding_mode_flag {
+                cabac_decode(
+                    "ref_idx_l0",
+                    bs,
+                    cabac_state,
+                    curr_mb_idx,
+                    sh,
+                    sd,
+                    vp,
+                    0,
+                    additional_inputs,
+                ) as u32
+            } else {
+                let max_val: u32 =
+                    if !sh.mbaff_frame_flag || !sd.mb_field_decoding_flag[curr_mb_idx] {
+                        sh.num_ref_idx_l0_active_minus1
+                    } else {
+                        2 * sh.num_ref_idx_l0_active_minus1 + 1
+                    };
+
+                truncated_exp_golomb_decode(max_val, bs) as u32
+            };
+
+            sd.macroblock_vec[curr_mb_idx].ref_idx_l0[mb_part_idx] = res;
+            decoder_formatted_print(
+                "(sub) ref_idx_l0",
+                &sd.macroblock_vec[curr_mb_idx].ref_idx_l0[mb_part_idx],
+                63,
+            );
+        }
+    }
+
+    for mb_part_idx in 0..4 {
+        if (sh.num_ref_idx_l1_active_minus1 > 0
+            || sd.mb_field_decoding_flag[curr_mb_idx] != sh.field_pic_flag)
+            && sd.macroblock_vec[curr_mb_idx].sub_mb_type[mb_part_idx] != SubMbType::BDirect8x8
+            && sd.macroblock_vec[curr_mb_idx].sub_mb_part_pred_mode(mb_part_idx)
+                != MbPartPredMode::PredL0
+                && !sd.macroblock_vec[curr_mb_idx].motion_prediction_flag_l1[mb_part_idx]
         {
             let additional_inputs = vec![mb_part_idx];
             let res: u32 = if p.entropy_coding_mode_flag {
@@ -1232,8 +2162,10 @@ fn decode_residual_luma(
     debug!(target: "decode","Decoding Residual Luma components");
     let mut ctx_block_cat: u8; // Values are derived from Table 9-42
 
+    let cur_mppm = sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(0);
+
     if start_idx == 0
-        && sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(0) == MbPartPredMode::Intra16x16
+        && cur_mppm == MbPartPredMode::Intra16x16
     {
         debug!(target: "decode","Luma DC");
         ctx_block_cat = ctx_block_cat_offset; // no modification
@@ -1301,8 +2233,7 @@ fn decode_residual_luma(
                 if ((sd.macroblock_vec[curr_mb_idx].coded_block_pattern_luma & (1 << i8x8)) >> i8x8)
                     > 0
                 {
-                    if sd.macroblock_vec[curr_mb_idx].mb_part_pred_mode(0)
-                        == MbPartPredMode::Intra16x16
+                    if cur_mppm == MbPartPredMode::Intra16x16
                     {
                         debug!(target: "decode","Luma AC - i8x8 {} and i4x4 {}", i8x8, i4x4);
                         ctx_block_cat = 1 + ctx_block_cat_offset;
@@ -1631,10 +2562,7 @@ fn decode_residual_block_cabac(
             ctx_block_cat,
             additional_inputs.clone(),
         );
-        cur_transform_block.coded_block_flag = match r {
-            1 => true,
-            _ => false,
-        };
+        cur_transform_block.coded_block_flag =  1 == r;
     }
     while coeff_level.len() < max_num_coeff {
         coeff_level.push(0);
@@ -1667,10 +2595,8 @@ fn decode_residual_block_cabac(
                 ctx_block_cat,
                 additional_inputs.clone(),
             );
-            cur_transform_block.significant_coeff_flag[i] = match res {
-                1 => true,
-                _ => false,
-            };
+            cur_transform_block.significant_coeff_flag[i] = 1 == res;
+
             decoder_formatted_print("significant_coeff_flag", &res, 63);
 
             if cur_transform_block.significant_coeff_flag[i] {
@@ -1685,10 +2611,7 @@ fn decode_residual_block_cabac(
                     ctx_block_cat,
                     additional_inputs.clone(),
                 );
-                cur_transform_block.last_significant_coeff_flag[i] = match res {
-                    1 => true,
-                    _ => false,
-                };
+                cur_transform_block.last_significant_coeff_flag[i] = 1 == res;
                 decoder_formatted_print("last_significant_coeff_flag", &res, 63);
 
                 if cur_transform_block.last_significant_coeff_flag[i] {
@@ -1736,10 +2659,7 @@ fn decode_residual_block_cabac(
             ctx_block_cat,
             additional_inputs.clone(),
         );
-        cur_transform_block.coeff_sign_flag[num_coeff - 1] = match r {
-            1 => true,
-            _ => false,
-        };
+        cur_transform_block.coeff_sign_flag[num_coeff - 1] = 1 == r;
 
         coeff_level[num_coeff - 1] =
             (cur_transform_block.coeff_abs_level_minus1[num_coeff - 1] as i32 + 1)
@@ -1784,10 +2704,7 @@ fn decode_residual_block_cabac(
                         ctx_block_cat,
                         additional_inputs.clone(),
                     );
-                    cur_transform_block.coeff_sign_flag[i] = match r {
-                        1 => true,
-                        _ => false,
-                    };
+                    cur_transform_block.coeff_sign_flag[i] = 1 == r;
 
                     coeff_level[i] = (cur_transform_block.coeff_abs_level_minus1[i] as i32 + 1)
                         * (1 - 2 * match cur_transform_block.coeff_sign_flag[i] {

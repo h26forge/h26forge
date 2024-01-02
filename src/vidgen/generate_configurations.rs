@@ -567,7 +567,7 @@ impl Default for RandomSliceHeaderRange {
     }
 }
 
-/// HDR syntax elements
+/// HRD syntax elements
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct RandomHRDRange {
     pub cpb_cnt_minus1: RandomU32Range,        // ue(v)
@@ -640,7 +640,7 @@ pub struct RandomVUIRange {
     pub log2_max_mv_length_vertical: RandomU32Range,     // ue(v)
     pub max_num_reorder_frames: RandomU32Range,          // ue(v)
     pub max_dec_frame_buffering: RandomDependentU32Range, // ue(v)
-    pub random_hdr_range: RandomHRDRange,
+    pub random_hrd_range: RandomHRDRange,
 }
 
 impl RandomVUIRange {
@@ -678,7 +678,7 @@ impl RandomVUIRange {
             log2_max_mv_length_vertical: RandomU32Range::new(0, 1024),
             max_num_reorder_frames: RandomU32Range::new(0, 1024), // TODO: dependent on MaxDpbFrames
             max_dec_frame_buffering: RandomDependentU32Range::new(0, 1024, false), // dependent on VUI.max_num_reorder_frames
-            random_hdr_range: RandomHRDRange::new(),
+            random_hrd_range: RandomHRDRange::new(),
         }
     }
 }
@@ -874,7 +874,7 @@ impl RandomSPSExtensionRange {
         RandomSPSExtensionRange {
             aux_format_idc: RandomU32Range::new(0, 10), // expected range: [0, 3]
             bit_depth_aux_minus8: RandomU32Range::new(0, 10), // [0, 4]
-            alpha_incr_flag: RandomBoolRange::new(0, 0, 1),
+            alpha_incr_flag: RandomBoolRange::new(0, 1, 1),
             alpha_opaque_value: RandomU32Range::new(0, 1000), // max is 2^{bit_depth_aux_minus8 + 9}
             alpha_transparent_value: RandomU32Range::new(0, 1000), // max is 2^{bit_depth_aux_minus8 + 9}
             additional_extension_flag: RandomBoolRange::new(0, 0, 1),
@@ -890,11 +890,39 @@ impl Default for RandomSPSExtensionRange {
 
 /// SPS SVC Extension syntax elements
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct RandomSPSSVCExtensionRange {}
+pub struct RandomSPSSVCExtensionRange {
+    pub inter_layer_deblocking_filter_control_present_flag: RandomBoolRange,
+    pub extended_spatial_scalability_idc: RandomU32Range,   // u(2)
+    pub chroma_phase_x_plus1_flag: RandomBoolRange,
+    pub chroma_phase_y_plus1: RandomU32Range,               // u(2)
+    pub seq_ref_layer_chroma_phase_x_plus1_flag: RandomBoolRange,
+    pub seq_ref_layer_chroma_phase_y_plus1: RandomU32Range, // u(2)
+    pub seq_scaled_ref_layer_left_offset: RandomI32Range,   // se(v)
+    pub seq_scaled_ref_layer_top_offset: RandomI32Range,    // se(v)
+    pub seq_scaled_ref_layer_right_offset: RandomI32Range,  // se(v)
+    pub seq_scaled_ref_layer_bottom_offset: RandomI32Range, // se(v)
+    pub seq_tcoeff_level_prediction_flag: RandomBoolRange,
+    pub adaptive_tcoeff_level_prediction_flag: RandomBoolRange,
+    pub slice_header_restriction_flag: RandomBoolRange,
+}
 
 impl RandomSPSSVCExtensionRange {
     pub fn new() -> RandomSPSSVCExtensionRange {
-        RandomSPSSVCExtensionRange {}
+        RandomSPSSVCExtensionRange {
+            inter_layer_deblocking_filter_control_present_flag: RandomBoolRange::new(0, 1, 1),
+            extended_spatial_scalability_idc: RandomU32Range::new(0, 3), // expected [0, 2]
+            chroma_phase_x_plus1_flag: RandomBoolRange::new(0, 1, 1),
+            chroma_phase_y_plus1: RandomU32Range::new(0, 3),    // expected [0, 2]
+            seq_ref_layer_chroma_phase_x_plus1_flag: RandomBoolRange::new(0, 1, 1),
+            seq_ref_layer_chroma_phase_y_plus1: RandomU32Range::new(0, 3), // expected [0, 2]
+            seq_scaled_ref_layer_left_offset: RandomI32Range::new(-65536, 65536), // expected [−2^15 to 2^15 − 1]
+            seq_scaled_ref_layer_top_offset: RandomI32Range::new(-65536, 65536),
+            seq_scaled_ref_layer_right_offset: RandomI32Range::new(-65536, 65536),
+            seq_scaled_ref_layer_bottom_offset: RandomI32Range::new(-65536, 65536),
+            seq_tcoeff_level_prediction_flag: RandomBoolRange::new(0, 1, 1),
+            adaptive_tcoeff_level_prediction_flag: RandomBoolRange::new(0, 1, 1),
+            slice_header_restriction_flag: RandomBoolRange::new(0, 1, 1),
+        }
     }
 }
 
@@ -906,11 +934,41 @@ impl Default for RandomSPSSVCExtensionRange {
 
 /// VUI SVC Extension syntax elements
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct RandomVUISVCParametersRange {}
+pub struct RandomVUISVCParametersRange {
+    pub vui_ext_num_entries_minus1: RandomU32Range, // ue(v)
+    pub vui_ext_dependency_id: RandomU32Range,      // u(3)
+    pub vui_ext_quality_id: RandomU32Range,         // u(4)
+    pub vui_ext_temporal_id: RandomU32Range,        // u(3)
+    pub vui_ext_timing_info_present_flag: RandomBoolRange,
+    pub vui_ext_num_units_in_tick: RandomU32Range, // u(32)
+    pub vui_ext_time_scale: RandomU32Range,        // u(32)
+    pub vui_ext_fixed_frame_rate_flag: RandomBoolRange,
+    pub vui_ext_nal_hrd_parameters_present_flag: RandomBoolRange,
+    pub vui_ext_nal_hrd_parameters: RandomHRDRange,
+    pub vui_ext_vcl_hrd_parameters_present_flag: RandomBoolRange,
+    pub vui_ext_vcl_hrd_parameters: RandomHRDRange,
+    pub vui_ext_low_delay_hrd_flag: RandomBoolRange,
+    pub vui_ext_pic_struct_present_flag: RandomBoolRange,
+}
 
 impl RandomVUISVCParametersRange {
     pub fn new() -> RandomVUISVCParametersRange {
-        RandomVUISVCParametersRange {}
+        RandomVUISVCParametersRange {
+            vui_ext_num_entries_minus1: RandomU32Range::new(0, 2048), // expected [0, 1023]
+            vui_ext_dependency_id: RandomU32Range::new(0, 7),
+            vui_ext_quality_id: RandomU32Range::new(0, 15),
+            vui_ext_temporal_id: RandomU32Range::new(0, 7),
+            vui_ext_timing_info_present_flag: RandomBoolRange::new(0, 1, 1),
+            vui_ext_num_units_in_tick: RandomU32Range::new(0, std::u32::MAX),
+            vui_ext_time_scale: RandomU32Range::new(0, std::u32::MAX),
+            vui_ext_fixed_frame_rate_flag: RandomBoolRange::new(0, 1, 1),
+            vui_ext_nal_hrd_parameters_present_flag: RandomBoolRange::new(0, 1, 1),
+            vui_ext_nal_hrd_parameters: RandomHRDRange::new(),
+            vui_ext_vcl_hrd_parameters_present_flag: RandomBoolRange::new(0, 1, 1),
+            vui_ext_vcl_hrd_parameters: RandomHRDRange::new(),
+            vui_ext_low_delay_hrd_flag: RandomBoolRange::new(0, 1, 1),
+            vui_ext_pic_struct_present_flag: RandomBoolRange::new(0, 1, 1),
+        }
     }
 }
 

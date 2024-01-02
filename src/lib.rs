@@ -10,7 +10,7 @@ pub mod encoder;
 pub mod vidgen;
 
 use common::data_structures::H264DecodedStream;
-use common::data_structures::NALUheader;
+use common::data_structures::NALUHeader;
 use common::data_structures::PicParameterSet;
 use common::data_structures::SeqParameterSet;
 use common::data_structures::Slice;
@@ -96,7 +96,7 @@ fn generate_single_slice_header(
     let mut encoded_slice_header = vec![0, 0, 0, 1];
 
     let mut ds = H264DecodedStream::new();
-    ds.nalu_headers.push(NALUheader::new());
+    ds.nalu_headers.push(NALUHeader::new());
     ds.slices.push(Slice::new());
 
     random_nalu_header(

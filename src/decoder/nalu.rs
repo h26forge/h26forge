@@ -4,7 +4,7 @@ use crate::common::data_structures::AccessUnitDelim;
 use crate::common::data_structures::NALUHeader3DAVCExtension;
 use crate::common::data_structures::NALUHeaderMVCExtension;
 use crate::common::data_structures::NALUHeaderSVCExtension;
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::PrefixNALU;
 use crate::common::data_structures::NALU;
 use crate::common::data_structures::RefBasePicMarking;
@@ -136,7 +136,7 @@ fn remove_emulation_prevention_three_byte(stream: &[u8]) -> Vec<u8> {
 }
 
 /// Parse NALU header contents
-pub fn decode_nalu_header(long_start_code: bool, nalu_data: &mut ByteStream) -> NALUheader {
+pub fn decode_nalu_header(long_start_code: bool, nalu_data: &mut ByteStream) -> NALUHeader {
     // each NALU has a 1 byte header; the rest is control information
     // or coded video data
 
@@ -184,7 +184,7 @@ pub fn decode_nalu_header(long_start_code: bool, nalu_data: &mut ByteStream) -> 
         }
     }
 
-    NALUheader {
+    NALUHeader {
         forbidden_zero_bit,
         nal_ref_idc,
         nal_unit_type,
@@ -313,7 +313,7 @@ fn decode_nal_unit_header_mvc_extension(bs: &mut ByteStream) -> NALUHeaderMVCExt
 }
 
 /// Described in G.7.3.2.12.1 Prefix NAL unit SVC syntax
-pub fn decode_prefix_nal_unit_svc(nh: NALUheader, bs: &mut ByteStream) -> PrefixNALU {
+pub fn decode_prefix_nal_unit_svc(nh: NALUHeader, bs: &mut ByteStream) -> PrefixNALU {
     let mut res = PrefixNALU::new();
 
     if nh.nal_ref_idc != 0 {

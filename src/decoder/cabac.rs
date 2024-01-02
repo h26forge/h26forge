@@ -2959,7 +2959,6 @@ fn cabac_decode_mvd(
 /// First a binarization is derived for the syntax_element
 /// The binarization and the sequence of parsed bins determines the decoding process
 ///
-///
 /// Takes in a request for a syntax element, the bytestream, and values of prior
 /// parsed syntax elements
 ///

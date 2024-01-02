@@ -594,7 +594,7 @@
         "max": 255,
         "use_dependency": true
       },
-      "random_hdr_range": {
+      "random_hrd_range": {
         "cpb_cnt_minus1": {
           "min": 0,
           "max": 31
@@ -1007,7 +1007,7 @@
           "max": 255,
           "use_dependency": true
         },
-        "random_hdr_range": {
+        "random_hrd_range": {
           "cpb_cnt_minus1": {
             "min": 0,
             "max": 31
@@ -1057,13 +1057,213 @@
         "threshold": 1
       }
     },
-    "random_sps_svc_range": {},
+    "random_sps_svc_range": {
+      "inter_layer_deblocking_filter_control_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "extended_spatial_scalability_idc": {
+        "min": 0,
+        "max": 3
+      },
+      "chroma_phase_x_plus1_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "chroma_phase_y_plus1": {
+        "min": 0,
+        "max": 3
+      },
+      "seq_ref_layer_chroma_phase_x_plus1_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "seq_ref_layer_chroma_phase_y_plus1": {
+        "min": 0,
+        "max": 3
+      },
+      "seq_scaled_ref_layer_left_offset": {
+        "min": -65536,
+        "max": 65536
+      },
+      "seq_scaled_ref_layer_top_offset": {
+        "min": -65536,
+        "max": 65536
+      },
+      "seq_scaled_ref_layer_right_offset": {
+        "min": -65536,
+        "max": 65536
+      },
+      "seq_scaled_ref_layer_bottom_offset": {
+        "min": -65536,
+        "max": 65536
+      },
+      "seq_tcoeff_level_prediction_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "adaptive_tcoeff_level_prediction_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "slice_header_restriction_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      }
+    },
     "svc_vui_parameters_present_flag": {
       "min": 0,
       "max": 0,
       "threshold": 1
     },
-    "random_svc_vui_range": {},
+    "random_svc_vui_range": {
+      "vui_ext_num_entries_minus1": {
+        "min": 0,
+        "max": 2048
+      },
+      "vui_ext_dependency_id": {
+        "min": 0,
+        "max": 7
+      },
+      "vui_ext_quality_id": {
+        "min": 0,
+        "max": 15
+      },
+      "vui_ext_temporal_id": {
+        "min": 0,
+        "max": 7
+      },
+      "vui_ext_timing_info_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_ext_num_units_in_tick": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "vui_ext_time_scale": {
+        "min": 0,
+        "max": 4294967295
+      },
+      "vui_ext_fixed_frame_rate_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_ext_nal_hrd_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_ext_nal_hrd_parameters": {
+        "cpb_cnt_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "bit_rate_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "cpb_size_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "bit_rate_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cpb_size_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cbr_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "initial_cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "dpb_output_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "time_offset_length": {
+          "min": 0,
+          "max": 31
+        }
+      },
+      "vui_ext_vcl_hrd_parameters_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_ext_vcl_hrd_parameters": {
+        "cpb_cnt_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "bit_rate_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "cpb_size_scale": {
+          "min": 0,
+          "max": 15
+        },
+        "bit_rate_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cpb_size_value_minus1": {
+          "min": 0,
+          "max": 4294967295
+        },
+        "cbr_flag": {
+          "min": 0,
+          "max": 1,
+          "threshold": 1
+        },
+        "initial_cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "cpb_removal_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "dpb_output_delay_length_minus1": {
+          "min": 0,
+          "max": 31
+        },
+        "time_offset_length": {
+          "min": 0,
+          "max": 31
+        }
+      },
+      "vui_ext_low_delay_hrd_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      },
+      "vui_ext_pic_struct_present_flag": {
+        "min": 0,
+        "max": 1,
+        "threshold": 1
+      }
+    },
     "bit_equal_to_one": {
       "min": 1,
       "max": 1

@@ -259,7 +259,7 @@ pub fn encode_bitstream(
             1 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Coded slice of a non-IDR picture",
+                        "\t encode_bitstream - NALU {} - 1 - Coded slice of a non-IDR picture",
                         i
                     );
                 }
@@ -299,17 +299,17 @@ pub fn encode_bitstream(
                     let nalu_type = ds.nalu_headers[i].nal_unit_type;
                     if nalu_type == 2 {
                         println!(
-                            "\t encode_bitstream - NALU {} - Coded slice data partition A",
+                            "\t encode_bitstream - NALU {} - 2 - Coded slice data partition A",
                             i
                         );
                     } else if nalu_type == 3 {
                         println!(
-                            "\t encode_bitstream - NALU {} - Coded slice data partition B",
+                            "\t encode_bitstream - NALU {} - 3 - Coded slice data partition B",
                             i
                         );
                     } else if nalu_type == 4 {
                         println!(
-                            "\t encode_bitstream - NALU {} - Coded slice data partition C",
+                            "\t encode_bitstream - NALU {} - 4- Coded slice data partition C",
                             i
                         );
                     }
@@ -327,7 +327,7 @@ pub fn encode_bitstream(
             5 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Coded slice of an IDR picture",
+                        "\t encode_bitstream - NALU {} - 5 - Coded slice of an IDR picture",
                         i
                     );
                 }
@@ -364,7 +364,7 @@ pub fn encode_bitstream(
             }
             6 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - Supplemental enhancement information", i);
+                    println!("\t encode_bitstream - NALU {} - 6 - Supplemental enhancement information", i);
                 }
                 // only pass in already encoded SPSes
                 let res = encode_sei_message(&ds.seis[sei_idx], &ds.spses[0..sps_idx], silent_mode);
@@ -401,7 +401,7 @@ pub fn encode_bitstream(
             7 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Encoding Sequence Parameter Set",
+                        "\t encode_bitstream - NALU {} - 7 - Encoding Sequence Parameter Set",
                         i
                     );
                 }
@@ -422,7 +422,7 @@ pub fn encode_bitstream(
             8 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Encoding Picture Parameter Set",
+                        "\t encode_bitstream - NALU {} - 8 - Encoding Picture Parameter Set",
                         i
                     );
                 }
@@ -455,7 +455,7 @@ pub fn encode_bitstream(
             9 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Access unit delimiter",
+                        "\t encode_bitstream - NALU {} - 9 - Access unit delimiter",
                         i
                     );
                 }
@@ -476,7 +476,7 @@ pub fn encode_bitstream(
             }
             10 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - End of Sequence", i);
+                    println!("\t encode_bitstream - NALU {} - 10 - End of Sequence", i);
                 }
                 // According to 7.3.2.5 there is nothing to parse
                 // According to 7.4.2.5 this signals that the next NALU shall be an IDR
@@ -499,7 +499,7 @@ pub fn encode_bitstream(
             }
             11 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - End of Stream", i);
+                    println!("\t encode_bitstream - NALU {} - 11 - End of Stream", i);
                 }
                 // According to 7.3.2.6 there is nothing to parse
                 // According to 7.4.2.6 this signals that there is nothing else to decode, so we could just `break;`
@@ -522,7 +522,7 @@ pub fn encode_bitstream(
             }
             12 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - Filler Data", i);
+                    println!("\t encode_bitstream - NALU {} - 12 - Filler Data", i);
                 }
                 // According to 7.3.2.7 and 7.4.2.7 this is, as the name describes, filler data
                 // that should be all 0xff bytes
@@ -546,7 +546,7 @@ pub fn encode_bitstream(
             13 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Sequence parameter set extension",
+                        "\t encode_bitstream - NALU {} - 13 - Sequence parameter set extension",
                         i
                     );
                 }
@@ -567,7 +567,7 @@ pub fn encode_bitstream(
             }
             14 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - Prefix NAL unit", i);
+                    println!("\t encode_bitstream - NALU {} - 14 - Prefix NAL unit", i);
                 }
 
                 if ds.nalu_headers[i].svc_extension_flag {
@@ -591,7 +591,7 @@ pub fn encode_bitstream(
             15 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Subset sequence parameter set",
+                        "\t encode_bitstream - NALU {} - 15 - Subset sequence parameter set",
                         i
                     );
                 }
@@ -613,7 +613,7 @@ pub fn encode_bitstream(
             16 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Depth parameter set",
+                        "\t encode_bitstream - NALU {} - 16 - Depth parameter set",
                         i
                     );
                 }
@@ -655,7 +655,7 @@ pub fn encode_bitstream(
             }
             19 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - Coded slice of an auxiliary coded picture without partitioning", i);
+                    println!("\t encode_bitstream - NALU {} - 19 - Coded slice of an auxiliary coded picture without partitioning", i);
                 }
                 // TODO: slice_layer_without_partitioning_rbsp(); // but non-VCL
                 cur_annex_b_nal.extend(insert_emulation_three_byte(
@@ -676,7 +676,7 @@ pub fn encode_bitstream(
             20 => {
                 if !silent_mode {
                     println!(
-                        "\t encode_bitstream - NALU {} - Coded slice extension",
+                        "\t encode_bitstream - NALU {} - 20 - Coded slice extension",
                         i
                     );
                 }
@@ -708,7 +708,7 @@ pub fn encode_bitstream(
             }
             21 => {
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - Coded slice extension for a depth view component or a 3D-AVC texture view component", i);
+                    println!("\t encode_bitstream - NALU {} - 21 - Coded slice extension for a depth view component or a 3D-AVC texture view component", i);
                 }
                 // specified in Annex J
                 // slice_layer_extension_rbsp();
@@ -749,7 +749,7 @@ pub fn encode_bitstream(
             24 => {
                 // STAP-A    Single-time aggregation packet    5.7.1
                 if !silent_mode {
-                    println!("\t encode_bitstream - NALU {} - {} - RTP STAP-A - Aggregating next {} NALU(s)", i, ds.nalu_headers[i].nal_unit_type, ds.stap_as[stap_a_idx].count);
+                    println!("\t encode_bitstream - NALU {} - 24 - RTP STAP-A - Aggregating next {} NALU(s)", i, ds.stap_as[stap_a_idx].count);
                 }
 
                 rtp_options.aggregation_state = RTPAggregationState::New;
@@ -762,19 +762,19 @@ pub fn encode_bitstream(
                     let nalu_type = ds.nalu_headers[i].nal_unit_type;
                     if nalu_type == 25 {
                         // STAP-B    Single-time aggregation packet    5.7.1
-                        println!("\t encode_bitstream - NALU {} - {} - RTP STAP-B - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 25 - RTP STAP-B - Copying Bytes", i);
                     } else if nalu_type == 26 {
                         //MTAP16    Multi-time aggregation packet      5.7.2
-                        println!("\t encode_bitstream - NALU {} - {} - RTP MTAP16 - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 26 - RTP MTAP16 - Copying Bytes", i);
                     } else if nalu_type == 27 {
                         //MTAP24    Multi-time aggregation packet      5.7.2
-                        println!("\t encode_bitstream - NALU {} - {} - RTP MTAP24 - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 27 - RTP MTAP24 - Copying Bytes", i);
                     } else if nalu_type == 28 {
                         //FU-A      Fragmentation unit                 5.8
-                        println!("\t encode_bitstream - NALU {} - {} - RTP FU-A - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 28 - RTP FU-A - Copying Bytes", i);
                     } else if nalu_type == 29 {
                         //FU-B      Fragmentation unit                 5.8
-                        println!("\t encode_bitstream - NALU {} - {} - RTP FU-B - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 29 - RTP FU-B - Copying Bytes", i);
                     }
                 }
                 // Ignore for now
@@ -799,7 +799,7 @@ pub fn encode_bitstream(
                     let nalu_type = ds.nalu_headers[i].nal_unit_type;
                     if nalu_type == 30 {
                         // PACSI NAL unit                     4.9
-                        println!("\t encode_bitstream - NALU {} - {} - RTP SVC PACSI - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 30 - RTP SVC PACSI - Copying Bytes", i);
                     } else if nalu_type == 31 {
                         // This reads a subtype
                         // Type  SubType   NAME
@@ -807,7 +807,7 @@ pub fn encode_bitstream(
                         // 31     1       Empty NAL unit                     4.10
                         // 31     2       NI-MTAP                            4.7.1
                         // 31     3-31    reserved                           4.2.1
-                        println!("\t encode_bitstream - NALU {} - {} - RTP SVC NALU - Copying Bytes", i, nalu_type);
+                        println!("\t encode_bitstream - NALU {} - 31 - RTP SVC NALU - Copying Bytes", i);
                     }
                 }
                 // Ignore for now
@@ -884,7 +884,7 @@ pub fn encode_bitstream(
 
 #[cfg(test)]
 mod tests {
-    use crate::common::data_structures::{NALU, StapA, NALUheader};
+    use crate::common::data_structures::{NALU, StapA, NALUHeader};
 
     use super::*;
 
@@ -897,14 +897,14 @@ mod tests {
         let mut stap_a = StapA::new();
         stap_a.count = 1;
 
-        let mut stapa_hdr = NALUheader::new();
+        let mut stapa_hdr = NALUHeader::new();
         stapa_hdr.nal_unit_type = 24;
         stapa_hdr.nal_ref_idc = 3;
 
         let sps_nalu = NALU::new();
         let sps = SeqParameterSet::new();
 
-        let mut sps_hdr = NALUheader::new();
+        let mut sps_hdr = NALUHeader::new();
         sps_hdr.nal_unit_type = 7;
         sps_hdr.nal_ref_idc = 3;
 
@@ -934,14 +934,14 @@ mod tests {
         let mut stap_a = StapA::new();
         stap_a.count = 2;
 
-        let mut stapa_hdr = NALUheader::new();
+        let mut stapa_hdr = NALUHeader::new();
         stapa_hdr.nal_unit_type = 24;
         stapa_hdr.nal_ref_idc = 3;
 
         let sps_nalu = NALU::new();
         let sps = SeqParameterSet::new();
 
-        let mut sps_hdr = NALUheader::new();
+        let mut sps_hdr = NALUHeader::new();
         sps_hdr.nal_unit_type = 7;
         sps_hdr.nal_ref_idc = 3;
 

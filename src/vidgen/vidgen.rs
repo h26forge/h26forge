@@ -3,7 +3,7 @@
 use crate::common::data_structures::AccessUnitDelim;
 use crate::common::data_structures::H264DecodedStream;
 use crate::common::data_structures::MacroBlock;
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::PrefixNALU;
 use crate::common::data_structures::SEINalu;
@@ -64,7 +64,7 @@ pub fn random_video(
 
     for nalu_idx in 0..number_nalus {
         ds.nalu_elements.push(NALU::new());
-        ds.nalu_headers.push(NALUheader::new());
+        ds.nalu_headers.push(NALUHeader::new());
         let param_sets_exist = pps_idx > 0 && sps_idx > 0;
         random_nalu_header(
             nalu_idx,

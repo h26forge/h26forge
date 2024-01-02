@@ -1,6 +1,6 @@
 //! RTP encoding and saving.
 
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::RTPAggregationState;
 use crate::common::data_structures::RTPOptions;
 use crate::common::data_structures::StapB;
@@ -130,7 +130,7 @@ pub fn save_rtp_file(rtp_filename: String, rtp_nal: &Vec<Vec<u8>>, enable_safest
     };
 }
 
-pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUheader, silent_mode : bool, rtp_options: &RTPOptions) -> Vec<Vec<u8>> {
+pub fn encapsulate_rtp_nalu(nalu : Vec<u8>, nh: &NALUHeader, silent_mode : bool, rtp_options: &RTPOptions) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     if rtp_options.packetization_mode == 0 { // Single NALU mode
@@ -184,7 +184,7 @@ pub fn append_stap_a(nalu : &Vec<u8>) -> Vec<u8> {
 }
 
 /// Encode a Fragmentation Unit (FU) without a DON (FU-A)
-fn encode_fu_a(nal : &Vec<u8>, nh : &NALUheader) -> Vec<Vec<u8>> {
+fn encode_fu_a(nal : &Vec<u8>, nh : &NALUHeader) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     // 28 is FU-A
@@ -245,7 +245,7 @@ pub fn encode_mtap16(_p : Mtap16) {
 
 /// Encode a Multi-Time Aggregation Packet (MTAP) with 24-bit timestamp offset (TS)
 #[allow(dead_code)]
-pub fn encode_mtap24(_p : Mtap24, nh: & NALUheader) -> Vec<u8> {
+pub fn encode_mtap24(_p : Mtap24, nh: & NALUHeader) -> Vec<u8> {
     let mut res = Vec::new();
     // 27 is MTAP24
     let mtap24_hdr: u8 = 27 | nh.forbidden_zero_bit << 7 | (nh.nal_ref_idc << 5);
@@ -266,7 +266,7 @@ pub fn encode_mtap24(_p : Mtap24, nh: & NALUheader) -> Vec<u8> {
 ///
 /// NOTE: uses the same DON for each FU atm
 #[allow(dead_code)]
-fn encode_fu_b(nal : &Vec<u8>, nh : &NALUheader, don : u16) -> Vec<Vec<u8>> {
+fn encode_fu_b(nal : &Vec<u8>, nh : &NALUHeader, don : u16) -> Vec<Vec<u8>> {
     let mut res = Vec::new();
 
     // 29 is FU-B

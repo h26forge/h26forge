@@ -2,7 +2,7 @@
 
 use crate::common::data_structures::AccessUnitDelim;
 use crate::common::data_structures::H264DecodedStream;
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::PrefixNALU;
 use crate::common::data_structures::SEINalu;
@@ -57,7 +57,7 @@ pub fn decode_bitstream(
         }
     }
 
-    let mut nalu_headers: Vec<NALUheader> = Vec::new();
+    let mut nalu_headers: Vec<NALUHeader> = Vec::new();
     let mut spses: Vec<SeqParameterSet> = Vec::new();
     let mut subset_spses: Vec<SubsetSPS> = Vec::new();
     let mut sps_extensions: Vec<SPSExtension> = Vec::new();

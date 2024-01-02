@@ -2,7 +2,7 @@
 
 use crate::common::data_structures::MacroBlock;
 use crate::common::data_structures::MbType;
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::Slice;
@@ -14,6 +14,7 @@ use crate::common::data_structures::VideoParameters;
 use crate::common::helper::decoder_formatted_print;
 use crate::common::helper::get_pps;
 use crate::common::helper::get_sps;
+use crate::common::helper::get_subset_sps;
 use crate::common::helper::is_slice_type;
 use crate::common::helper::ByteStream;
 use crate::decoder::cabac::cabac_decode;
@@ -21,6 +22,7 @@ use crate::decoder::cabac::initialize_state;
 use crate::decoder::cabac::CABACState;
 use crate::decoder::expgolomb::exp_golomb_decode_one_wrapper;
 use crate::decoder::macroblock::decode_macroblock_layer;
+use crate::decoder::macroblock::decode_macroblock_layer_in_scalable_extension;
 use crate::decoder::nalu::dec_ref_base_pic_marking;
 use log::debug;
 
@@ -476,7 +478,7 @@ fn dec_ref_pic_marking(sh: &mut SliceHeader, bs: &mut ByteStream, idr_pic_flag: 
 /// Follows section 7.3.3
 fn decode_slice_header(
     bs: &mut ByteStream,
-    nh: &NALUheader,
+    nh: &NALUHeader,
     spses: &Vec<SeqParameterSet>,
     ppses: &Vec<PicParameterSet>,
 ) -> (SliceHeader, usize, usize, VideoParameters) {
@@ -759,7 +761,7 @@ fn decode_slice_data(
     vp: &VideoParameters,
     decode_strict_fmo: bool,
 ) -> SliceData {
-    // Picture Order Count, current_macroblock_number, current_slice_number, current_slice_type`
+    // Picture Order Count, current_macroblock_number, current_slice_number, current_slice_type
     let mut sd = SliceData::new();
     let mut cabac_state = CABACState::new();
 
@@ -1190,7 +1192,7 @@ fn decode_slice_data(
 /// Follows section 7.3.2.8
 pub fn decode_slice_layer_without_partitioning_rbsp(
     nalu_data: &mut ByteStream,
-    nh: &NALUheader,
+    nh: &NALUHeader,
     spses: &Vec<SeqParameterSet>,
     ppses: &Vec<PicParameterSet>,
     only_headers: bool,
@@ -1214,7 +1216,7 @@ pub fn decode_slice_layer_without_partitioning_rbsp(
 /// Follows section 7.3.2.13
 pub fn decode_slice_layer_extension_rbsp(
     nalu_data: &mut ByteStream,
-    nh: &NALUheader,
+    nh: &NALUHeader,
     subset_spses: &Vec<SubsetSPS>,
     ppses: &Vec<PicParameterSet>,
     only_headers: bool,
@@ -1226,18 +1228,17 @@ pub fn decode_slice_layer_extension_rbsp(
         println!("[WARNING] NALU AVC 3D Extension Flag enabled - Decoding may not be correct");
     }
 
-    // TODO: Uncomment whenever implementation below is done
-
-    let sh : SliceHeader;
+    let mut sh : SliceHeader;
     let sd : SliceData;
     if nh.svc_extension_flag {
         let res = decode_slice_header_in_scalable_extension(nalu_data, nh, subset_spses, &ppses); // specified in Annex G
         sh = res.0;
-        let _sps_idx = res.1;
-        let _pps_idx = res.2;
-        let slice_skip_flag = res.3;
+        let p = &ppses[res.1];
+        let s = &subset_spses[res.2];
+        let vp = res.3;
+        let slice_skip_flag = res.4;
         if !slice_skip_flag {
-            sd = decode_slice_data_in_scalable_extension(); // specified in Annex G
+            sd = decode_slice_data_in_scalable_extension(nalu_data, &mut sh, s, p, &vp, decode_strict_fmo); // specified in Annex G
         } else {
             sd = SliceData::new();
         }
@@ -1262,23 +1263,19 @@ pub fn decode_slice_layer_extension_rbsp(
         sd = res.sd;
     }
     
-    SliceExtension{ sh, sd}
+    SliceExtension{ sh, sd }
 }
 
 /// Follows section G.7.3.3.4
-#[allow(dead_code)]
 fn decode_slice_header_in_scalable_extension(    
     bs: &mut ByteStream,
-    nh: &NALUheader,
+    nh: &NALUHeader,
     spses: &Vec<SubsetSPS>,
     ppses: &Vec<PicParameterSet>,
-) -> (SliceHeader, usize, usize, bool) {
+) -> (SliceHeader, usize, usize, VideoParameters, bool) {
     let slice_skip_flag = true;
-    // TODO: Annex G
 
     let mut sh = SliceHeader::new();
-    let mut pps_idx = 0; // search in reverse
-    let mut sps_idx = 0; // search in reverse
 
     // first_mb_in_slice
     sh.first_mb_in_slice = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
@@ -1291,44 +1288,8 @@ fn decode_slice_header_in_scalable_extension(
     // pic_parameter_set_id
     sh.pic_parameter_set_id = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
     decoder_formatted_print("SH: pic_parameter_set_id", sh.pic_parameter_set_id, 63);
-    let mut cur_pps_wrapper: Option<&PicParameterSet> = None;
-    // retrieve the corresponding PPS
-    for i in (0..ppses.len()).rev() {
-        if ppses[i].pic_parameter_set_id == sh.pic_parameter_set_id {
-            cur_pps_wrapper = Some(&ppses[i]);
-            pps_idx = i;
-            break;
-        }
-    }
-
-    let p: &PicParameterSet;
-    match cur_pps_wrapper {
-        Some(x) => p = x,
-        _ => panic!(
-            "decode_slice_header - PPS with id {} not found",
-            sh.pic_parameter_set_id
-        ),
-    }
-
-    let mut cur_subset_sps_wrapper: Option<&SubsetSPS> = None;
-
-    for i in (0..spses.len()).rev() {
-        if spses[i].sps.seq_parameter_set_id == p.seq_parameter_set_id {
-            cur_subset_sps_wrapper = Some(&spses[i]);
-            sps_idx = i;
-            break;
-        }
-    }
-
-    let s: &SubsetSPS;
-    match cur_subset_sps_wrapper {
-        Some(x) => s = x,
-        _ => panic!(
-            "decode_slice_header - SPS with id {} not found",
-            p.seq_parameter_set_id
-        ),
-    }
-
+    let (p, pps_idx) = get_pps(&ppses, sh.pic_parameter_set_id, ppses.len());
+    let (s, sps_idx) = get_subset_sps(&spses, p.seq_parameter_set_id, spses.len());
     let mut vp = VideoParameters::new(nh, p, &s.sps);
 
     // colour_plane_id
@@ -1750,14 +1711,446 @@ fn decode_slice_header_in_scalable_extension(
     // equation 7-33
     sh.filter_offset_b = sh.slice_beta_offset_div2 << 1;
 
-    (sh, sps_idx, pps_idx, slice_skip_flag)
+    (sh, sps_idx, pps_idx, vp, slice_skip_flag)
 }
 
 /// Follows section G.7.3.4.1
 #[allow(dead_code)]
-fn decode_slice_data_in_scalable_extension() -> SliceData {
-    // TODO: Annex G
-    SliceData::new()
+fn decode_slice_data_in_scalable_extension(
+    bs: &mut ByteStream,
+    sh: &mut SliceHeader,
+    s: &SubsetSPS,
+    p: &PicParameterSet,
+    vp: &VideoParameters,
+    decode_strict_fmo: bool,
+) -> SliceData {
+    // Picture Order Count, current_macroblock_number, current_slice_number, current_slice_type
+    let mut sd = SliceData::new();
+    let mut cabac_state = CABACState::new();
+
+    let mut num_macroblocks_to_encode: usize =
+        ((s.sps.pic_height_in_map_units_minus1 + 1) * (s.sps.pic_width_in_mbs_minus1 + 1)) as usize;
+
+    let sgm = if decode_strict_fmo {
+        sh.generate_slice_group_map(&s.sps, p, vp)
+    } else {
+        vec![0; vp.pic_size_in_map_units as usize]
+    };
+
+    // multiply by 2 for frame slices in field-supporting videos
+    if !s.sps.frame_mbs_only_flag && !sh.field_pic_flag {
+        num_macroblocks_to_encode *= 2;
+    }
+
+    if p.entropy_coding_mode_flag {
+        // we perform byte alignment here
+        if bs.byte_offset > 0 {
+            bs.bytestream.pop_front();
+            bs.byte_offset = 0;
+        }
+        cabac_state = initialize_state(bs);
+    }
+    // create the current Macroblock and set its address
+    // create the current Macroblock and set its address
+
+    let mut curr_mb_addr = (sh.first_mb_in_slice
+        * (1 + match sh.mbaff_frame_flag {
+            true => 1,
+            _ => 0,
+        })) as usize;
+    let mut curr_mb_idx = 0;
+    let mut more_data_flag = true;
+    let mut prev_mb_skipped = false;
+    let mut prev_predicted_mb_field_decoding_flag = false; // necessary in MBAFF when the top MB is skipped, and the bottom one needs to decode mb_field_decoding_flag
+
+    // do while trick
+    while {
+        if curr_mb_addr > num_macroblocks_to_encode - 1 {
+            println!("[WARNING] Current MB address {} (MB index {}) is greater than expected number of macroblocks in frame/field {}", curr_mb_addr, curr_mb_idx, num_macroblocks_to_encode);
+        }
+
+        let mut curr_mb = MacroBlock::new();
+        curr_mb.mb_idx = curr_mb_idx;
+        curr_mb.mb_addr = curr_mb_addr;
+        curr_mb.available = true;
+
+        // These are 0 whenever chroma_format_idc is 0 or there is a separate_colour_plane_flag
+        if vp.sub_height_c == 0 || vp.sub_width_c == 0 {
+            curr_mb.num_c8x8 = 0;
+        } else {
+            curr_mb.num_c8x8 = (4 / (vp.sub_width_c * vp.sub_height_c)) as usize;
+        }
+
+        sd.macroblock_vec.push(curr_mb);
+        debug!(target: "decode","");
+        debug!(target: "decode","*********** POC: {} (I/P) MB: {} Slice: {} Type {} ***********",
+            sh.pic_order_cnt_lsb,
+            sd.macroblock_vec[curr_mb_idx].mb_addr,
+            0,
+            sh.slice_type % 5
+        );
+        if !is_slice_type(sh.slice_type, "EI") {
+            if !p.entropy_coding_mode_flag {
+                let mb_skip_run = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+                decoder_formatted_print("mb_skip_run", mb_skip_run, 63);
+
+                //debug!(target: "decode","*********** Skipping over {} Macroblocks ***********", mb_skip_run);
+
+                sd.mb_skip_run.push(mb_skip_run);
+
+                prev_mb_skipped = mb_skip_run > 0;
+
+                if prev_mb_skipped {
+                    // set the current macroblock to skip type
+                    if is_slice_type(sh.slice_type, "EB") {
+                        sd.macroblock_vec[curr_mb_idx].mb_type = MbType::BSkip;
+                    } else {
+                        sd.macroblock_vec[curr_mb_idx].mb_type = MbType::PSkip;
+                    }
+                    sd.mb_field_decoding_flag.push(false);
+                }
+
+                // this may be important for displaying info, but we can skip for now (hopefully)
+                for i in 0..mb_skip_run {
+                    curr_mb_addr = next_mb_addr(curr_mb_addr, sh.pic_size_in_mbs as usize, &sgm);
+                    curr_mb_idx += 1;
+
+                    curr_mb = MacroBlock::new();
+                    curr_mb.mb_idx = curr_mb_idx;
+                    curr_mb.mb_addr = curr_mb_addr;
+                    curr_mb.available = true;
+                    // avoid a div by zero -- occurs when separate colour plane flags or chroma format idc is 0 or 3
+                    if vp.sub_width_c == 0 || vp.sub_height_c == 0 {
+                        curr_mb.num_c8x8 = 0;
+                    } else {
+                        curr_mb.num_c8x8 = (4 / (vp.sub_width_c * vp.sub_height_c)) as usize;
+                    }
+
+                    if is_slice_type(sh.slice_type, "EB") {
+                        curr_mb.mb_type = MbType::BSkip;
+                    } else {
+                        curr_mb.mb_type = MbType::PSkip;
+                    }
+
+                    // to make sure the indices stay aligned, we push a collection of empty variables
+                    sd.macroblock_vec.push(curr_mb);
+                    sd.mb_skip_run.push(0);
+                    // don't push for the last index because it gets set to the sh.field_pic_flag below
+                    if i < mb_skip_run - 1 {
+                        sd.mb_field_decoding_flag.push(false);
+                    }
+                }
+
+                if mb_skip_run > 0 {
+                    more_data_flag = bs.more_data();
+                    if more_data_flag {
+                        // Do an extra print
+                        debug!(target: "decode","*********** POC: {} (I/P) MB: {} Slice: {} Type {} ***********",
+                            sh.pic_order_cnt_lsb,
+                            sd.macroblock_vec[curr_mb_idx].mb_addr,
+                            0,
+                            sh.slice_type % 5
+                        );
+                    }
+                }
+            } else {
+                // do an inference of mb_field_decoding_flag based on neighbors
+                if sh.mbaff_frame_flag {
+                    // this inferring is necessary when the mb_field_decoding_flag
+                    // is not present for both the top and bottom macroblock of a
+                    // macroblock pair. This can happen when things are skipped
+
+                    let mut recovered_from_above = false;
+
+                    if sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 1 {
+                        debug!(target: "decode","Inferring mb_field_decoding_flag: bottom pair, gonna try to copy from the top pair");
+                        let mb_above: MacroBlock;
+                        // for mb_b we know that we're the bottom pair, but first_mb_in_slice may mess us up so we just
+                        // double check in the index to make sure there's a top macroblock
+                        if curr_mb_idx < 1 {
+                            mb_above = MacroBlock::new();
+                        } else {
+                            mb_above = sd.macroblock_vec[curr_mb_idx - 1].clone();
+                        }
+
+                        debug!(target: "decode","mb_above.mb_addr = {}", mb_above.mb_addr);
+
+                        // if available and not skipped, copy it from above
+                        if mb_above.available
+                            && mb_above.mb_type != MbType::PSkip
+                            && mb_above.mb_type != MbType::BSkip
+                        {
+                            debug!(target: "decode","Gonna copy from above - {}",sd.mb_field_decoding_flag[mb_above.mb_idx] );
+                            sd.mb_field_decoding_flag
+                                .push(sd.mb_field_decoding_flag[mb_above.mb_idx]);
+                            recovered_from_above = true;
+                        } else if mb_above.available
+                            && (mb_above.mb_type == MbType::PSkip
+                                || mb_above.mb_type == MbType::BSkip)
+                        {
+                            debug!(target: "decode","Above was skipped, so we'll use its predicted value - {}", prev_predicted_mb_field_decoding_flag );
+                            sd.mb_field_decoding_flag
+                                .push(prev_predicted_mb_field_decoding_flag);
+                            recovered_from_above = true;
+                        }
+                    }
+
+                    if !recovered_from_above {
+                        // check neighbors for their flags
+                        let mb_left: MacroBlock;
+                        let mb_above: MacroBlock;
+
+                        // if we're the top of the pair
+                        if sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 0 {
+                            debug!(target: "decode","Inferring mb_field_decoding_flag for top pair of an MBAFF frame");
+
+                            // for the top pair, we first check if there's anything to the left
+                            // if on the left most edge, then not ( modulo picture width *2 is equal to 0 or 1 )
+                            // or if the curr_mb_idx is too small, then set to new
+                            if (sd.macroblock_vec[curr_mb_idx].mb_addr as u32)
+                                % (2 * vp.pic_width_in_mbs)
+                                < 2
+                                || curr_mb_idx < 2
+                            {
+                                debug!(target: "decode","sd.macroblock_vec[curr_mb_idx].mb_addr as u32 {}", sd.macroblock_vec[curr_mb_idx].mb_addr as u32);
+                                debug!(target: "decode","2*vp.pic_width_in_mbs {}", 2*vp.pic_width_in_mbs);
+                                debug!(target: "decode","curr_mb_idx {}", curr_mb_idx);
+                                mb_left = MacroBlock::new();
+                            } else {
+                                mb_left = sd.macroblock_vec[curr_mb_idx - 2].clone();
+                            }
+
+                            // for mb_above, we need to check if we're at the top most part of the frame, or if not
+                            // then get the MB right above us (which should have an odd MB value)
+                            if (sd.macroblock_vec[curr_mb_idx].mb_addr as u32)
+                                < (2 * vp.pic_width_in_mbs)
+                                || (curr_mb_idx as u32) < (2 * vp.pic_width_in_mbs)
+                            {
+                                debug!(target: "decode","sd.macroblock_vec[curr_mb_idx].mb_addr as u32 {}", sd.macroblock_vec[curr_mb_idx].mb_addr as u32);
+                                debug!(target: "decode","2*vp.pic_width_in_mbs {}", 2*vp.pic_width_in_mbs);
+                                debug!(target: "decode","curr_mb_idx {}", curr_mb_idx);
+                                mb_above = MacroBlock::new();
+                            } else {
+                                // we do +1 to get the odd MB
+                                mb_above = sd.macroblock_vec
+                                    [curr_mb_idx - (2 * vp.pic_width_in_mbs as usize) + 1]
+                                    .clone();
+                            }
+                        } else {
+                            // bottom of the pair
+                            debug!(target: "decode","Inferring mb_field_decoding_flag for bottom pair of an MBAFF frame");
+
+                            // first check if there's anything to the left
+                            // if on the left most edge, then not ( modulo picture width *2 is equal to 0 or 1 )
+                            // or if the curr_mb_idx is too small, then set to new
+                            if (sd.macroblock_vec[curr_mb_idx].mb_addr as u32)
+                                % (2 * vp.pic_width_in_mbs)
+                                < 2
+                                || (curr_mb_idx < 2)
+                            {
+                                debug!(target: "decode","sd.macroblock_vec[curr_mb_idx].mb_addr as u32 {}", sd.macroblock_vec[curr_mb_idx].mb_addr as u32);
+                                debug!(target: "decode","2*vp.pic_width_in_mbs {}", 2*vp.pic_width_in_mbs);
+                                debug!(target: "decode","curr_mb_idx {}", curr_mb_idx);
+                                mb_left = MacroBlock::new();
+                            } else {
+                                mb_left = sd.macroblock_vec[curr_mb_idx - 2].clone();
+                            }
+
+                            // for mb_above we know that we're the bottom pair, but first_mb_in_slice may mess us up so we just
+                            // double check in the index to make sure there's a top macroblock
+                            if curr_mb_idx < 1 {
+                                // if we didn't copy from above before, why would we do so now??
+                                mb_above = MacroBlock::new();
+                            } else {
+                                mb_above = sd.macroblock_vec[curr_mb_idx - 1].clone();
+                            }
+                        }
+
+                        debug!(target: "decode","mb_left.mb_addr {} and mb_left.mb_idx {}", mb_left.mb_addr, mb_left.mb_idx);
+                        debug!(target: "decode","mb_above.mb_addr {} and mb_above.mb_idx {}", mb_above.mb_addr, mb_above.mb_idx);
+
+                        if mb_left.available {
+                            debug!(target: "decode","Copying from the left - {}", sd.mb_field_decoding_flag[mb_left.mb_idx]);
+                            sd.mb_field_decoding_flag
+                                .push(sd.mb_field_decoding_flag[mb_left.mb_idx]);
+                        } else if mb_above.available {
+                            debug!(target: "decode","Copying from above - {}", sd.mb_field_decoding_flag[mb_above.mb_idx]);
+                            sd.mb_field_decoding_flag
+                                .push(sd.mb_field_decoding_flag[mb_above.mb_idx]);
+                        } else {
+                            debug!(target: "decode","Just pushing false - should only happen on the left-most and top-most rows");
+                            sd.mb_field_decoding_flag.push(false);
+                        }
+                    }
+                    prev_predicted_mb_field_decoding_flag = sd.mb_field_decoding_flag[curr_mb_idx];
+                }
+
+                let r = cabac_decode(
+                    "mb_skip_flag",
+                    bs,
+                    &mut cabac_state,
+                    curr_mb_idx,
+                    sh,
+                    &mut sd,
+                    vp,
+                    0,
+                    Vec::new(),
+                );
+                let res = match r {
+                    1 => true,
+                    _ => false,
+                };
+
+                sd.macroblock_vec[curr_mb_idx].mb_skip_flag = res;
+
+                if sd.macroblock_vec[curr_mb_idx].mb_skip_flag {
+                    if is_slice_type(sh.slice_type, "EP") {
+                        sd.macroblock_vec[curr_mb_idx].mb_type = MbType::PSkip;
+                    } else if is_slice_type(sh.slice_type, "EB") {
+                        sd.macroblock_vec[curr_mb_idx].mb_type = MbType::BSkip;
+                    }
+                }
+                decoder_formatted_print("mb_skip_flag", &r, 63);
+
+                more_data_flag = !sd.macroblock_vec[curr_mb_idx].mb_skip_flag;
+            }
+        }
+        if more_data_flag {
+            // we can remove curr_mb.mb_addr %2 == 1 check, but leaving it in to follow the Spec
+            if sh.mbaff_frame_flag
+                && (sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 0
+                    || (sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 1 && prev_mb_skipped))
+            {
+                let mb_field_decoding_flag: bool = if p.entropy_coding_mode_flag {
+                    match cabac_decode(
+                        "mb_field_decoding_flag",
+                        bs,
+                        &mut cabac_state,
+                        curr_mb_idx,
+                        sh,
+                        &mut sd,
+                        vp,
+                        0,
+                        Vec::new(),
+                    ) {
+                        1 => true,
+                        _ => false,
+                    }
+                } else {
+                    match bs.read_bits(1) {
+                        1 => true,
+                        _ => false,
+                    }
+                };
+
+                // in case we added our inference for neighbor prediction above,
+                // then rewrite that value
+                if curr_mb_idx < sd.mb_field_decoding_flag.len() {
+                    sd.mb_field_decoding_flag[curr_mb_idx] = mb_field_decoding_flag;
+                } else {
+                    sd.mb_field_decoding_flag.push(mb_field_decoding_flag);
+                }
+
+                // if we're in the bottom macroblock decoding this parameter, and the top macroblock was
+                // skipped, then correct the mb_field_decoding_flag of that macroblock
+                if sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 1 && prev_mb_skipped {
+                    sd.mb_field_decoding_flag[curr_mb_idx - 1] = mb_field_decoding_flag;
+                }
+
+                decoder_formatted_print("mb_field_decoding_flag", mb_field_decoding_flag, 63);
+            } else {
+                // for balance
+                // according to section 7.4.4, if mbaff is 0 then field decoding is equal to field pic flag
+                if !sh.mbaff_frame_flag {
+                    // don't have to worry about index check here because no MBAFF prediction
+                    sd.mb_field_decoding_flag.push(sh.field_pic_flag);
+                } else {
+                    // mbaff is 1, and the field decoding flag is not present for both the top and bottom, then we take this route
+                    //debug!(target: "decode"," howdy!! ");
+
+                    // If we're here, then sh.mbaff_frame_flag is true, and the previous macroblock is not skipped
+                    if sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 1 && curr_mb_idx > 0 {
+                        // if the previous macroblock was a field, then this one should be too, if not, then we're not
+                        if curr_mb_idx < sd.mb_field_decoding_flag.len() {
+                            sd.mb_field_decoding_flag[curr_mb_idx] =
+                                sd.mb_field_decoding_flag[curr_mb_idx - 1];
+                        } else {
+                            sd.mb_field_decoding_flag
+                                .push(sd.mb_field_decoding_flag[curr_mb_idx - 1]);
+                        }
+                    } else {
+                        if curr_mb_idx < sd.mb_field_decoding_flag.len() {
+                            sd.mb_field_decoding_flag[curr_mb_idx] = false;
+                        } else {
+                            sd.mb_field_decoding_flag.push(false);
+                        }
+                    }
+
+                    // From the spec:
+                    // When MbaffFrameFlag is equal to 1 and mb_field_decoding_flag is not present for the top macroblock of a macroblock
+                    // pair (because the top macroblock is skipped), a decoder must wait until mb_field_decoding_flag for the bottom macroblock is read
+                    // (when the bottom macroblock is not skipped) or the value of mb_field_decoding_flag is inferred as specified above (when the bottom
+                    // macroblock is also skipped) before it starts the decoding process for the top macroblock
+                }
+            }
+            decode_macroblock_layer_in_scalable_extension(curr_mb_idx, &mut cabac_state, bs, &mut sd, sh, vp, s, p);
+        } else {
+            // only push this in cases where we haven't added this list yet
+            // only copy over values that are bottom macroblocks
+            if curr_mb_idx > 0 {
+                if curr_mb_idx >= sd.mb_field_decoding_flag.len() {
+                    // if we skip, just copy over the previous value
+                    sd.mb_field_decoding_flag
+                        .push(sd.mb_field_decoding_flag[curr_mb_idx - 1]);
+                }
+            } else {
+                // the case in which we skip the first macroblock in the slice
+                // if we wrote something already, then put false
+                if curr_mb_idx < sd.mb_field_decoding_flag.len() {
+                    sd.mb_field_decoding_flag[curr_mb_idx] = false;
+                } else {
+                    // else push false
+                    sd.mb_field_decoding_flag.push(false);
+                }
+            }
+        }
+        if !p.entropy_coding_mode_flag {
+            more_data_flag = bs.more_data();
+        } else {
+            if !is_slice_type(sh.slice_type, "EI") {
+                prev_mb_skipped = sd.macroblock_vec[curr_mb_idx].mb_skip_flag;
+            }
+            if sh.mbaff_frame_flag && sd.macroblock_vec[curr_mb_idx].mb_addr % 2 == 0 {
+                more_data_flag = true;
+                sd.end_of_slice_flag.push(false);
+            } else {
+                let r = cabac_decode(
+                    "end_of_slice_flag",
+                    bs,
+                    &mut cabac_state,
+                    curr_mb_idx,
+                    sh,
+                    &mut sd,
+                    vp,
+                    0,
+                    Vec::new(),
+                );
+                sd.end_of_slice_flag.push(match r {
+                    1 => true,
+                    _ => false,
+                });
+                decoder_formatted_print("end_of_slice_flag", &r, 63);
+                more_data_flag = !sd.end_of_slice_flag[sd.end_of_slice_flag.len() - 1];
+            }
+        }
+
+        curr_mb_addr = next_mb_addr(curr_mb_addr, sh.pic_size_in_mbs as usize, &sgm);
+        curr_mb_idx += 1;
+        // variable we are checking
+        more_data_flag
+    } {}
+
+    sd
 }
 
 /// Follows section J.7.3.3.4

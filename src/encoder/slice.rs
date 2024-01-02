@@ -2,7 +2,7 @@
 
 use crate::common::data_structures::MacroBlock;
 use crate::common::data_structures::MbType;
-use crate::common::data_structures::NALUheader;
+use crate::common::data_structures::NALUHeader;
 use crate::common::data_structures::PicParameterSet;
 use crate::common::data_structures::SeqParameterSet;
 use crate::common::data_structures::Slice;
@@ -615,7 +615,7 @@ fn encode_slice_header_dec_ref_pic_marking(sh: &SliceHeader, vp: &VideoParameter
 /// the elements
 fn encode_slice_header(
     bitstream_array: &mut Vec<u8>,
-    nh: &NALUheader,
+    nh: &NALUHeader,
     sh: &SliceHeader,
     s: &SeqParameterSet,
     p: &PicParameterSet,
@@ -1212,7 +1212,7 @@ fn encode_slice_data(
 
 /// Follows section 7.3.2.8
 pub fn encode_slice(
-    nh: &NALUheader,
+    nh: &NALUHeader,
     slice: &Slice,
     s: &SeqParameterSet,
     p: &PicParameterSet,
@@ -1239,7 +1239,7 @@ pub fn encode_slice(
 
 /// Follows section 7.3.2.13
 pub fn encode_slice_layer_extension_rbsp(
-    nh: &NALUheader,
+    nh: &NALUHeader,
     slice: &Slice,
     s: &SubsetSPS,
     p: &PicParameterSet,
@@ -1271,7 +1271,7 @@ pub fn encode_slice_layer_extension_rbsp(
 
 #[allow(dead_code)]
 fn encode_slice_header_in_scalable_extension(
-    _nh: &NALUheader,
+    _nh: &NALUHeader,
     _sh: &SliceHeader,
     _s: &SubsetSPS,
     _p: &PicParameterSet,
@@ -1293,7 +1293,7 @@ fn encode_slice_data_in_scalable_extension() -> Vec<u8> {
 
 #[allow(dead_code)]
 fn encode_slice_header_in_3davc_extension(
-    _nh: &NALUheader,
+    _nh: &NALUHeader,
     _sh: &SliceHeader,
     _s: &SubsetSPS,
     _p: &PicParameterSet,
