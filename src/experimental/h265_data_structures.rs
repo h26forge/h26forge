@@ -73,6 +73,78 @@ pub enum NalUnitType {
     NalUnitInvalid,
 }
 
+impl NalUnitType {
+    pub fn from(val : u32) -> NalUnitType {
+        match val {
+            0 => return NalUnitType::NalUnitCodedSliceTrailN, // 0
+            1 => return NalUnitType::NalUnitCodedSliceTrailR, // 1
+            2 => return NalUnitType::NalUnitCodedSliceTsaN,   // 2
+            3 => return NalUnitType::NalUnitCodedSliceTsaR,   // 3
+            4 => return NalUnitType::NalUnitCodedSliceStsaN,  // 4
+            5 => return NalUnitType::NalUnitCodedSliceStsaR,  // 5
+            6 => return NalUnitType::NalUnitCodedSliceRadlN,  // 6
+            7 => return NalUnitType::NalUnitCodedSliceRadlR,  // 7
+            8 => return NalUnitType::NalUnitCodedSliceRaslN,  // 8
+            9 => return NalUnitType::NalUnitCodedSliceRaslR,  // 9
+           10 => return NalUnitType::NalUnitReservedVclN10,
+           11 => return NalUnitType::NalUnitReservedVclR11,
+           12 => return NalUnitType::NalUnitReservedVclN12,
+           13 => return NalUnitType::NalUnitReservedVclR13,
+           14 => return NalUnitType::NalUnitReservedVclN14,
+           15 => return NalUnitType::NalUnitCodedSliceBlaWLp,
+           16 => return NalUnitType::NalUnitReservedVclR15,     // 16
+           17 => return NalUnitType::NalUnitCodedSliceBlaWRadl, // 17
+           18 => return NalUnitType::NalUnitCodedSliceBlaNLp,   // 18
+           19 => return NalUnitType::NalUnitCodedSliceIdrWRadl, // 19
+           20 => return NalUnitType::NalUnitCodedSliceIdrNLp,   // 20
+           21 => return NalUnitType::NalUnitCodedSliceCra,      // 21
+           22 => return NalUnitType::NalUnitReservedIrapVcl22,
+           23 => return NalUnitType::NalUnitReservedIrapVcl23,
+           24 => return NalUnitType::NalUnitReservedVcl24,
+           25 => return NalUnitType::NalUnitReservedVcl25,
+           26 => return NalUnitType::NalUnitReservedVcl26,
+           27 => return NalUnitType::NalUnitReservedVcl27,
+           28 => return NalUnitType::NalUnitReservedVcl28,
+           29 => return NalUnitType::NalUnitReservedVcl29,
+           30 => return NalUnitType::NalUnitReservedVcl30,
+           31 => return NalUnitType::NalUnitReservedVcl31,
+           32 => return NalUnitType::NalUnitVps,                 // 32
+           33 => return NalUnitType::NalUnitSps,                 // 33
+           34 => return NalUnitType::NalUnitPps,                 // 34
+           35 => return NalUnitType::NalUnitAccessUnitDelimiter, // 35
+           36 => return NalUnitType::NalUnitEos,                 // 36
+           37 => return NalUnitType::NalUnitEob,                 // 37
+           38 => return NalUnitType::NalUnitFillerData,          // 38
+           39 => return NalUnitType::NalUnitPrefixSei,           // 39
+           40 => return NalUnitType::NalUnitSuffixSei,           // 40
+           41 => return NalUnitType::NalUnitReservedNvcl41,
+           42 => return NalUnitType::NalUnitReservedNvcl42,
+           43 => return NalUnitType::NalUnitReservedNvcl43,
+           44 => return NalUnitType::NalUnitReservedNvcl44,
+           45 => return NalUnitType::NalUnitReservedNvcl45,
+           46 => return NalUnitType::NalUnitReservedNvcl46,
+           47 => return NalUnitType::NalUnitReservedNvcl47,
+           48 => return NalUnitType::NalUnitUnspecified48,
+           49 => return NalUnitType::NalUnitUnspecified49,
+           50 => return NalUnitType::NalUnitUnspecified50,
+           51 => return NalUnitType::NalUnitUnspecified51,
+           52 => return NalUnitType::NalUnitUnspecified52,
+           53 => return NalUnitType::NalUnitUnspecified53,
+           54 => return NalUnitType::NalUnitUnspecified54,
+           55 => return NalUnitType::NalUnitUnspecified55,
+           56 => return NalUnitType::NalUnitUnspecified56,
+           57 => return NalUnitType::NalUnitUnspecified57,
+           58 => return NalUnitType::NalUnitUnspecified58,
+           59 => return NalUnitType::NalUnitUnspecified59,
+           60 => return NalUnitType::NalUnitUnspecified60,
+           61 => return NalUnitType::NalUnitUnspecified61,
+           62 => return NalUnitType::NalUnitUnspecified62,
+           63 => return NalUnitType::NalUnitUnspecified63,
+            _ => return NalUnitType::NalUnitInvalid,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H265NALUHeader {
     pub forbidden_zero_bit: u8,
@@ -102,6 +174,7 @@ impl Default for H265NALUHeader {
 pub struct H265DecodedStream {
     pub nalu_elements: Vec<NALU>,
     pub nalu_headers: Vec<H265NALUHeader>,
+    pub vpses: Vec<H265VideoParameterSet>,
     pub spses: Vec<H265SeqParameterSet>,
 }
 
@@ -110,6 +183,7 @@ impl H265DecodedStream {
         H265DecodedStream {
             nalu_elements: Vec::new(),
             nalu_headers: Vec::new(),
+            vpses: Vec::new(),
             spses: Vec::new(),
         }
     }
@@ -119,6 +193,7 @@ impl H265DecodedStream {
         H265DecodedStream {
             nalu_elements: self.nalu_elements.clone(),
             nalu_headers: self.nalu_headers.clone(),
+            vpses: self.vpses.clone(),
             spses: self.spses.clone(),
         }
     }
@@ -889,7 +964,7 @@ pub struct ProfileTierLevel {
     pub general_profile_space: u8,                            // u(2)
     pub general_tier_flag: bool,                              // u(1)
     pub general_profile_idc: u8,                              // u(5)
-    pub general_profile_compatibility_flag: Vec<bool>,        // len(32) u(1)
+    pub general_profile_compatibility_flag: [bool; 32],       // len(32) u(1)
     pub general_progressive_source_flag: bool,                // u(1)
     pub general_interlaced_source_flag: bool,                 // u(1)
     pub general_non_packed_constraint_flag: bool,             // u(1)
@@ -905,7 +980,7 @@ pub struct ProfileTierLevel {
     pub general_lower_bit_rate_constraint_flag: bool,         // u(1)
     pub general_max_14bit_constraint_flag: bool,              // u(1)
     pub general_reserved_zero_33bits: u64,                    // u(33)
-    pub general_reserved_zero_34bits: u64,                    //u(34)
+    pub general_reserved_zero_34bits: u64,                    // u(34)
     pub general_reserved_zero_7bits: u8,                      // u(7)
     pub general_reserved_zero_35bits: u64,                    // u(35)
     pub general_reserved_zero_43bits: u64,                    // u(43)
@@ -918,7 +993,7 @@ pub struct ProfileTierLevel {
     pub sub_layer_profile_space: Vec<u8>,                     // u(2)
     pub sub_layer_tier_flag: Vec<bool>,                       // u(1)
     pub sub_layer_profile_idc: Vec<u8>,                       // u(5)
-    pub sub_layer_profile_compatibility_flag: Vec<Vec<bool>>, //u(1)
+    pub sub_layer_profile_compatibility_flag: Vec<Vec<bool>>, // u(1)
     pub sub_layer_progressive_source_flag: Vec<bool>,         // u(1)
     pub sub_layer_interlaced_source_flag: Vec<bool>,          // u(1)
     pub sub_layer_non_packed_constraint_flag: Vec<bool>,      // u(1)
@@ -949,7 +1024,7 @@ impl ProfileTierLevel {
             general_profile_space: 0,
             general_tier_flag: false,
             general_profile_idc: 0,
-            general_profile_compatibility_flag: Vec::new(),
+            general_profile_compatibility_flag: [false; 32],
             general_progressive_source_flag: false,
             general_interlaced_source_flag: false,
             general_non_packed_constraint_flag: false,
@@ -1869,6 +1944,177 @@ impl ShortTermRefPic {
 }
 
 impl Default for ShortTermRefPic {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct H265HRDParameters {
+    pub nal_hrd_parameters_present_flag : bool, // u(1)
+    pub vcl_hrd_parameters_present_flag : bool, // u(1)
+    pub sub_pic_hrd_params_present_flag : bool, // u(1)
+    pub tick_divisor_minus2 : u8, // u(8)
+    pub du_cpb_removal_delay_increment_length_minus1 : u8, // u(5)
+    pub sub_pic_cpb_params_in_pic_timing_sei_flag : bool, // u(1)
+    pub dpb_output_delay_du_length_minus1 : u8, // u(5)
+    pub bit_rate_scale : u8, // u(4)
+    pub cpb_size_scale : u8, // u(4)
+    pub cpb_size_du_scale : u8, // u(4)
+    pub initial_cpb_removal_delay_length_minus1 : u8, // u(5)
+    pub au_cpb_removal_delay_length_minus1 : u8, // u(5)
+    pub dpb_output_delay_length_minus1 : u8, // u(5)
+    pub fixed_pic_rate_general_flag : Vec<bool>, // u(1)
+    pub fixed_pic_rate_within_cvs_flag : Vec<bool>, // u(1)
+    pub elemental_duration_in_tc_minus1 : Vec<u32>, // ue(v)
+    pub low_delay_hrd_flag : Vec<bool>, // u(1)
+    pub cpb_cnt_minus1 : Vec<u32>, // ue(v)
+    pub nal_sub_layer_hrd_parameters : Vec<H265SubLayerHRDParameters>,
+    pub vcl_sub_layer_hrd_parameters : Vec<H265SubLayerHRDParameters>,
+}
+
+impl H265HRDParameters {
+    pub fn new() -> H265HRDParameters {
+        H265HRDParameters {
+            nal_hrd_parameters_present_flag : false,
+            vcl_hrd_parameters_present_flag : false,
+            sub_pic_hrd_params_present_flag : false,
+            tick_divisor_minus2 : 0,
+            du_cpb_removal_delay_increment_length_minus1 : 0,
+            sub_pic_cpb_params_in_pic_timing_sei_flag : false,
+            dpb_output_delay_du_length_minus1 : 0,
+            bit_rate_scale : 0,
+            cpb_size_scale : 0,
+            cpb_size_du_scale : 0,
+            initial_cpb_removal_delay_length_minus1 : 0,
+            au_cpb_removal_delay_length_minus1 : 0,
+            dpb_output_delay_length_minus1 : 0,
+            fixed_pic_rate_general_flag : Vec::new(),
+            fixed_pic_rate_within_cvs_flag : Vec::new(),
+            elemental_duration_in_tc_minus1 : Vec::new(),
+            low_delay_hrd_flag : Vec::new(),
+            cpb_cnt_minus1 : Vec::new(),
+            nal_sub_layer_hrd_parameters : Vec::new(),
+            vcl_sub_layer_hrd_parameters : Vec::new(),
+        }
+    }
+
+    #[allow(unused)]
+    pub fn debug_print(&self) {}
+
+    #[allow(unused)]
+    pub fn encoder_pretty_print(&self) {}
+}
+
+impl Default for H265HRDParameters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct H265SubLayerHRDParameters {
+    pub bit_rate_value_minus1 : Vec<u32>, // ue(v)
+    pub cpb_size_value_minus1 : Vec<u32>, // ue(v)
+    pub cpb_size_du_value_minus1 : Vec<u32>, // ue(v)
+    pub bit_rate_du_value_minus1 : Vec<u32>, // ue(v)
+    pub cbr_flag : Vec<bool>, // 
+}
+
+impl H265SubLayerHRDParameters {
+    pub fn new() -> H265SubLayerHRDParameters {
+        H265SubLayerHRDParameters {
+            bit_rate_value_minus1 : Vec::new(),
+            cpb_size_value_minus1 : Vec::new(),
+            cpb_size_du_value_minus1 : Vec::new(),
+            bit_rate_du_value_minus1 : Vec::new(),
+            cbr_flag : Vec::new(),
+        }
+    }
+
+    #[allow(unused)]
+    pub fn debug_print(&self) {}
+
+    #[allow(unused)]
+    pub fn encoder_pretty_print(&self) {}
+}
+
+impl Default for H265SubLayerHRDParameters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct H265VideoParameterSet {
+    pub vps_video_parameter_set_id : u8,      // u(4)
+    pub vps_base_layer_internal_flag : bool,  // u(1)
+    pub vps_base_layer_available_flag : bool, // u(1)
+    pub vps_max_layers_minus1 : u8,           // u(6)
+    pub vps_max_sub_layers_minus1 : u8,       // u(3)
+    pub vps_temporal_id_nesting_flag : bool,  // u(1)
+    pub vps_reserved_0xffff_16bits : u32,     // u(16)
+    pub ptl : ProfileTierLevel, //
+    pub vps_sub_layer_ordering_info_present_flag : bool, // u(1)
+    pub vps_max_dec_pic_buffering_minus1 : Vec<u32>, // ue(v)
+    pub vps_max_num_reorder_pics : Vec<u32>,         // ue(v)
+    pub vps_max_latency_increase_plus1 : Vec<u32>,   // ue(v)
+    pub vps_max_layer_id : u8, // u(6)
+    pub vps_num_layer_sets_minus1 : u32, // ue(v)
+    pub layer_id_included_flag: Vec<Vec<bool>>, //  u(1)
+    pub vps_timing_info_present_flag : bool, // u(1)
+    pub vps_num_units_in_tick : u32, // u(32)
+    pub vps_time_scale : u32, // u(32)
+    pub vps_poc_proportional_to_timing_flag : bool, // u(1)
+    pub vps_num_ticks_poc_diff_one_minus1 : u32, // ue(v)
+    pub vps_num_hrd_parameters : u32, // ue(v)
+    pub hrd_layer_set_idx : Vec<u32>, //  ue(v)
+    pub cprms_present_flag : Vec<bool>, // u(1)
+    pub hrd_parameters : Vec<H265HRDParameters>,
+    pub vps_extension_flag : bool, // u(1)
+    pub vps_extension_data_flag : bool, // u(1)
+}
+
+impl H265VideoParameterSet {
+    pub fn new() -> H265VideoParameterSet {
+        H265VideoParameterSet {
+            vps_video_parameter_set_id : 0,
+            vps_base_layer_internal_flag : false,
+            vps_base_layer_available_flag : false,
+            vps_max_layers_minus1 : 0,
+            vps_max_sub_layers_minus1 : 0,
+            vps_temporal_id_nesting_flag : false,
+            vps_reserved_0xffff_16bits : 0,
+            ptl : ProfileTierLevel::new(),
+            vps_sub_layer_ordering_info_present_flag : false,
+            vps_max_dec_pic_buffering_minus1 : Vec::new(),
+            vps_max_num_reorder_pics : Vec::new(),
+            vps_max_latency_increase_plus1 : Vec::new(),
+            vps_max_layer_id : 0,
+            vps_num_layer_sets_minus1 : 0,
+            layer_id_included_flag : Vec::new(),
+            vps_timing_info_present_flag : false,
+            vps_num_units_in_tick : 0,
+            vps_time_scale : 0,
+            vps_poc_proportional_to_timing_flag : false,
+            vps_num_ticks_poc_diff_one_minus1 : 0,
+            vps_num_hrd_parameters : 0,
+            hrd_layer_set_idx : Vec::new(),
+            cprms_present_flag : Vec::new(),
+            hrd_parameters : Vec::new(),
+            vps_extension_flag : false,
+            vps_extension_data_flag : false,
+        }
+    }
+
+    #[allow(unused)]
+    pub fn debug_print(&self) {}
+
+    #[allow(unused)]
+    pub fn encoder_pretty_print(&self) {}
+}
+
+impl Default for H265VideoParameterSet {
     fn default() -> Self {
         Self::new()
     }

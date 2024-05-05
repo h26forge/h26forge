@@ -10,6 +10,7 @@ use crate::experimental::h265_data_structures::H265SPSMultilayerExtension;
 use crate::experimental::h265_data_structures::H265SPSRangeExtension;
 use crate::experimental::h265_data_structures::H265SPSSCCExtension;
 use crate::experimental::h265_data_structures::H265SeqParameterSet;
+use crate::experimental::h265_data_structures::H265VideoParameterSet;
 use crate::experimental::h265_data_structures::H265VuiParameters;
 use crate::experimental::h265_data_structures::NalUnitType;
 use crate::experimental::h265_data_structures::ProfileTierLevel;
@@ -116,9 +117,8 @@ fn h265_decode_profile_tier_level(
         ptl.general_profile_space = bs.read_bits(2) as u8; // u(2)
         ptl.general_tier_flag = 1 == bs.read_bits(1); // u(1)
         ptl.general_profile_idc = bs.read_bits(5) as u8; // u(5)
-        for _ in 0..32 {
-            ptl.general_profile_compatibility_flag
-                .push(1 == bs.read_bits(1));
+        for i in 0..32 {
+            ptl.general_profile_compatibility_flag[i] = 1 == bs.read_bits(1);
         }
         ptl.general_progressive_source_flag = 1 == bs.read_bits(1);
         ptl.general_interlaced_source_flag = 1 == bs.read_bits(1);
@@ -420,6 +420,7 @@ fn h265_decode_st_ref_pic_set(
     } else {
         strp.num_negative_pics = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
         strp.num_positive_pics = exp_golomb_decode_one_wrapper(bs, false, 0) as u32;
+        strp.num_delta_pics = strp.num_negative_pics + strp.num_positive_pics;
 
         for _i in 0..strp.num_negative_pics {
             strp.delta_poc_s0_minus1
@@ -624,6 +625,7 @@ pub fn decode_bitstream(filename: &str, perf_output: bool) -> H265DecodedStream 
 
     // Currently only
     let mut nalu_headers: Vec<H265NALUHeader> = Vec::new();
+    let vpses: Vec<H265VideoParameterSet> = Vec::new();
     let mut spses: Vec<H265SeqParameterSet> = Vec::new();
 
     println!("\tFound {:?} NALUs", nalu_elements.len());
@@ -673,6 +675,7 @@ pub fn decode_bitstream(filename: &str, perf_output: bool) -> H265DecodedStream 
     H265DecodedStream {
         nalu_elements,
         nalu_headers,
+        vpses,
         spses,
     }
 }

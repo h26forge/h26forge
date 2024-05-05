@@ -253,11 +253,14 @@ enum Commands {
     /// Experimental features
     Experimental {
         /// Input H.265 file
-        #[arg(short, long, required = true)]
+        #[arg(short, long, default_value="")]
         input: String,
         /// Output H.265 file
         #[arg(short, long, required = true)]
         output: String,
+        /// Randomly generate H.265 file
+        #[arg(short, long)]
+        randcode: bool,
     },
 }
 
@@ -1479,50 +1482,56 @@ fn main() {
                 &encoded_str,
             )
         }
-        Some(Commands::Experimental { input, output }) => {
-            if !options.print_silent {
-                println!("Using input file: {}", input);
-                println!("Running in Wrap mode");
-            }
+        Some(Commands::Experimental { input, output , randcode}) => {
+            let encoded_str : Vec<u8>;
 
-            println!("1. Decoding H.265 Stream");
-            let mut ds = experimental::h265_decoder::decode_bitstream(input, false);
-
-            println!("2. Modifying H.265 Stream");
-
-            //let pc_value = match matches.value_of("ARG") {
-            //    Some(y) => {
-            //        match y.parse::<u64>() {
-            //            Ok(n) => n,
-            //            _ => {println!("\t Argument must be a positive integer - defaulting to 0");
-            //                0
-            //            },
-            //        }
-            //    },
-            //    _ => {
-            //        println!("\t No pc_value provided, default to 0x4141414141414142");
-            //        0x4141414141414142
-            //    },
-            //};
-            //experimental::h265_modify::cve_2022_42850_exploit(pc_value, &mut ds);
-
-            //experimental::h265_modify::cve_2022_42850_poc(&mut ds);
-            experimental::h265_modify::oob_num_long_term_ref_pics_sps(&mut ds);
-
-            println!("2. Saving modified H.265 Stream");
-            let start_time = SystemTime::now();
-            let encoded_str = experimental::h265_encoder::reencode_syntax_elements(&mut ds);
-            if options.print_perf {
-                let duration = start_time.elapsed();
-                match duration {
-                    Ok(elapsed) => {
-                        println!(
-                            "[PERF] main_passthrough;reencode_syntax_elements;{} ns",
-                            elapsed.as_nanos()
-                        );
-                    }
-                    Err(e) => {
-                        println!("Error: {:?}", e);
+            if *randcode {
+                println!("1. Generate random H.265 video");
+                encoded_str = experimental::h265_randcode::randcode_syntax_elements();
+            } else {
+                if !options.print_silent {
+                    println!("Using input file: {}", input);
+                    println!("Running in Wrap mode");
+                }
+                println!("1. Decoding H.265 Stream");
+                let mut ds = experimental::h265_decoder::decode_bitstream(input, false);
+    
+                println!("2. Modifying H.265 Stream");
+    
+                //let pc_value = match matches.value_of("ARG") {
+                //    Some(y) => {
+                //        match y.parse::<u64>() {
+                //            Ok(n) => n,
+                //            _ => {println!("\t Argument must be a positive integer - defaulting to 0");
+                //                0
+                //            },
+                //        }
+                //    },
+                //    _ => {
+                //        println!("\t No pc_value provided, default to 0x4141414141414142");
+                //        0x4141414141414142
+                //    },
+                //};
+                //experimental::h265_modify::cve_2022_42850_exploit(pc_value, &mut ds);
+    
+                //experimental::h265_modify::cve_2022_42850_poc(&mut ds);
+                experimental::h265_modify::oob_num_long_term_ref_pics_sps(&mut ds);
+    
+                println!("2. Saving modified H.265 Stream");
+                let start_time = SystemTime::now();
+                encoded_str = experimental::h265_encoder::reencode_syntax_elements(&mut ds);
+                if options.print_perf {
+                    let duration = start_time.elapsed();
+                    match duration {
+                        Ok(elapsed) => {
+                            println!(
+                                "[PERF] main_passthrough;reencode_syntax_elements;{} ns",
+                                elapsed.as_nanos()
+                            );
+                        }
+                        Err(e) => {
+                            println!("Error: {:?}", e);
+                        }
                     }
                 }
             }
