@@ -104,6 +104,7 @@ The following bugs have been found with H26Forge's video generator. If you use H
 - [CVE-2022-3266](https://www.mozilla.org/en-US/security/advisories/mfsa2022-40/#CVE-2022-3266): Video width and height was not updated between container and SPS, and also across SPSes in Firefox. This led to a crash of the Firefox GPU process and an information leak.
 - [upipe_h264_framer: Fix valgrind warnings on fuzzed files #956](https://github.com/Upipe/upipe/pull/956)
 - [CVE-2024-27228](https://bugs.chromium.org/p/project-zero/issues/detail?id=2512): Out-of-bounds quantization parameter leads to an out-of-bounds write in the MFC H.264 hardware video decoder found in the Pixel 7.
+- [CVE-2024-27793](https://support.apple.com/en-us/HT214099): A pointer to stale memory contents gets called in a destructor in the CoreMedia library found in iTunes on Windows.
 
 ## Contributors
 
