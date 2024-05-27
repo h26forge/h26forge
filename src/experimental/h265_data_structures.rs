@@ -176,6 +176,7 @@ pub struct H265DecodedStream {
     pub nalu_headers: Vec<H265NALUHeader>,
     pub vpses: Vec<H265VideoParameterSet>,
     pub spses: Vec<H265SeqParameterSet>,
+    pub ppses: Vec<H265PicParameterSet>,
 }
 
 impl H265DecodedStream {
@@ -185,6 +186,7 @@ impl H265DecodedStream {
             nalu_headers: Vec::new(),
             vpses: Vec::new(),
             spses: Vec::new(),
+            ppses: Vec::new(),
         }
     }
 
@@ -195,6 +197,7 @@ impl H265DecodedStream {
             nalu_headers: self.nalu_headers.clone(),
             vpses: self.vpses.clone(),
             spses: self.spses.clone(),
+            ppses: self.ppses.clone(),
         }
     }
 }
@@ -2115,6 +2118,114 @@ impl H265VideoParameterSet {
 }
 
 impl Default for H265VideoParameterSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct H265PicParameterSet {
+    pub pps_pic_parameter_set_id : u32,                 // ue(v)
+    pub pps_seq_parameter_set_id : u32,                 // ue(v)
+    pub dependent_slice_segments_enabled_flag : bool,   // u(1)
+    pub output_flag_present_flag : bool,                // u(1)
+    pub num_extra_slice_header_bits : u8,               // u(3)
+    pub sign_data_hiding_enabled_flag : bool,           // u(1)
+    pub cabac_init_present_flag : bool,                 // u(1)
+    pub num_ref_idx_l0_default_active_minus1 : u32,     // ue(v)
+    pub num_ref_idx_l1_default_active_minus1 : u32,     // ue(v)
+    pub init_qp_minus26 : i32,                          // se(v)
+    pub constrained_intra_pred_flag : bool,             // u(1)
+    pub transform_skip_enabled_flag : bool,             // u(1)
+    pub cu_qp_delta_enabled_flag : bool,                // u(1)
+    pub diff_cu_qp_delta_depth : u32,                   // ue(v)
+    pub pps_cb_qp_offset : i32,                         // se(v)
+    pub pps_cr_qp_offset : i32,                         // se(v)
+    pub pps_slice_chroma_qp_offsets_present_flag : bool, // u(1)
+    pub weighted_pred_flag : bool,                      // u(1)
+    pub weighted_bipred_flag : bool,                    // u(1)
+    pub transquant_bypass_enabled_flag : bool,          // u(1)
+    pub tiles_enabled_flag : bool,                      // u(1)
+    pub entropy_coding_sync_enabled_flag : bool,        // u(1)
+    pub num_tile_columns_minus1 : u32,                  // ue(v)
+    pub num_tile_rows_minus1 : u32,                     // ue(v)
+    pub uniform_spacing_flag : bool,                    // u(1)
+    pub column_width_minus1 : Vec<u32>,                 //[ i ] ue(v)
+    pub row_height_minus1 : Vec<u32>,                   //[ i ] ue(v)
+    pub loop_filter_across_tiles_enabled_flag : bool,   // u(1)
+    pub pps_loop_filter_across_slices_enabled_flag : bool, // u(1)
+    pub deblocking_filter_control_present_flag : bool,  // u(1)
+    pub deblocking_filter_override_enabled_flag : bool, // u(1)
+    pub pps_deblocking_filter_disabled_flag : bool,     // u(1)
+    pub pps_beta_offset_div2 : i32,                     // se(v)
+    pub pps_tc_offset_div2 : i32,                       // se(v)
+    pub pps_scaling_list_data_present_flag : bool,      // u(1)
+    pub scaling_list_data : ScalingListData,
+    pub lists_modification_present_flag : bool,         // u(1)
+    pub log2_parallel_merge_level_minus2 : u32,         // ue(v)
+    pub slice_segment_header_extension_present_flag : bool, // u(1)
+    pub pps_extension_present_flag : bool,              // u(1)
+    pub pps_range_extension_flag : bool,                // u(1)
+    pub pps_multilayer_extension_flag : bool,           // u(1)
+    pub pps_3d_extension_flag : bool,                   // u(1)
+    pub pps_scc_extension_flag : bool,                  // u(1)
+    pub pps_extension_4bits : u8,                       // u(4)
+
+}
+
+impl H265PicParameterSet {
+    pub fn new() -> H265PicParameterSet {
+        H265PicParameterSet {
+            pps_pic_parameter_set_id : 0,
+            pps_seq_parameter_set_id : 0,
+            dependent_slice_segments_enabled_flag : false,
+            output_flag_present_flag : false,
+            num_extra_slice_header_bits : 0,
+            sign_data_hiding_enabled_flag : false,
+            cabac_init_present_flag : false,
+            num_ref_idx_l0_default_active_minus1 : 0,
+            num_ref_idx_l1_default_active_minus1 : 0,
+            init_qp_minus26 : 0,
+            constrained_intra_pred_flag : false,
+            transform_skip_enabled_flag : false,
+            cu_qp_delta_enabled_flag : false,
+            diff_cu_qp_delta_depth : 0,
+            pps_cb_qp_offset : 0,
+            pps_cr_qp_offset : 0,
+            pps_slice_chroma_qp_offsets_present_flag : false,
+            weighted_pred_flag : false,
+            weighted_bipred_flag : false,
+            transquant_bypass_enabled_flag : false,
+            tiles_enabled_flag : false,
+            entropy_coding_sync_enabled_flag : false,
+            num_tile_columns_minus1 : 0,
+            num_tile_rows_minus1 : 0,
+            uniform_spacing_flag : false,
+            column_width_minus1 : Vec::new(),
+            row_height_minus1 : Vec::new(),
+            loop_filter_across_tiles_enabled_flag : false,
+            pps_loop_filter_across_slices_enabled_flag : false,
+            deblocking_filter_control_present_flag : false,
+            deblocking_filter_override_enabled_flag : false,
+            pps_deblocking_filter_disabled_flag : false,
+            pps_beta_offset_div2 : 0,
+            pps_tc_offset_div2 : 0,
+            pps_scaling_list_data_present_flag : false,
+            scaling_list_data : ScalingListData::new(),
+            lists_modification_present_flag : false,
+            log2_parallel_merge_level_minus2 : 0,
+            slice_segment_header_extension_present_flag : false,
+            pps_extension_present_flag : false,
+            pps_range_extension_flag : false,
+            pps_multilayer_extension_flag : false,
+            pps_3d_extension_flag : false,
+            pps_scc_extension_flag : false,
+            pps_extension_4bits : 0,
+        }
+    }
+}
+
+impl Default for H265PicParameterSet {
     fn default() -> Self {
         Self::new()
     }

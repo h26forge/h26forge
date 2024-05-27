@@ -7,7 +7,7 @@ use crate::encoder::binarization_functions::generate_unsigned_binary;
 use crate::encoder::encoder::insert_emulation_three_byte;
 use crate::encoder::expgolomb::exp_golomb_encode_one;
 use crate::experimental::h265_data_structures::{
-    H265DecodedStream, H265NALUHeader, H265SeqParameterSet, ProfileTierLevel, ShortTermRefPic, H265HRDParameters, H265VideoParameterSet
+    H265DecodedStream, H265NALUHeader, H265SeqParameterSet, ProfileTierLevel, ShortTermRefPic, H265HRDParameters, H265VideoParameterSet, H265PicParameterSet
 };
 use crate::{
     common::helper::bitstream_to_bytestream, experimental::h265_data_structures::NalUnitType,
@@ -23,6 +23,15 @@ macro_rules! r_ue {
         {
             $se = $film.read_film_u32($min, $max);
             $ba.extend(exp_golomb_encode_one($se as i32, false, 0, false));
+        }
+    };
+}
+
+macro_rules! r_se {
+    ( $se:expr, $min:expr, $max:expr, $film:ident, $ba:ident ) => {
+        {
+            $se = $film.read_film_i32($min, $max);
+            $ba.extend(exp_golomb_encode_one($se, true, 0, false));
         }
     };
 }
@@ -79,17 +88,27 @@ macro_rules! r_bool_false {
     };
 }
 
-fn h265_randcode_nalu_header(nh: &mut H265NALUHeader, film : &mut FilmState) -> Vec<u8> {
+fn h265_randcode_nalu_header(nh: &mut H265NALUHeader, cur_nal_idx : usize, film : &mut FilmState) -> Vec<u8> {
     let mut bitstream_array: Vec<u8> = Vec::new();
 
     nh.forbidden_zero_bit = 0; // TODO: randomly sample later
     bitstream_array.push(nh.forbidden_zero_bit);
 
-
     let nal_unit_type : u32;
-    r_u!(nal_unit_type, 32, 33, 6, film, bitstream_array);
-
-    nh.nal_unit_type = NalUnitType::from(nal_unit_type);
+    // Ensure proper required ordering
+    if cur_nal_idx == 0 {
+        r_u!(nal_unit_type, 32, 32, 6, film, bitstream_array);
+        nh.nal_unit_type = NalUnitType::NalUnitVps;
+    } else if cur_nal_idx == 1 {
+        r_u!(nal_unit_type, 33, 33, 6, film, bitstream_array);
+        nh.nal_unit_type = NalUnitType::NalUnitSps;
+    } else if cur_nal_idx == 2 {
+        r_u!(nal_unit_type, 34, 34, 6, film, bitstream_array);
+        nh.nal_unit_type = NalUnitType::NalUnitPps;
+    } else {
+        r_u!(nal_unit_type, 32, 34, 6, film, bitstream_array);
+        nh.nal_unit_type = NalUnitType::from(nal_unit_type);
+    }
 
     r_u8!(nh.nuh_layer_id, 0, 63, 6, film, bitstream_array);
     r_u8!(nh.nuh_temporal_id_plus1, 0, 7, 3, film, bitstream_array);
@@ -516,7 +535,7 @@ fn h265_randcode_video_parameter_set(vps: &mut H265VideoParameterSet, film: &mut
     r_bool_false!(vps.vps_extension_flag, film, bitstream_array);
 
     
-    bitstream_array
+    bitstream_to_bytestream(bitstream_array, 0)
 }
 
 fn h265_randcode_st_ref_pic_set(
@@ -703,11 +722,11 @@ fn h265_randcode_seq_parameter_set(sps: &mut H265SeqParameterSet, film : &mut Fi
     r_bool!(sps.sps_extension_present_flag, film, bitstream_array);
 
     if sps.sps_extension_present_flag {
-        r_bool!(sps.sps_range_extension_flag, film, bitstream_array);
-        r_bool!(sps.sps_multilayer_extension_flag, film, bitstream_array);
-        r_bool!(sps.sps_3d_extension_flag, film, bitstream_array);
-        r_bool!(sps.sps_scc_extension_flag, film, bitstream_array);
-        r_u8!(sps.sps_extension_4bits, 0, 15, 4, film, bitstream_array);
+        r_bool_false!(sps.sps_range_extension_flag, film, bitstream_array);
+        r_bool_false!(sps.sps_multilayer_extension_flag, film, bitstream_array);
+        r_bool_false!(sps.sps_3d_extension_flag, film, bitstream_array);
+        r_bool_false!(sps.sps_scc_extension_flag, film, bitstream_array);
+        r_u8!(sps.sps_extension_4bits, 0, 0, 4, film, bitstream_array);
     }
 
     // TODO: SPS extensions
@@ -736,19 +755,118 @@ fn h265_randcode_seq_parameter_set(sps: &mut H265SeqParameterSet, film : &mut Fi
     bitstream_to_bytestream(bitstream_array, 0)
 }
 
+fn h265_randcode_pic_parameter_set(pps: &mut H265PicParameterSet, sps_id : u32, film: &mut FilmState) -> Vec<u8> {
+    let mut bitstream_array: Vec<u8> = Vec::new();
+
+    r_ue!(pps.pps_pic_parameter_set_id, 0, 120, film, bitstream_array); // [0, 63]
+    pps.pps_seq_parameter_set_id = sps_id;
+    r_bool!(pps.dependent_slice_segments_enabled_flag, film, bitstream_array);
+    r_bool!(pps.output_flag_present_flag, film, bitstream_array);
+    r_u8!(pps.num_extra_slice_header_bits, 0, 7, 3, film, bitstream_array); // [0, 2]
+    r_bool!(pps.sign_data_hiding_enabled_flag, film, bitstream_array);
+    r_bool!(pps.cabac_init_present_flag, film, bitstream_array);
+    r_ue!(pps.num_ref_idx_l0_default_active_minus1, 0, 32, film, bitstream_array); // [0, 14]
+    r_ue!(pps.num_ref_idx_l1_default_active_minus1, 0, 32, film, bitstream_array); // [0, 14]
+    r_se!(pps.init_qp_minus26, -26, 25, film, bitstream_array); // Depends on QpBdOffset_gamma
+    r_bool!(pps.constrained_intra_pred_flag, film, bitstream_array);
+    r_bool!(pps.transform_skip_enabled_flag, film, bitstream_array);
+    r_bool!(pps.cu_qp_delta_enabled_flag, film, bitstream_array);
+    if pps.cu_qp_delta_enabled_flag {
+        r_ue!(pps.diff_cu_qp_delta_depth, 0, 128, film, bitstream_array); // range is [0, log2_diff_max_min_luma_coding_block_size]
+    }
+    // Values should be ignored if ChromaArrayType is 0
+    r_se!(pps.pps_cb_qp_offset, -128, 128, film, bitstream_array); // [-12, 12]
+    r_se!(pps.pps_cr_qp_offset, -128, 128, film, bitstream_array); // [-12, 12]
+    r_bool!(pps.pps_slice_chroma_qp_offsets_present_flag, film, bitstream_array);
+    r_bool!(pps.weighted_pred_flag, film, bitstream_array);
+    r_bool!(pps.weighted_bipred_flag, film, bitstream_array);
+    r_bool!(pps.transquant_bypass_enabled_flag, film, bitstream_array);
+    r_bool!(pps.tiles_enabled_flag, film, bitstream_array);
+    r_bool!(pps.entropy_coding_sync_enabled_flag, film, bitstream_array);
+    if pps.tiles_enabled_flag {
+        r_ue!(pps.num_tile_columns_minus1, 0, 128, film, bitstream_array); // [0, PicWidthInCtbsY -1]
+        r_ue!(pps.num_tile_rows_minus1, 0, 128, film, bitstream_array);    // [0, PicHeightInCtbsY  -1]
+        r_bool!(pps.uniform_spacing_flag, film, bitstream_array);
+        if !pps.uniform_spacing_flag {
+            pps.column_width_minus1 = vec![0; pps.num_tile_columns_minus1 as usize];
+            pps.row_height_minus1 = vec![0; pps.num_tile_rows_minus1 as usize];
+            for i in  0..pps.num_tile_columns_minus1 as usize {
+                r_ue!(pps.column_width_minus1[i], 0, 1000, film, bitstream_array);
+            }
+            for i in 0..pps.num_tile_rows_minus1 as usize {
+                r_ue!(pps.row_height_minus1[i], 0, 1000, film, bitstream_array);
+            }
+        }
+        r_bool!(pps.loop_filter_across_tiles_enabled_flag, film, bitstream_array);
+    }
+    r_bool!(pps.pps_loop_filter_across_slices_enabled_flag, film, bitstream_array);
+    r_bool!(pps.deblocking_filter_control_present_flag, film, bitstream_array);
+    if pps.deblocking_filter_control_present_flag {
+        r_bool!(pps.deblocking_filter_override_enabled_flag, film, bitstream_array);
+        r_bool!(pps.pps_deblocking_filter_disabled_flag, film, bitstream_array);
+        if !pps.pps_deblocking_filter_disabled_flag {
+            r_se!(pps.pps_beta_offset_div2, -128, 128, film, bitstream_array);   // [-6, 6]
+            r_se!(pps.pps_tc_offset_div2, -128, 128, film, bitstream_array);     // [-6, 6]
+        }
+    }
+    r_bool_false!(pps.pps_scaling_list_data_present_flag, film, bitstream_array);
+    /*
+    if pps.pps_scaling_list_data_present_flag {
+        pps.scaling_list_data = h265_randcode_scaling_list_data();
+    }
+    */
+    r_bool!(pps.lists_modification_present_flag, film, bitstream_array);
+    r_ue!(pps.log2_parallel_merge_level_minus2, 0, 128, film, bitstream_array);   // [0, CtbLog2SizeY − 2]
+    r_bool!(pps.slice_segment_header_extension_present_flag, film, bitstream_array);
+    r_bool!(pps.pps_extension_present_flag, film, bitstream_array);
+    if pps.pps_extension_present_flag {
+        r_bool_false!(pps.pps_range_extension_flag, film, bitstream_array);
+        r_bool_false!(pps.pps_multilayer_extension_flag, film, bitstream_array);
+        r_bool_false!(pps.pps_3d_extension_flag, film, bitstream_array);
+        r_bool_false!(pps.pps_scc_extension_flag, film, bitstream_array);
+        r_u8!(pps.pps_extension_4bits, 0, 0, 4, film, bitstream_array);
+    }
+
+    /*
+    if( pps_range_extension_flag )
+        pps_range_extension( )
+    if( pps_multilayer_extension_flag )
+        pps_multilayer_extension( ) // specified in Annex F
+    if( pps_3d_extension_flag )
+        pps_3d_extension( ) // specified in Annex I
+    if( pps_scc_extension_flag )
+        pps_scc_extension( )
+    if( pps_extension_4bits )
+        while( more_rbsp_data( ) )
+            pps_extension_data_flag, film, bitstream_array);
+    */
+
+    // insert rbsp_stop_one_bit
+    bitstream_array.push(1);
+
+    bitstream_to_bytestream(bitstream_array, 0)
+}
+
 /// Take in a range of syntax elements and produce
-pub fn randcode_syntax_elements() -> Vec<u8> {
+pub fn randcode_syntax_elements(seed : u64) -> Vec<u8> {
     let mut ds: H265DecodedStream = H265DecodedStream::new();
     let mut encoded_str: Vec<u8> = Vec::new();
-
-    let mut film = FilmState::setup_film();
+    let mut film : FilmState;
+    if seed == 0 {
+        film = FilmState::setup_film();
+    } else {
+        film = FilmState::setup_film_from_seed(seed);
+    }
 
     let mut vps_idx = 0;
     let mut sps_idx = 0;
+    let mut pps_idx = 0;
 
     let num_nalus : usize = film.read_film_u32(10, 30) as usize;
-
     debug!(target: "encode","Generating and encoding {} NALUs", num_nalus);
+    debug!(target: "encode","Using seed: {}", film.seed);
+
+    println!("Generating and encoding {} nalus with seed value {}", num_nalus, film.seed);
 
     for i in 0..num_nalus {
         ds.nalu_elements.push(NALU::new());
@@ -768,9 +886,8 @@ pub fn randcode_syntax_elements() -> Vec<u8> {
 
         ds.nalu_headers.push(H265NALUHeader::new());
 
-        // Need the following pattern: VPS, SPS, PPS
-
-        let encoded_header = h265_randcode_nalu_header(&mut ds.nalu_headers[i], &mut film);
+        // randcode_nalu_header guarantees VPS, SPS, and PPS are the first items
+        let encoded_header = h265_randcode_nalu_header(&mut ds.nalu_headers[i], i, &mut film);
         encoded_str.extend(encoded_header.iter());
 
         match ds.nalu_headers[i].nal_unit_type {
@@ -783,8 +900,7 @@ pub fn randcode_syntax_elements() -> Vec<u8> {
                     &mut ds.vpses[vps_idx], &mut film
                 )));
                 vps_idx += 1;
-                
-            }
+            },
             NalUnitType::NalUnitSps => {
                 println!("\t randcode_syntax_elements - NALU {} - {:?} - Randomly Encoding Sequence Parameter Set (SPS)", i,  ds.nalu_headers[i].nal_unit_type);
                 
@@ -794,6 +910,16 @@ pub fn randcode_syntax_elements() -> Vec<u8> {
                     &mut ds.spses[sps_idx], &mut film
                 )));
                 sps_idx += 1;
+            },
+            NalUnitType::NalUnitPps => {
+                println!("\t randcode_syntax_elements - NALU {} - {:?} - Randomly Encoding Picture Parameter Set (PPS)", i,  ds.nalu_headers[i].nal_unit_type);
+
+                ds.ppses.push(H265PicParameterSet::new());
+
+                encoded_str.extend(insert_emulation_three_byte(&h265_randcode_pic_parameter_set(
+                    &mut ds.ppses[pps_idx], ds.spses[sps_idx-1].sps_seq_parameter_set_id, &mut film
+                )));
+                pps_idx += 1;
             }
             _ => {
                 println!(

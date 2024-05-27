@@ -261,6 +261,9 @@ enum Commands {
         /// Randomly generate H.265 file
         #[arg(short, long)]
         randcode: bool,
+        /// Seed value for the RNG
+        #[arg(short = 's', long, default_value="0")]
+        seed: u64,
     },
 }
 
@@ -1482,12 +1485,12 @@ fn main() {
                 &encoded_str,
             )
         }
-        Some(Commands::Experimental { input, output , randcode}) => {
+        Some(Commands::Experimental { input, output , randcode, seed}) => {
             let encoded_str : Vec<u8>;
 
             if *randcode {
                 println!("1. Generate random H.265 video");
-                encoded_str = experimental::h265_randcode::randcode_syntax_elements();
+                encoded_str = experimental::h265_randcode::randcode_syntax_elements(*seed);
             } else {
                 if !options.print_silent {
                     println!("Using input file: {}", input);

@@ -5,6 +5,7 @@ use crate::decoder::expgolomb::exp_golomb_decode_one_wrapper;
 use crate::decoder::nalu::split_into_nalu;
 use crate::experimental::h265_data_structures::H265DecodedStream;
 use crate::experimental::h265_data_structures::H265NALUHeader;
+use crate::experimental::h265_data_structures::H265PicParameterSet;
 use crate::experimental::h265_data_structures::H265SPS3DExtension;
 use crate::experimental::h265_data_structures::H265SPSMultilayerExtension;
 use crate::experimental::h265_data_structures::H265SPSRangeExtension;
@@ -627,6 +628,7 @@ pub fn decode_bitstream(filename: &str, perf_output: bool) -> H265DecodedStream 
     let mut nalu_headers: Vec<H265NALUHeader> = Vec::new();
     let vpses: Vec<H265VideoParameterSet> = Vec::new();
     let mut spses: Vec<H265SeqParameterSet> = Vec::new();
+    let ppses: Vec<H265PicParameterSet> = Vec::new();
 
     println!("\tFound {:?} NALUs", nalu_elements.len());
 
@@ -677,5 +679,6 @@ pub fn decode_bitstream(filename: &str, perf_output: bool) -> H265DecodedStream 
         nalu_headers,
         vpses,
         spses,
+        ppses,
     }
 }
