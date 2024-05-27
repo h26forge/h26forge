@@ -846,6 +846,7 @@ int MP4E_add_track(MP4E_mux_t *mux, const MP4E_track_t *track_data)
     memcpy(&tr->info, track_data, sizeof(*track_data));
     if (!minimp4_vector_init(&tr->smpl, 256))
         return MP4E_STATUS_NO_MEMORY;
+    minimp4_vector_init(&tr->vvps, 0);
     minimp4_vector_init(&tr->vsps, 0);
     minimp4_vector_init(&tr->vpps, 0);
     minimp4_vector_init(&tr->pending_sample, 0);
@@ -1205,6 +1206,7 @@ static int mp4e_flush_index(MP4E_mux_t *mux)
         index_bytes += tr->smpl.bytes * (sizeof(sample_t) + 4 + 4) / sizeof(sample_t);
         index_bytes += tr->vsps.bytes;
         index_bytes += tr->vpps.bytes;
+        index_bytes += tr->vvps.bytes;
 
         ERR(write_pending_data(mux, tr));
     }
@@ -1745,6 +1747,7 @@ int MP4E_close(MP4E_mux_t *mux)
     for (ntr = 0; ntr < ntracks; ntr++)
     {
         track_t *tr = ((track_t*)mux->tracks.data) + ntr;
+        minimp4_vector_reset(&tr->vvps);
         minimp4_vector_reset(&tr->vsps);
         minimp4_vector_reset(&tr->vpps);
         minimp4_vector_reset(&tr->smpl);
@@ -2310,12 +2313,40 @@ static int mp4_h265_write_nal(mp4_h26x_writer_t *h, const unsigned char *nal, in
     switch (payload_type)
     {
     case HEVC_NAL_VPS:
-        MP4E_set_vps(h->mux, h->mux_track_id, nal, sizeof_nal);
-        h->need_vps = 0;
+        if (h->need_vps) {
+            MP4E_set_vps(h->mux, h->mux_track_id, nal, sizeof_nal);
+            h->need_vps = 0;
+        } else {
+            unsigned char *tmp = (unsigned char *)malloc(4 + sizeof_nal);
+            if (!tmp)
+                return MP4E_STATUS_NO_MEMORY;
+            int sample_kind = MP4E_SAMPLE_DEFAULT; // usually MP4E_SAMPLE_DEFAULT, but here we set it to MP4E_SAMPLE_RANDOM_ACCESS to test if it gets parsed at the start (NOTE: That didn't work)
+            tmp[0] = (unsigned char)(sizeof_nal >> 24);
+            tmp[1] = (unsigned char)(sizeof_nal >> 16);
+            tmp[2] = (unsigned char)(sizeof_nal >>  8);
+            tmp[3] = (unsigned char)(sizeof_nal);
+            memcpy(tmp + 4, nal, sizeof_nal);
+            err = MP4E_put_sample(h->mux, h->mux_track_id, tmp, 4 + sizeof_nal, timeStamp90kHz_next, sample_kind);
+            free(tmp);
+        }
         break;
     case HEVC_NAL_PPS:
-        MP4E_set_pps(h->mux, h->mux_track_id, nal, sizeof_nal);
-        h->need_pps = 0;
+        if (h->need_pps) {
+            MP4E_set_pps(h->mux, h->mux_track_id, nal, sizeof_nal);
+            h->need_pps = 0;
+        } else {
+            unsigned char *tmp = (unsigned char *)malloc(4 + sizeof_nal);
+            if (!tmp)
+                return MP4E_STATUS_NO_MEMORY;
+            int sample_kind = MP4E_SAMPLE_DEFAULT;
+            tmp[0] = (unsigned char)(sizeof_nal >> 24);
+            tmp[1] = (unsigned char)(sizeof_nal >> 16);
+            tmp[2] = (unsigned char)(sizeof_nal >>  8);
+            tmp[3] = (unsigned char)(sizeof_nal);
+            memcpy(tmp + 4, nal, sizeof_nal);
+            err = MP4E_put_sample(h->mux, h->mux_track_id, tmp, 4 + sizeof_nal, timeStamp90kHz_next, sample_kind);
+            free(tmp);
+        }
         break;
     case HEVC_NAL_SPS:
         // WRV NOTE: we included the code below in order to add an H265 SPS into
@@ -2329,7 +2360,7 @@ static int mp4_h265_write_nal(mp4_h26x_writer_t *h, const unsigned char *nal, in
             unsigned char *tmp = (unsigned char *)malloc(4 + sizeof_nal);
             if (!tmp)
                 return MP4E_STATUS_NO_MEMORY;
-            int sample_kind = MP4E_SAMPLE_DEFAULT; // usually MP4E_SAMPLE_DEFAULT, but here we set it to MP4E_SAMPLE_RANDOM_ACCESS to test if it gets parsed at the start (NOTE: That didn't work)
+            int sample_kind = MP4E_SAMPLE_DEFAULT;
             tmp[0] = (unsigned char)(sizeof_nal >> 24);
             tmp[1] = (unsigned char)(sizeof_nal >> 16);
             tmp[2] = (unsigned char)(sizeof_nal >>  8);
