@@ -55,9 +55,9 @@ jobs:
       id: vars
       run:  |
             if [ "$RUNNER_OS" == "Windows" ]; then
-                  echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+                  echo "::set-output name=year_month_day::$(date +'%Y-%m-%d')"
             else
-                  echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+                  echo "year_month_day=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
             fi
       shell: bash
     - name: Create release
@@ -65,7 +65,7 @@ jobs:
       with:
         artifacts: "h26forge-${{ matrix.name }}.tar.gz"
         bodyFile: RELEASE.md
-        tag: latest-${{ steps.vars.outputs.sha_short }}
+        tag: ${{ steps.vars.outputs.year_month_day }}
         commit: main
         allowUpdates: true
         makeLatest: true

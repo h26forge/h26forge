@@ -94,6 +94,21 @@ where `<DIRECTORY>` points to any folder with `.264` files.
 
 > W.R. Vasquez, S. Checkoway, and H. Shacham. [**“The Most Dangerous Codec in the World: Finding and Exploiting Vulnerabilities in H.264 Decoders.”**](https://wrv.github.io/h26forge.pdf) In J. Calandrino and C. Troncoso, eds., *Proceedings of USENIX Security 2023*. USENIX, Aug. 2023.
 
+```
+@inproceedings {Vasquez2023H26Forge,
+    author = {Willy R. Vasquez and Stephen Checkoway and Hovav Shacham},
+    title = {The Most Dangerous Codec in the World: Finding and Exploiting Vulnerabilities in H.264 Decoders},
+    booktitle = {32nd USENIX Security Symposium (USENIX Security 23)},
+    year = {2023},
+    isbn = {978-1-939133-37-3},
+    address = {Anaheim, CA},
+    pages = {6647--6664},
+    url = {https://www.usenix.org/conference/usenixsecurity23/presentation/vasquez},
+    publisher = {USENIX Association},
+    month = aug
+}
+```
+
 ## Trophies
 
 The following bugs have been found with H26Forge's video generator. If you use H26Forge to find and report an issue, please let us know so we can include it in this list.
@@ -105,6 +120,20 @@ The following bugs have been found with H26Forge's video generator. If you use H
 - [upipe_h264_framer: Fix valgrind warnings on fuzzed files #956](https://github.com/Upipe/upipe/pull/956)
 - [CVE-2024-27228](https://bugs.chromium.org/p/project-zero/issues/detail?id=2512): Out-of-bounds quantization parameter leads to an out-of-bounds write in the MFC H.264 hardware video decoder found in the Pixel 7.
 - [CVE-2024-27793](https://support.apple.com/en-us/HT214099): A pointer to stale memory contents gets called in a destructor in the CoreMedia library found in iTunes on Windows.
+
+## Awards
+
+Runner-up to the IEEE Security & Privacy Language Security (LangSec) Workshop's ["Most Impactful Parser Bug" of the year award](https://langsec.org/spw24/bugs-of-the-year-awards.html). They write:
+
+> The h26forge tool suite is fabulous. It is probably the next best thing after a
+> proper mechanized definition of the format. It comes close to beginning to
+> empirically measure the cost of unmanaged complexity at the communication
+> boundary---which, as the WebP example shows, is mind-boggling even for a single,
+> modern implementation of a newly designed format.
+> 
+> The complexity and effectiveness of this tool shows the true cost of "business
+> as usual" in programming at the communication boundary.
+
 
 ## Contributors
 

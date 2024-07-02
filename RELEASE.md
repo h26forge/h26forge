@@ -16,6 +16,7 @@ Stream a video (see [STREAMING.md](docs/STREAMING.md)): `./h26forge stream --see
 
 ## Changelog
 
+07-01-2024: Bug fixes, and more syntax element support.
 10-31-2023: Bug fixes, rtp-dump, and streaming mode.
-9-12-2023: Bug fix in video encoding.
-9-11-2023: Bug fixes in video generation.
+09-12-2023: Bug fix in video encoding.
+09-11-2023: Bug fixes in video generation.
