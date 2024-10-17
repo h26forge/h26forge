@@ -32,6 +32,8 @@ Options across modes:
       --json-no-nalu                    When generating the JSON, do not output the original encoded NALUs
       --avcc                            Output AVCC format video in JavaScript Uint8Array format
       --cut <OUTPUT_CUT>                Cut out a passed in NALU index [default: -1]
+      --duplicate <DUPE_NALU>           Duplicate a passed in NALU index [default: -1]
+      --dupe_index <DUPE_INDEX>         The index to insert the duplicated NALU [default: -1]
       --save-default-config             Save the default configuration used in random video generation
       --mp4                             Output a muxed mp4 file. If `safestart` is enabled, will also output a safe start mp4
       --mp4-frag                        Apply MP4 Fragmentation. Useful for Media Source Extensions

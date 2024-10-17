@@ -1069,6 +1069,8 @@ pub fn save_encoded_stream(
 pub fn reencode_syntax_elements(
     ds: &mut H264DecodedStream,
     cut_nalu: i32,
+    dupe_nalu: i32,
+    dupe_index: i32,
     avcc_out: bool,
     silent_mode: bool,
     rtp_out: bool,
@@ -1083,6 +1085,7 @@ pub fn reencode_syntax_elements(
     let mut slice_idx = 0;
     let mut sei_idx = 0;
     let mut aud_idx = 0;
+    let mut saved_dupe_nalu: Vec<u8> = Vec::new();
 
     // AVCC encoding elements
     let mut avcc_encoding = AVCCFormat::new();
@@ -1901,6 +1904,14 @@ pub fn reencode_syntax_elements(
             ),
         };
 
+        if i as i32 == dupe_nalu {
+            println!("Saving NALU for duplication {}", dupe_nalu);
+            saved_dupe_nalu = encoded_str.clone();
+            if (dupe_index as usize) < i {
+                println!("Duplicate insertion index is lower than NALU index, and encoder cannot look ahead. NALU will not be duplicated.");
+            }
+        }
+
         // We do the skip at the end so that pps_idx or sps_idx, if that is the NALU that is skipped, can
         // still be used by other slices
         if i as i32 == cut_nalu {
@@ -1911,6 +1922,11 @@ pub fn reencode_syntax_elements(
         } else {
             // TODO: Cut avcc encodings as well
             encoded_video.extend(encoded_str)
+        }
+
+        if i as i32 == dupe_index {
+            println!("Adding duplicate NALU {}", i);
+            encoded_video.extend(saved_dupe_nalu.clone());
         }
 
         if rtp_out {
