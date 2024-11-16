@@ -1309,6 +1309,7 @@ fn main() {
                 server,
                 *port,
                 json,
+                options.include_safestart,
             );
         }
         Some(Commands::Randomize {

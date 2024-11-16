@@ -70,6 +70,7 @@ pub async fn stream(
     server: &str,
     port: u32,
     json: &str,
+    safe_start_enabled: bool,
 ) -> Result<()> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -272,7 +273,7 @@ pub async fn stream(
     tokio::spawn(async move {
         let mut seq_num: u16 = 0x1234;
         let mut timestamp: u32 = 0x11223344;
-        let mut safe_start = true;
+        let mut safe_start = safe_start_enabled;
         
         if json_filename.is_empty() {
             let mut ind = 1;
@@ -283,10 +284,10 @@ pub async fn stream(
                 } else if status.load(Ordering::Relaxed) == 1 {
                     let mut rtp: Vec<Vec<u8>> = Vec::new();
 
-                    if ind % 5 == 4 {
+                    if safe_start_enabled && (ind % 5 == 4) {
                         safe_start = true
                     }
-                    if ind < 10 {
+                    if safe_start_enabled && (ind < 10) {
                         safe_start = true;
                     }
                     if safe_start {
