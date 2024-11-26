@@ -64,6 +64,8 @@ pub async fn stream(
     include_undefined_nalus: bool,
     print_silent: bool,
     output_cut: i32,
+    output_dupe: i32,
+    dupe_index: i32,
     mut seed: u64,
     webrtc_file: &str,
     packet_delay: u64,
@@ -325,6 +327,8 @@ pub async fn stream(
                         let res = reencode_syntax_elements(
                             &mut decoded_elements,
                             output_cut,
+                            output_dupe,
+                            dupe_index,
                             false,
                             print_silent,
                             true,
@@ -344,6 +348,8 @@ pub async fn stream(
                     let res = reencode_syntax_elements(
                         &mut decoded_elements,
                         output_cut,
+                        output_dupe,
+                        dupe_index,
                         false,
                         print_silent,
                         true,

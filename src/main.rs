@@ -63,6 +63,12 @@ struct H26ForgeOptions {
     /// Cut out a passed in NALU index
     #[arg(long = "cut", default_value = "-1")]
     output_cut: i32,
+    /// Duplicate a passed in NALU index
+    #[arg(long = "duplicate", default_value = "-1")]
+    output_dupe: i32,
+    // Index for duplication
+    #[arg(long = "dupe_index", default_value = "-1")]
+    dupe_index: i32,
     /// Save the default configuration used in random video generation
     #[arg(long = "save-default-config")]
     save_default_config: bool,
@@ -397,6 +403,8 @@ fn mode_synthesize(input_filename: &str, output_filename: &str, options: &H26For
     let res = encoder::encoder::reencode_syntax_elements(
         &mut decoded_elements,
         options.output_cut,
+        options.output_dupe,
+        options.dupe_index,
         options.output_avcc,
         options.print_silent,
         options.output_rtp,
@@ -692,6 +700,8 @@ fn mode_randomize(
     let res = encoder::encoder::reencode_syntax_elements(
         &mut decoded_elements,
         options.output_cut,
+        options.output_dupe,
+        options.dupe_index,
         options.output_avcc,
         options.print_silent,
         options.output_rtp,
@@ -759,6 +769,8 @@ fn mode_modify(
         let res = encoder::encoder::reencode_syntax_elements(
             &mut decoded_elements,
             options.output_cut,
+            options.output_dupe,
+            options.dupe_index,
             options.output_avcc,
             options.print_silent,
             options.output_rtp,
@@ -941,6 +953,8 @@ fn mode_generate(
     let res = encoder::encoder::reencode_syntax_elements(
         &mut decoded_elements,
         options.output_cut,
+        options.output_dupe,
+        options.dupe_index,
         options.output_avcc,
         options.print_silent,
         options.output_rtp,
@@ -1075,6 +1089,8 @@ fn main() {
             let res = encoder::encoder::reencode_syntax_elements(
                 &mut decoded_elements,
                 options.output_cut,
+                options.output_dupe,
+                options.dupe_index,
                 options.output_avcc,
                 options.print_silent,
                 options.output_rtp,
@@ -1303,6 +1319,8 @@ fn main() {
                 *include_undefined_nalus,
                 options.print_silent,
                 options.output_cut,
+                options.output_dupe,
+                options.dupe_index,
                 *seed,
                 webrtc_file,
                 *packet_delay,
