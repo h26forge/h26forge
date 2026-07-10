@@ -1139,7 +1139,7 @@ fn decode_film_grain_characteristics(bs: &mut ByteStream) -> SEIFilmGrainCharact
                 fgc.intensity_interval_lower_bound.push(Vec::new());
                 fgc.intensity_interval_upper_bound.push(Vec::new());
                 fgc.comp_model_value.push(Vec::new());
-                for i in 0..fgc.num_intensity_intervals_minus1[c] as usize {
+                for i in 0..=fgc.num_intensity_intervals_minus1[c] as usize {
                     fgc.intensity_interval_lower_bound[c].push(bs.read_bits(8) as u8);
                     decoder_formatted_print(
                         "SEI (Film Grain Characteristics): intensity_interval_lower_bound",
@@ -1155,7 +1155,7 @@ fn decode_film_grain_characteristics(bs: &mut ByteStream) -> SEIFilmGrainCharact
                     );
 
                     fgc.comp_model_value[c].push(Vec::new());
-                    for j in 0..fgc.num_model_values_minus1[c] as usize {
+                    for j in 0..=fgc.num_model_values_minus1[c] as usize {
                         fgc.comp_model_value[c][i].push(exp_golomb_decode_one_wrapper(bs, true, 0));
                         decoder_formatted_print(
                             "SEI (Film Grain Characteristics): comp_model_value",

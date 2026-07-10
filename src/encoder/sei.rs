@@ -1010,7 +1010,7 @@ fn encode_film_grain_characteristics(fgc: &SEIFilmGrainCharacteristics) -> Vec<u
                     3,
                 ));
 
-                for i in 0..fgc.num_intensity_intervals_minus1[c] as usize {
+                for i in 0..=fgc.num_intensity_intervals_minus1[c] as usize {
                     res.append(&mut generate_unsigned_binary(
                         fgc.intensity_interval_lower_bound[c][i] as u32,
                         8,
@@ -1019,7 +1019,7 @@ fn encode_film_grain_characteristics(fgc: &SEIFilmGrainCharacteristics) -> Vec<u
                         fgc.intensity_interval_upper_bound[c][i] as u32,
                         8,
                     ));
-                    for j in 0..fgc.num_model_values_minus1[c] as usize {
+                    for j in 0..=fgc.num_model_values_minus1[c] as usize {
                         exp_golomb_encode_one(fgc.comp_model_value[c][i][j], true, 0, false);
                     }
                 }

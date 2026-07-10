@@ -683,14 +683,14 @@ fn random_film_grain_characteristics(
                 fgc.intensity_interval_lower_bound.push(Vec::new());
                 fgc.intensity_interval_upper_bound.push(Vec::new());
                 fgc.comp_model_value.push(Vec::new());
-                for i in 0..fgc.num_intensity_intervals_minus1[c] as usize {
+                for i in 0..=fgc.num_intensity_intervals_minus1[c] as usize {
                     fgc.intensity_interval_lower_bound[c]
                         .push(rconfig.intensity_interval_lower_bound.sample(film) as u8);
                     fgc.intensity_interval_upper_bound[c]
                         .push(rconfig.intensity_interval_upper_bound.sample(film) as u8);
 
                     fgc.comp_model_value[c].push(Vec::new());
-                    for _ in 0..fgc.num_model_values_minus1[c] as usize {
+                    for _ in 0..=fgc.num_model_values_minus1[c] as usize {
                         fgc.comp_model_value[c][i].push(rconfig.comp_model_value.sample(film));
                     }
                 }
