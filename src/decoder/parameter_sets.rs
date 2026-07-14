@@ -1056,8 +1056,8 @@ pub fn decode_subset_sps(bs: &mut ByteStream) -> SubsetSPS {
 
     if res.sps.profile_idc == 83 || res.sps.profile_idc == 86 {
         let chroma_array_type = match res.sps.separate_colour_plane_flag {
-            true => res.sps.chroma_format_idc,
-            false => 0,
+            false => res.sps.chroma_format_idc,
+            true => 0,
         };
         res.sps_svc = decode_sps_svc_extension(chroma_array_type, bs); // specified in Annex G
         res.svc_vui_parameters_present_flag = 1 == bs.read_bits(1);

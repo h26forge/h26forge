@@ -1049,8 +1049,8 @@ pub fn encode_subset_sps(s: &SubsetSPS) -> Vec<u8> {
 
     if s.sps.profile_idc == 83 || s.sps.profile_idc == 86 {
         let chroma_array_type = match s.sps.separate_colour_plane_flag {
-            true => s.sps.chroma_format_idc,
-            false => 0,
+            false => s.sps.chroma_format_idc,
+            true => 0,
         };
         bitstream_array.append(&mut encode_sps_svc_extension(chroma_array_type, &s.sps_svc)); // specified in Annex G
         bitstream_array.push(match s.svc_vui_parameters_present_flag {
